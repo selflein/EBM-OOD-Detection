@@ -20,11 +20,13 @@ def get_dataloaders(data_root, dataset, transform=None, test_transform=None, bat
     test_transform = default_transform if test_transform is None else test_transform
 
     if dataset == "cifar10":
-        train_data = dset.CIFAR10(data_root, train=False, transform=test_transform)         
-        train_data, val_data = random_split(train_data, lengths=[0.9, 0.1])
-        test_data = dset.CIFAR10(data_root, train=False, transform=test_transform)         
+        train_data = dset.CIFAR10(data_root, train=False, transform=transform)
+        train_size = int(len(train_data) * 0.9)
+        val_size = len(train_data) - train_size
+        train_data, val_data = random_split(train_data, lengths=[train_size, val_size])
+        test_data = dset.CIFAR10(data_root, train=False, transform=test_transform)
 
     else:
         raise ValueError(f"Dataset \"{dataset}\" not supported")
     
-    return _wrap_datasets(train_data, val_data, test_data, batch_size=batch_size)
+    return _wrap_datasets(train_data, val_data, test_data, batch_size=batch_size, pin_memory=True, num_workers=4)

@@ -99,7 +99,7 @@ class WideResNet(nn.Module):
     """
     def __init__(self, depth, widen_factor, num_classes=10, input_channels=3,
                  sum_pool=False, norm=None, leak=.2, dropout_rate=0.0):
-        super(Wide_ResNet, self).__init__()
+        super(WideResNet, self).__init__()
         self.leak = leak
         self.in_planes = 16
         self.sum_pool = sum_pool

@@ -10,6 +10,7 @@ from torch.utils.data import DataLoader, random_split
 from torchvision.datasets.mnist import MNIST
 from torchvision import transforms
 from sacred import Experiment
+import seml
 
 from uncertainty_est.archs.arch_factory import get_arch
 from uncertainty_est.data.dataloaders import get_dataloaders
@@ -35,8 +36,8 @@ def config():
 class CEBaseline(pl.LightningModule):
     def __init__(self, backbone, learning_rate=1e-3):
         super().__init__()
-        self.save_hyperparameters()
         self.backbone = backbone
+        self.lr = learning_rate
 
     def forward(self, x):
         return self.backbone(x)
@@ -44,53 +45,49 @@ class CEBaseline(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self.backbone(x)
+
         loss = F.cross_entropy(y_hat, y)
-        self.log('train_loss', loss, on_epoch=True, prog_bar=True)
+        self.log('train_loss', loss, prog_bar=True)
         return loss
 
     def validation_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self.backbone(x)
+
         loss = F.cross_entropy(y_hat, y)
         self.log('val_loss', loss)
-        acc = (y == y_hat.argmax(1)).mean(0).item()
-        self.log('val_acc', loss)
+
+        acc = (y == y_hat.argmax(1)).float().mean(0).item()
+        self.log('val_acc', acc)
 
     def test_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self.backbone(x)
-        loss = F.cross_entropy(y_hat, y)
-        self.log('test_loss', loss)
-        acc = (y == y_hat.argmax(1)).mean(0).item()
-        self.log('test_acc', loss)
+
+        acc = (y == y_hat.argmax(1)).float().mean(0).item()
+        self.log('test_acc', acc)
 
     def configure_optimizers(self):
-        return torch.optim.Adam(self.parameters(), lr=self.hparams.learning_rate)
+        return torch.optim.Adam(self.parameters(), lr=self.lr)
 
 
 @ex.automain
-def run(trainer_config, model_config, lr, dataset, seed, batch_size, monitor=None, config_file=None):
+def run(trainer_config, arch_name, arch_config, lr, dataset, seed, batch_size, monitor=None):
     pl.seed_everything(seed)
 
-    arch = get_arch(model_config)
-    model = CEBaseline(arch, lr)
+    arch = get_arch(arch_name, arch_config)
+    model = CEBaseline(arch, float(lr))
 
     train_loader, val_loader, test_loader = get_dataloaders("../data", dataset, batch_size=batch_size)
 
     ckpt_callback = pl.callbacks.ModelCheckpoint(monitor=monitor)
-    early_stopping_callback = pl.callbacks.EarlyStopping()
+    early_stopping_callback = pl.callbacks.EarlyStopping(monitor=monitor, patience=10)
 
     trainer = pl.Trainer(**trainer_config, logger=True)
     trainer.fit(model, train_loader, val_loader)
 
     result = trainer.test(test_dataloaders=test_loader)
-    return results
+    return result
 
 if __name__ == "__main__":
-    parser = ArgumentParser()
-    parser.add_argument("--config")
-    args = parser.parse_args()
-
-    ex.add_config(args.config)
-
     ex.run_commandline()

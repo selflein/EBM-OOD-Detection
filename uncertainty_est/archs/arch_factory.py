@@ -1,9 +1,7 @@
 from uncertainty_est.archs.wrn import WideResNet
 
 
-def get_arch(config_dict: dict):
-    name = config_dict.pop("name")
-
+def get_arch(name: str, config_dict: dict):
     if name == "wrn":
         return WideResNet(**config_dict)
     
