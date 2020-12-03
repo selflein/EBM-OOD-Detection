@@ -17,7 +17,7 @@ slurm:
 fixed:
   trainer_config:
     max_epochs: 500
-    gpus: "0"
+    gpus: 1
 
   arch_name: wrn
   arch_config:
