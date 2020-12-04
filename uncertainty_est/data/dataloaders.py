@@ -3,16 +3,12 @@ from torch.utils.data import DataLoader, random_split
 from torchvision import datasets as dset
 from torchvision import transforms as tvt
 
+from uncertainty_est.data.datasets import DATASETS
 
-def _wrap_datasets(train, val, test, *args, **kwargs):
-    return (
-        DataLoader(train, *args, **kwargs),
-        DataLoader(val, *args, **kwargs),
-        DataLoader(test, *args, **kwargs),
-    )
+DATA_ROOT = "../data"
 
 
-def get_dataloaders(data_root, dataset, batch_size=32, img_size=32):
+def get_dataloader(dataset, split, batch_size=32, img_size=32):
     train_transform = tvt.Compose(
         [
             tvt.Resize(img_size, Image.BICUBIC),
@@ -35,22 +31,23 @@ def get_dataloaders(data_root, dataset, batch_size=32, img_size=32):
         ]
     )
 
-    if dataset == "cifar10":
-        train_data = dset.CIFAR10(data_root, train=False, transform=train_transform)
-        train_size = int(len(train_data) * 0.9)
-        val_size = len(train_data) - train_size
-        train_data, val_data = random_split(train_data, lengths=[train_size, val_size])
-        val_data.transform = test_transform
-        test_data = dset.CIFAR10(data_root, train=False, transform=test_transform)
+    try:
+        ds = DATASETS[dataset]
+    except KeyError as e:
+        raise ValueError(f'Dataset "{dataset}" not supported') from e
+    ds = ds(DATA_ROOT)
 
+    if split == "train":
+        ds = ds.train(train_transform)
+    elif split == "val":
+        ds = ds.val(test_transform)
     else:
-        raise ValueError(f'Dataset "{dataset}" not supported')
+        ds = ds.test(test_transform)
 
-    return _wrap_datasets(
-        train_data,
-        val_data,
-        test_data,
+    dataloader = DataLoader(
+        ds,
         batch_size=batch_size,
         pin_memory=True,
         num_workers=4,
     )
+    return dataloader

@@ -1,39 +1,6 @@
-import os
-import sys
-
-
-from argparse import ArgumentParser
-
-import pytorch_lightning as pl
-import seml
 import torch
-from sacred import Experiment
-from torch.nn import functional as F
-from torch.utils.data import DataLoader, random_split
-from torchvision import transforms
-from torchvision.datasets.mnist import MNIST
-
-from uncertainty_est.archs.arch_factory import get_arch
-from uncertainty_est.data.dataloaders import get_dataloaders
-
-sys.path.insert(0, os.getcwd())
-ex = Experiment()
-seml.setup_logger(ex)
-
-
-@ex.post_run_hook
-def collect_stats(_run):
-    seml.collect_exp_stats(_run)
-
-
-@ex.config
-def config():
-    overwrite = None
-    db_collection = None
-    if db_collection is not None:
-        ex.observers.append(
-            seml.create_mongodb_observer(db_collection, overwrite=overwrite)
-        )
+import pytorch_lightning as pl
+import torch.nn.functional as F
 
 
 class CEBaseline(pl.LightningModule):
@@ -52,7 +19,6 @@ class CEBaseline(pl.LightningModule):
         y_hat = self.backbone(x)
 
         loss = F.cross_entropy(y_hat, y)
-        self.log("train_loss", loss, prog_bar=True)
         return loss
 
     def validation_step(self, batch, batch_idx):
@@ -73,49 +39,27 @@ class CEBaseline(pl.LightningModule):
         self.log("test_acc", acc)
 
     def configure_optimizers(self):
-        return torch.optim.SGD(
+        optim = torch.optim.AdamW(
             self.parameters(),
+            betas=(self.momentum, 0.999),
             lr=self.lr,
-            momentum=self.momentum,
             weight_decay=self.weight_decay,
         )
+        scheduler = torch.optim.lr_scheduler.StepLR(optim, step_size=30, gamma=0.5)
+        return [optim], [scheduler]
 
+    def get_gt_preds(self, loader):
+        gt, preds = [], []
+        for x, y in loader:
+            y_hat = self(x)
+            gt.append(y)
+            preds.append(y_hat)
+        return torch.cat(gt), torch.cat(preds)
 
-@ex.automain
-def run(
-    trainer_config,
-    arch_name,
-    arch_config,
-    lr,
-    momentum,
-    weight_decay,
-    dataset,
-    seed,
-    batch_size,
-    monitor=None,
-):
-    pl.seed_everything(seed)
-
-    arch = get_arch(arch_name, arch_config)
-    model = CEBaseline(arch, float(lr), momentum, weight_decay)
-
-    train_loader, val_loader, test_loader = get_dataloaders(
-        "../data", dataset, batch_size=batch_size
-    )
-
-    ckpt_callback = pl.callbacks.ModelCheckpoint(monitor=monitor)
-    early_stopping_callback = pl.callbacks.EarlyStopping(monitor=monitor, patience=10)
-
-    trainer = pl.Trainer(
-        **trainer_config,
-        logger=True,
-        callbacks=[ckpt_callback, early_stopping_callback]
-    )
-    trainer.fit(model, train_loader, val_loader)
-
-    result = trainer.test(test_dataloaders=test_loader)
-    return result
-
-
-if __name__ == "__main__":
-    ex.run_commandline()
+    def ood_detect(self, loader, method):
+        ood_scores = []
+        for x, _ in loader:
+            y_hat = self(x)
+            probs = torch.softmax(y_hat, dim=1)
+            ood_scores.append(torch.max(probs, dim=1)[0])
+        return torch.cat(ood_scores)

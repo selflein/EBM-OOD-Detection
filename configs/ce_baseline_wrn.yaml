@@ -23,10 +23,12 @@ fixed:
   arch_config:
     depth: 28
     num_classes: 10
-    widen_factor: 2
+    widen_factor: 10
 
-  lr: 1e-3
+  lr: 1e-4
+  momentum: 0.9
+  weight_decay: 0.0005
   dataset: cifar10
   seed: 1
   batch_size: 128
-  monitor: val_acc
+  monitor: val_loss
