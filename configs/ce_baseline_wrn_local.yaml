@@ -8,7 +8,9 @@ arch_config:
   num_classes: 10
   widen_factor: 2
 
-lr: 1e-3
+lr: 0.001
+momentum: 0.9
+weight_decay: 0.0005
 dataset: cifar10
 seed: 1
 batch_size: 128

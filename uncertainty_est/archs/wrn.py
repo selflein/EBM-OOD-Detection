@@ -2,17 +2,19 @@
 WideResnet architecture adapted from https://github.com/meliketoy/wide-resnet.pytorch
 """
 
-import torch.nn as nn
-import torch.nn.init as init
-import torch.nn.functional as F
 import numpy as np
+import torch.nn as nn
+import torch.nn.functional as F
+import torch.nn.init as init
 
 
 def conv3x3(in_planes, out_planes, stride=1):
     """
     Convolution with 3x3 kernels.
     """
-    return nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride, padding=1, bias=True)
+    return nn.Conv2d(
+        in_planes, out_planes, kernel_size=3, stride=stride, padding=1, bias=True
+    )
 
 
 def conv_init(m):
@@ -20,10 +22,10 @@ def conv_init(m):
     Initializing convolution layers.
     """
     classname = m.__class__.__name__
-    if classname.find('Conv') != -1:
+    if classname.find("Conv") != -1:
         init.xavier_uniform(m.weight, gain=np.sqrt(2))
         init.constant(m.bias, 0)
-    elif classname.find('BatchNorm') != -1:
+    elif classname.find("BatchNorm") != -1:
         init.constant(m.weight, 1)
         init.constant(m.bias, 0)
 
@@ -32,6 +34,7 @@ class Identity(nn.Module):
     """
     Identity norm as a stand in for no BN.
     """
+
     def __init__(self, *args, **kwargs):
         super().__init__()
 
@@ -46,14 +49,26 @@ class wide_basic(nn.Module):
     """
     One block in the Wide resnet.
     """
-    def __init__(self, in_planes, planes, dropout_rate, stride=1, norm=None, leak=.2, first=False):
+
+    def __init__(
+        self,
+        in_planes,
+        planes,
+        dropout_rate,
+        stride=1,
+        norm=None,
+        leak=0.2,
+        first=False,
+    ):
         super(wide_basic, self).__init__()
         self.lrelu = nn.LeakyReLU(leak)
         self.bn1 = get_norm(in_planes, norm)
         self.conv1 = nn.Conv2d(in_planes, planes, kernel_size=3, padding=1, bias=True)
         self.dropout = Identity() if dropout_rate == 0.0 else nn.Dropout(p=dropout_rate)
         self.bn2 = get_norm(planes, norm)
-        self.conv2 = nn.Conv2d(planes, planes, kernel_size=3, stride=stride, padding=1, bias=True)
+        self.conv2 = nn.Conv2d(
+            planes, planes, kernel_size=3, stride=stride, padding=1, bias=True
+        )
 
         self.first = first
 
@@ -67,7 +82,9 @@ class wide_basic(nn.Module):
         """
         Forward pass of block.
         """
-        if self.first:  # if it's the first block, don't apply the first batchnorm to the data
+        if (
+            self.first
+        ):  # if it's the first block, don't apply the first batchnorm to the data
             out = self.dropout(self.conv1(self.lrelu(x)))
         else:
             out = self.dropout(self.conv1(self.lrelu(self.bn1(x))))
@@ -97,8 +114,18 @@ class WideResNet(nn.Module):
     """
     Wide resnet model.
     """
-    def __init__(self, depth, widen_factor, num_classes=10, input_channels=3,
-                 sum_pool=False, norm=None, leak=.2, dropout_rate=0.0):
+
+    def __init__(
+        self,
+        depth,
+        widen_factor,
+        num_classes=10,
+        input_channels=3,
+        sum_pool=False,
+        norm=None,
+        leak=0.2,
+        dropout_rate=0.0,
+    ):
         super(WideResNet, self).__init__()
         self.leak = leak
         self.in_planes = 16
@@ -106,32 +133,49 @@ class WideResNet(nn.Module):
         self.norm = norm
         self.lrelu = nn.LeakyReLU(leak)
 
-        assert ((depth-4) % 6 == 0), 'Wide-resnet depth should be 6n+4'
-        n = (depth-4)//6
+        assert (depth - 4) % 6 == 0, "Wide-resnet depth should be 6n+4"
+        n = (depth - 4) // 6
         k = widen_factor
 
-        print('| Wide-Resnet %dx%d' % (depth, k))
-        nStages = [16, 16*k, 32*k, 64*k]
+        print("| Wide-Resnet %dx%d" % (depth, k))
+        nStages = [16, 16 * k, 32 * k, 64 * k]
 
         self.conv1 = conv3x3(input_channels, nStages[0])
-        self.layer1 = self._wide_layer(wide_basic, nStages[1], n, dropout_rate, stride=1, first=True)
-        self.layer2 = self._wide_layer(wide_basic, nStages[2], n, dropout_rate, stride=2)
-        self.layer3 = self._wide_layer(wide_basic, nStages[3], n, dropout_rate, stride=2)
+        self.layer1 = self._wide_layer(
+            wide_basic, nStages[1], n, dropout_rate, stride=1, first=True
+        )
+        self.layer2 = self._wide_layer(
+            wide_basic, nStages[2], n, dropout_rate, stride=2
+        )
+        self.layer3 = self._wide_layer(
+            wide_basic, nStages[3], n, dropout_rate, stride=2
+        )
         self.bn1 = get_norm(nStages[3], self.norm)
         self.last_dim = nStages[3]
         self.linear = nn.Linear(nStages[3], num_classes)
 
+        self.apply(conv_init)
+
     def _wide_layer(self, block, planes, num_blocks, dropout_rate, stride, first=False):
-        strides = [stride] + [1]*(num_blocks-1)
+        strides = [stride] + [1] * (num_blocks - 1)
         layers = []
 
         for i, stride in enumerate(strides):
             if first and i == 0:  # first block of first layer has no BN
-                layers.append(block(self.in_planes, planes, dropout_rate, stride,
-                                    norm=self.norm, first=True))
+                layers.append(
+                    block(
+                        self.in_planes,
+                        planes,
+                        dropout_rate,
+                        stride,
+                        norm=self.norm,
+                        first=True,
+                    )
+                )
             else:
-                layers.append(block(self.in_planes, planes, dropout_rate, stride,
-                                    norm=self.norm))
+                layers.append(
+                    block(self.in_planes, planes, dropout_rate, stride, norm=self.norm)
+                )
             self.in_planes = planes
 
         return nn.Sequential(*layers)
