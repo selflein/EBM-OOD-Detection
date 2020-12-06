@@ -13,7 +13,7 @@ from sklearn.metrics import roc_auc_score, average_precision_score
 
 from uncertainty_est.utils.utils import to_np
 from uncertainty_est.data.dataloaders import get_dataloader
-from uncertainty_est.models.ce_baseline.ce_baseline import CEBaseline
+from uncertainty_est.models.ce_baseline import CEBaseline
 from uncertainty_est.utils.metrics import (
     accuracy,
     classification_calibration,

@@ -1,12 +1,18 @@
 import torch
+from tqdm import tqdm
 import pytorch_lightning as pl
 import torch.nn.functional as F
 
+from uncertainty_est.archs.arch_factory import get_arch
+
 
 class CEBaseline(pl.LightningModule):
-    def __init__(self, backbone, learning_rate, momentum, weight_decay):
+    def __init__(self, arch_name, arch_config, learning_rate, momentum, weight_decay):
         super().__init__()
-        self.backbone = backbone
+        self.save_hyperparameters()
+
+        arch = get_arch(arch_name, arch_config)
+        self.backbone = arch
         self.lr = learning_rate
         self.momentum = momentum
         self.weight_decay = weight_decay
@@ -50,7 +56,7 @@ class CEBaseline(pl.LightningModule):
 
     def get_gt_preds(self, loader):
         gt, preds = [], []
-        for x, y in loader:
+        for x, y in tqdm(loader):
             y_hat = self(x)
             gt.append(y)
             preds.append(y_hat)
@@ -58,7 +64,7 @@ class CEBaseline(pl.LightningModule):
 
     def ood_detect(self, loader, method):
         ood_scores = []
-        for x, _ in loader:
+        for x, _ in tqdm(loader):
             y_hat = self(x)
             probs = torch.softmax(y_hat, dim=1)
             ood_scores.append(torch.max(probs, dim=1)[0])

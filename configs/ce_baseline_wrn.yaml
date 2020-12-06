@@ -1,6 +1,6 @@
 seml:
-  executable: uncertainty_est/models/ce_baseline.py
-  name: ce_baseline
+  executable: uncertainty_est/train.py
+  name: ce_baseline_wrn
   output_dir: slurm
   project_root_dir: ..
 

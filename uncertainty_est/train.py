@@ -12,7 +12,6 @@ import pytorch_lightning as pl
 
 from uncertainty_est.data.dataloaders import get_dataloader
 from uncertainty_est.models.ce_baseline import CEBaseline
-from uncertainty_est.archs.arch_factory import get_arch
 
 
 ex = Experiment()
@@ -52,8 +51,7 @@ def run(
     out_path = Path("logs") / datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
     out_path.mkdir(exist_ok=False, parents=True)
 
-    arch = get_arch(arch_name, arch_config)
-    model = CEBaseline(arch, float(lr), momentum, weight_decay)
+    model = CEBaseline(arch_name, dict(arch_config), float(lr), momentum, weight_decay)
 
     train_loader = get_dataloader(dataset, "train", batch_size, img_size=32)
     val_loader = get_dataloader(dataset, "val", batch_size, img_size=32)
