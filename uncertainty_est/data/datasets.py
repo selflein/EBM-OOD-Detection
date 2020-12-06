@@ -41,7 +41,7 @@ class LSUN:
         self.data_root = data_root
 
     def test(self, transform):
-        test_data = dset.LSUN(self.data_root, "test", transform=transform)
+        test_data = dset.LSUN(str(self.data_root / "lsun"), "test", transform=transform)
         return test_data
 
 
@@ -51,7 +51,7 @@ class SVHN:
 
     def test(self, transform):
         test_data = dset.SVHN(
-            self.data_root, "test", transform=transform, download=True
+            str(self.data_root / "svhn"), "test", transform=transform, download=True
         )
         return test_data
 

@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from PIL import Image
 from torch.utils.data import DataLoader, random_split
 from torchvision import datasets as dset
@@ -5,7 +7,7 @@ from torchvision import transforms as tvt
 
 from uncertainty_est.data.datasets import DATASETS
 
-DATA_ROOT = "../data"
+DATA_ROOT = Path("../data")
 
 
 def get_dataloader(dataset, split, batch_size=32, img_size=32):

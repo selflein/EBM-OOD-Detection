@@ -8,7 +8,7 @@ def accuracy(y: torch.Tensor, y_hat: torch.Tensor):
 
 
 def brier_score(labels, probs):
-    probs = probs.clone()
+    probs = probs.copy()
     probs[np.arange(len(probs)), labels] -= 1
     score = (probs ** 2).sum(1).mean(0)
     return score
@@ -16,11 +16,16 @@ def brier_score(labels, probs):
 
 def brier_decomposition(labels, probs):
     """Compute the decompositon of the Brier score into its three components
-     uncertainty, reliability and resolution. Brier score is given by
-     `BS = REL - RES + UNC`. Discretization into probability classes `M_k` is done for
-     `p_k > p_i` for all `i!=k`. This induces a error when compared to the Brier score.
+    uncertainty (UNC), reliability (REL) and resolution (RES).
 
-     Args:
+    Brier score is given by `BS = REL - RES + UNC`. The decomposition requires partioning
+    into discrete events. Partioning into probability classes `M_k` is done for `p_k > p_i`
+    for all `i!=k`. This induces a error when compared to the Brier score.
+
+    For more information on the partioning see
+    Murphy, A. H. (1973). A New Vector Partition of the Probability Score, Journal of Applied Meteorology and Climatology, 12(4)
+
+    Args:
         labels: Numpy array of shape (num_preds,) containing the groundtruth
          class in range [0, n_classes - 1].
         probs: Numpy array of shape (num_preds, n_classes) containing predicted
@@ -30,18 +35,18 @@ def brier_decomposition(labels, probs):
         (uncertainty, resolution, relability): Additive components of the Brier
          score decomposition.
     """
-    preds = np.argmax(probs, dim=1)
+    preds = np.argmax(probs, axis=1)
     conf_mat = confusion_matrix(labels, preds, labels=np.arange(probs.shape[1]))
 
     pbar = np.sum(conf_mat, axis=0)
-    pbar /= pbar.sum()
+    pbar = pbar / pbar.sum()
 
     dist_weights = np.sum(conf_mat, axis=1)
-    dist_weights /= dist_weights.sum()
+    dist_weights = dist_weights / dist_weights.sum()
 
     dist_mean = conf_mat / (np.sum(conf_mat, axis=1)[:, None] + 1e-7)
 
-    uncertainty = -np.sum(pbar ** 2)
+    uncertainty = np.sum(pbar * (1 - pbar))
 
     resolution = (pbar[:, None] - dist_mean) ** 2
     resolution = np.sum(dist_weights * np.sum(resolution, axis=1))
@@ -53,36 +58,29 @@ def brier_decomposition(labels, probs):
     return uncertainty, resolution, reliability
 
 
-def classification_calibration(labels, probs, bins=10):
-    preds = np.argmax(probs, axis=1)
-    total = labels.shape[0]
-    probs = np.max(probs, axis=1)
-    lower = 0.0
-    increment = 1.0 / bins
-    upper = increment
-    accs = np.zeros([bins + 1], dtype=np.float32)
-    gaps = np.zeros([bins + 1], dtype=np.float32)
-    ece = 0.0
-    for i in range(bins):
-        ind1 = probs >= lower
-        ind2 = probs < upper
-        ind = np.where(np.logical_and(ind1, ind2))[0]
-        if len(ind) > 0:
-            lprobs = probs[ind]
-            lpreds = preds[ind]
-            llabels = labels[ind]
-            acc = np.mean(np.asarray(llabels == lpreds, dtype=np.float32))
-            prob = np.mean(lprobs)
-        else:
-            acc = 0.0
-            prob = 0.0
-        ece += np.abs(acc - prob) * float(lprobs.shape[0])
-        gaps[i] = np.abs(acc - prob)
-        accs[i] = acc
-        upper += increment
-        lower += increment
-    ece /= np.float(total)
-    mce = np.max(np.abs(gaps))
+def calc_bins(labels, probs, num_bins=10):
+    bins = np.linspace(0.1, 1, num_bins)
+    binned = np.digitize(np.max(probs, axis=1), bins)
 
-    accs[-1] = 1.0
+    # Save the accuracy, confidence and size of each bin
+    bin_accs = np.zeros(num_bins)
+    bin_confs = np.zeros(num_bins)
+    bin_sizes = np.zeros(num_bins)
+    for bin_idx in range(num_bins):
+        in_bin = binned == bin_idx
+        bin_probs = probs[in_bin]
+        if len(bin_probs) > 0:
+            bin_sizes[bin_idx] = len(bin_probs)
+            bin_confs[bin_idx] = np.mean(bin_probs)
+            bin_accs[bin_idx] = (np.argmax(bin_probs, axis=1) == labels[in_bin]).mean()
+    return bins, binned, bin_accs, bin_confs, bin_sizes
+
+
+def classification_calibration(labels, probs, num_bins=10):
+    _, _, bin_accs, bin_confs, bin_sizes = calc_bins(labels, probs, num_bins)
+
+    cal_errors = np.abs(bin_accs - bin_confs)
+    mce = np.max(cal_errors)
+    ece = np.sum(cal_errors * (bin_sizes / np.sum(bin_sizes)))
+
     return ece, mce

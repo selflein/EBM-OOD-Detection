@@ -1,7 +1,10 @@
+from collections import defaultdict
+
 import torch
 from tqdm import tqdm
 import pytorch_lightning as pl
 import torch.nn.functional as F
+from pytorch_lightning.core.decorators import auto_move_data
 
 from uncertainty_est.archs.arch_factory import get_arch
 
@@ -55,17 +58,23 @@ class CEBaseline(pl.LightningModule):
         return [optim], [scheduler]
 
     def get_gt_preds(self, loader):
+        self.eval()
+        torch.set_grad_enabled(False)
         gt, preds = [], []
         for x, y in tqdm(loader):
-            y_hat = self(x)
+            x = x.to(self.device)
+            y_hat = self(x).cpu()
             gt.append(y)
             preds.append(y_hat)
         return torch.cat(gt), torch.cat(preds)
 
     def ood_detect(self, loader, method):
+        self.eval()
+        torch.set_grad_enabled(False)
         ood_scores = []
         for x, _ in tqdm(loader):
-            y_hat = self(x)
+            x = x.to(self.device)
+            y_hat = self(x).cpu()
             probs = torch.softmax(y_hat, dim=1)
-            ood_scores.append(torch.max(probs, dim=1)[0])
+            ood_scores.append(1 - torch.max(probs, dim=1)[0])
         return torch.cat(ood_scores)
