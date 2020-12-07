@@ -60,7 +60,8 @@ def brier_decomposition(labels, probs):
 
 def calc_bins(labels, probs, num_bins=10):
     bins = np.linspace(0.1, 1, num_bins)
-    binned = np.digitize(np.max(probs, axis=1), bins)
+    confs = np.max(probs, axis=1)
+    binned = np.digitize(confs, bins)
 
     # Save the accuracy, confidence and size of each bin
     bin_accs = np.zeros(num_bins)
@@ -71,7 +72,7 @@ def calc_bins(labels, probs, num_bins=10):
         bin_probs = probs[in_bin]
         if len(bin_probs) > 0:
             bin_sizes[bin_idx] = len(bin_probs)
-            bin_confs[bin_idx] = np.mean(bin_probs)
+            bin_confs[bin_idx] = np.mean(confs[in_bin])
             bin_accs[bin_idx] = (np.argmax(bin_probs, axis=1) == labels[in_bin]).mean()
     return bins, binned, bin_accs, bin_confs, bin_sizes
 

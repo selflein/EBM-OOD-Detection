@@ -1,7 +1,7 @@
-from uncertainty_est.utils.metrics import calc_bins, classification_calibration
-
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
+
+from uncertainty_est.utils.metrics import calc_bins, classification_calibration
 
 
 def draw_reliability_graph(labels, probs, num_bins, ax=None):

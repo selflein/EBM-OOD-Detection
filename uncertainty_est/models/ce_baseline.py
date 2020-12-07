@@ -28,6 +28,7 @@ class CEBaseline(pl.LightningModule):
         y_hat = self.backbone(x)
 
         loss = F.cross_entropy(y_hat, y)
+        self.logs("train_loss", loss)
         return loss
 
     def validation_step(self, batch, batch_idx):
