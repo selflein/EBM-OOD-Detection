@@ -13,17 +13,14 @@ from tqdm import tqdm
 import pytorch_lightning as pl
 import matplotlib.pyplot as plt
 from sklearn.metrics import roc_auc_score, average_precision_score
+from uncertainty_est.vis import draw_reliability_graph
+from uncertainty_eval.metrics.brier import brier_score, brier_decomposition
+from uncertainty_eval.metrics.calibration_error import classification_calibration
 
 from uncertainty_est.utils.utils import to_np
 from uncertainty_est.data.dataloaders import get_dataloader
 from uncertainty_est.models.ce_baseline import CEBaseline
-from uncertainty_est.utils.vis import draw_reliability_graph
-from uncertainty_est.utils.metrics import (
-    accuracy,
-    classification_calibration,
-    brier_score,
-    brier_decomposition,
-)
+from uncertainty_est.utils.metrics import accuracy
 
 
 parser = ArgumentParser()
