@@ -7,6 +7,9 @@ import torch.nn.functional as F
 from pytorch_lightning.core.decorators import auto_move_data
 
 from uncertainty_est.archs.arch_factory import get_arch
+from uncertainty_est.models.priornet.uncertainties import (
+    dirichlet_prior_network_uncertainty,
+)
 
 
 class CEBaseline(pl.LightningModule):
@@ -70,12 +73,9 @@ class CEBaseline(pl.LightningModule):
         return torch.cat(gt), torch.cat(preds)
 
     def ood_detect(self, loader, method):
-        self.eval()
-        torch.set_grad_enabled(False)
-        ood_scores = []
-        for x, _ in tqdm(loader):
-            x = x.to(self.device)
-            y_hat = self(x).cpu()
-            probs = torch.softmax(y_hat, dim=1)
-            ood_scores.append(1 - torch.max(probs, dim=1)[0])
-        return torch.cat(ood_scores)
+        _, logits = self.get_gt_preds(loader)
+
+        dir_uncert = dirichlet_prior_network_uncertainty(
+            logits.cpu().numpy(),
+        )
+        return dir_uncert

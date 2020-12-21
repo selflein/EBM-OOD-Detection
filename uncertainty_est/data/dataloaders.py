@@ -55,6 +55,10 @@ def get_dataloader(dataset, split, batch_size=32, img_size=32, ood_dataset=None)
         ds = ds.test(test_transform)
 
     dataloader = DataLoader(
-        ds, batch_size=batch_size, pin_memory=True, num_workers=4, shuffle=True
+        ds,
+        batch_size=batch_size,
+        pin_memory=True,
+        num_workers=4,
+        shuffle=split == "train",
     )
     return dataloader

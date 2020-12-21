@@ -114,6 +114,10 @@ class EnergyFinetune(CEBaseline):
         return torch.cat(gt), torch.cat(preds)
 
     def ood_detect(self, loader, method):
-        self.eval()
-        torch.set_grad_enabled(False)
-        # TODO
+        _, logits = self.get_gt_preds(loader)
+
+        dir_uncert = dirichlet_prior_network_uncertainty(
+            logits.cpu().numpy(),
+        )
+        # TODO: Add detection based on energy score
+        return dir_uncert

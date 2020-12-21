@@ -5,6 +5,7 @@ sys.path.insert(0, os.getcwd())
 
 import logging
 from pathlib import Path
+from collections import defaultdict
 from argparse import ArgumentParser
 
 import torch
@@ -13,13 +14,14 @@ from tqdm import tqdm
 import pytorch_lightning as pl
 import matplotlib.pyplot as plt
 from sklearn.metrics import roc_auc_score, average_precision_score
-from uncertainty_est.vis import draw_reliability_graph
 from uncertainty_eval.metrics.brier import brier_score, brier_decomposition
 from uncertainty_eval.metrics.calibration_error import classification_calibration
 
 from uncertainty_est.utils.utils import to_np
+from uncertainty_est.utils.dirichlet import dirichlet_prior_network_uncertainty
 from uncertainty_est.data.dataloaders import get_dataloader
 from uncertainty_est.models.ce_baseline import CEBaseline
+from uncertainty_est.models.priornet.priornet import PriorNet
 from uncertainty_est.utils.metrics import accuracy
 
 
@@ -41,7 +43,7 @@ if __name__ == "__main__":
     if args.log_file is not None:
         logger.addHandler(logging.FileHandler(args.log_file, mode="w"))
 
-    model = CEBaseline.load_from_checkpoint(args.checkpoint)
+    model = PriorNet.load_from_checkpoint(args.checkpoint)
     model.eval()
     model.cuda()
 
@@ -58,9 +60,9 @@ if __name__ == "__main__":
     brier_score = brier_score(y_np, probs_np)
     uncertainty, resolution, reliability = brier_decomposition(y_np, probs_np)
 
-    fig, ax = plt.subplots(figsize=(10, 10))
-    draw_reliability_graph(y_np, probs_np, 10, ax=ax)
-    fig.savefig("logs/calibration.png", dpi=200)
+    # fig, ax = plt.subplots(figsize=(10, 10))
+    # draw_reliability_graph(y_np, probs_np, 10, ax=ax)
+    # fig.savefig("logs/calibration.png", dpi=200)
 
     logger.info(f"ECE: {ece * 100:.02f}")
     logger.info(f"Brier: {brier_score * 100:.02f}")
@@ -72,19 +74,24 @@ if __name__ == "__main__":
     )
 
     # Compute ID OOD scores
-    id_scores = to_np(model.ood_detect(id_test_loader, "max"))
+    id_scores_dict = model.ood_detect(id_test_loader)
 
     # Compute OOD detection metrics
     for ood_ds in args.ood_dataset:
-        logger.info(ood_ds)
+        logger.info(f"\n\n{ood_ds}")
         ood_loader = get_dataloader(ood_ds, "test", 128, img_size=32)
-        ood_scores = to_np(model.ood_detect(ood_loader, "max"))
+        ood_scores_dict = model.ood_detect(ood_loader)
 
-        labels = np.concatenate([np.ones_like(ood_scores), np.zeros_like(id_scores)])
-        preds = np.concatenate([ood_scores, id_scores])
+        for score_name, id_scores in id_scores_dict.items():
+            ood_scores = ood_scores_dict[score_name]
+            labels = np.concatenate(
+                [np.ones_like(ood_scores), np.zeros_like(id_scores)]
+            )
+            preds = np.concatenate([ood_scores, id_scores])
 
-        auroc = roc_auc_score(labels, preds)
-        aupr = average_precision_score(labels, preds)
+            auroc = roc_auc_score(labels, preds)
+            aupr = average_precision_score(labels, preds)
 
-        logger.info(f"AUROC: {auroc * 100:.02f}")
-        logger.info(f"AUPR: {aupr * 100:.02f}")
+            logger.info(score_name)
+            logger.info(f"AUROC: {auroc * 100:.02f}")
+            logger.info(f"AUPR: {aupr * 100:.02f}")
