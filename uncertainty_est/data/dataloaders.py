@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import torch
 from PIL import Image
 from torch.utils.data import DataLoader, random_split
 from torchvision import datasets as dset
@@ -11,7 +12,9 @@ from uncertainty_est.data.datasets import ConcatDataset
 DATA_ROOT = Path("../data")
 
 
-def get_dataloader(dataset, split, batch_size=32, img_size=32, ood_dataset=None):
+def get_dataloader(
+    dataset, split, batch_size=32, img_size=32, ood_dataset=None, sigma=0.0
+):
     train_transform = tvt.Compose(
         [
             tvt.Resize(img_size, Image.BICUBIC),
@@ -33,6 +36,13 @@ def get_dataloader(dataset, split, batch_size=32, img_size=32, ood_dataset=None)
             tvt.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
         ]
     )
+
+    if sigma > 0.0:
+        noise_transform = tvt.transforms.Lambda(
+            lambda x: x + sigma * torch.randn_like(x)
+        )
+        train_transform.transforms.append(noise_transform)
+        test_transform.transforms.append(noise_transform)
 
     try:
         ds = DATASETS[dataset](DATA_ROOT)

@@ -1,0 +1,27 @@
+trainer_config:
+  max_epochs: 500
+  gpus: "0"
+
+arch_name: wrn
+arch_config:
+  depth: 28
+  num_classes: 10
+  widen_factor: 10
+
+lr: 1e-4
+momentum: 0.9
+weight_decay: 0.0
+dataset: cifar10
+seed: 1
+batch_size: 128
+monitor: val_acc
+pyxce: 1.0
+ood_dataset:
+pxcontrast: 0.0
+pxycontrast: 1.0
+smoothing: 0.0
+contrast_k: 65536
+contrast_t:  0.1
+n_classes: 10
+
+sigma: 0.03

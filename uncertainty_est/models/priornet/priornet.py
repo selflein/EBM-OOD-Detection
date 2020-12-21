@@ -18,17 +18,24 @@ from uncertainty_est.models.priornet.dpn_losses import (
 
 class PriorNet(pl.LightningModule):
     def __init__(
-        self, arch_name, arch_config, learning_rate, momentum, weight_decay, **kwargs
+        self,
+        arch_name,
+        arch_config,
+        learning_rate,
+        momentum,
+        weight_decay,
+        target_concentration,
+        concentration,
+        reverse_kl,
+        alpha_fix,
+        gamma,
     ):
         super().__init__()
+        self.__dict__.update(locals())
         self.save_hyperparameters()
-        self.__dict__.update(kwargs)
 
         arch = get_arch(arch_name, arch_config)
         self.backbone = arch
-        self.lr = learning_rate
-        self.momentum = momentum
-        self.weight_decay = weight_decay
 
         id_criterion = DirichletKLLoss(
             target_concentration=self.target_concentration,
