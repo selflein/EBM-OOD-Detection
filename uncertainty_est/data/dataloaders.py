@@ -70,5 +70,6 @@ def get_dataloader(
         pin_memory=True,
         num_workers=4,
         shuffle=split == "train",
+        drop_last=split == "train",
     )
     return dataloader

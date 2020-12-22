@@ -55,7 +55,7 @@ class CEBaseline(pl.LightningModule):
         optim = torch.optim.AdamW(
             self.parameters(),
             betas=(self.momentum, 0.999),
-            lr=self.lr,
+            lr=self.learning_rate,
             weight_decay=self.weight_decay,
         )
         scheduler = torch.optim.lr_scheduler.StepLR(optim, step_size=30, gamma=0.5)

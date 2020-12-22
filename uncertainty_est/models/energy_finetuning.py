@@ -24,12 +24,12 @@ class EnergyFinetune(CEBaseline):
         m_out,
         epochs,
         dl_len,
+        checkpoint,
     ):
         super().__init__(arch_name, arch_config, learning_rate, momentum, weight_decay)
-        self.score = score
-        self.m_in = m_in
-        self.m_out = m_out
-        self.max_steps = epochs * dl_len
+        self.__dict__.update(locals())
+        self.save_hyperparameters()
+        self.arch.load_state_dict(torch.load(checkpoint))
 
     def forward(self, x):
         return self.backbone(x)
@@ -82,7 +82,7 @@ class EnergyFinetune(CEBaseline):
         optim = torch.optim.AdamW(
             self.parameters(),
             betas=(self.momentum, 0.999),
-            lr=self.lr,
+            lr=self.learning_rate,
             weight_decay=self.weight_decay,
         )
 
@@ -113,11 +113,9 @@ class EnergyFinetune(CEBaseline):
             preds.append(y_hat)
         return torch.cat(gt), torch.cat(preds)
 
-    def ood_detect(self, loader, method):
+    def ood_detect(self, loader):
         _, logits = self.get_gt_preds(loader)
 
-        dir_uncert = dirichlet_prior_network_uncertainty(
-            logits.cpu().numpy(),
-        )
-        # TODO: Add detection based on energy score
-        return dir_uncert
+        uncert = {}
+        uncert["Energy"] = -torch.logsumexp(logits, 1)
+        return uncert

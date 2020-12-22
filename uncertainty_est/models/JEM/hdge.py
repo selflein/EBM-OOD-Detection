@@ -8,7 +8,6 @@ from uncertainty_est.archs.arch_factory import get_arch
 from uncertainty_est.models.JEM.utils import (
     KHotCrossEntropyLoss,
     smooth_one_hot,
-    init_random,
 )
 
 
@@ -99,5 +98,14 @@ class HDGEModel(pl.LightningModule):
             preds.append(y_hat)
         return torch.cat(gt), torch.cat(preds)
 
-    def ood_detect(self, loader, method):
-        raise NotImplementedError
+    def ood_detect(self, loader):
+        self.eval()
+        torch.set_grad_enabled(False)
+        uncert = {}
+
+        px = []
+        for x, _ in tqdm(loader):
+            x = x.to(self.device)
+            px.append(self.model(x).cpu())
+        uncert["p(x)"] = -torch.cat(px)
+        return uncert

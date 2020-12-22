@@ -26,7 +26,7 @@ class JEM(pl.LightningModule):
         buffer_size,
         n_classes,
         n_ch,
-        im_size,
+        data_shape,
         smoothing,
         pyxce,
         pxsgld,
@@ -41,14 +41,16 @@ class JEM(pl.LightningModule):
         self.save_hyperparameters()
 
         arch = get_arch(arch_name, arch_config)
-        self.model = F(arch) if self.uncond else ConditionalF(arch)
+        self.model = (
+            F(arch, n_classes) if self.uncond else ConditionalF(arch, n_classes)
+        )
 
         if not self.uncond:
             assert (
                 self.buffer_size % self.n_classes == 0
             ), "Buffer size must be divisible by args.n_classes"
 
-        replay_buffer = init_random(self.buffer_size, self.n_ch, self.im_size)
+        replay_buffer = init_random(self.buffer_size, data_shape)
         self.register_buffer("replay_buffer", replay_buffer, persistent=True)
 
     def forward(self, x):
@@ -124,12 +126,12 @@ class JEM(pl.LightningModule):
             preds.append(y_hat)
         return torch.cat(gt), torch.cat(preds)
 
-    def ood_detect(self, loader, method):
+    def ood_detect(self, loader):
         raise NotImplementedError
 
     def sample_p_0(self, replay_buffer, bs, y=None):
         if len(replay_buffer) == 0:
-            return init_random(bs), []
+            return init_random(bs, self.data_shape), []
 
         buffer_size = (
             len(replay_buffer) if y is None else len(replay_buffer) // self.n_classes
@@ -143,7 +145,7 @@ class JEM(pl.LightningModule):
             ), "Can't drawn conditional samples without giving me y"
 
         buffer_samples = replay_buffer[inds]
-        random_samples = init_random(bs)
+        random_samples = init_random(bs, self.data_shape)
         choose_random = (torch.rand(bs) < self.reinit_freq).float()[:, None, None, None]
         samples = choose_random * random_samples + (1 - choose_random) * buffer_samples
         return samples.to(self.device), inds

@@ -3,21 +3,33 @@ trainer_config:
   min_epochs: 10
   gpus: "0"
 
-arch_name: wrn
-arch_config:
-  depth: 28
-  num_classes: 10
-  widen_factor: 10
+checkpoint_config:
+  monitor: val_loss
+  mode: min
 
-lr: 0.0001
-momentum: 0.5
-weight_decay: 0.
+earlystop_config:
+  monitor: val_loss
+  mode: min
+  patience: 10
+
 dataset: cifar10
+ood_dataset: cifar100
 seed: 1
 batch_size: 128
-ood_dataset: cifar100
-monitor: val_loss
-m_in: -23
-m_out: -5
-score: "energy"
-checkpoint: "logs/wrn_cifar10_baseline/epoch=17.ckpt"
+
+model_name: EnergyOOD
+model_config:
+  arch_name: wrn
+  arch_config:
+    depth: 28
+    num_classes: 10
+    widen_factor: 10
+  learning_rate: 0.0001
+  momentum: 0.5
+  weight_decay: 0.
+  m_in: -23
+  m_out: -5
+  score: "energy"
+  checkpoint: "logs/wrn_cifar10_baseline/epoch=17.ckpt"
+  epochs: 10
+  dl_len: 500

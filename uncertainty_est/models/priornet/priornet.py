@@ -77,7 +77,7 @@ class PriorNet(pl.LightningModule):
         self.log("val_acc", acc)
 
     def test_step(self, batch, batch_idx):
-        (x, y), (_, _) = batch
+        x, y = batch
 
         y_hat = self(x)
         acc = (y == y_hat.argmax(1)).float().mean(0).item()
@@ -87,7 +87,7 @@ class PriorNet(pl.LightningModule):
         optim = torch.optim.AdamW(
             self.parameters(),
             betas=(self.momentum, 0.999),
-            lr=self.lr,
+            lr=self.learning_rate,
             weight_decay=self.weight_decay,
         )
         scheduler = torch.optim.lr_scheduler.StepLR(optim, step_size=100, gamma=0.5)

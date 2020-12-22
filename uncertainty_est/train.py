@@ -10,8 +10,8 @@ import seml
 from sacred import Experiment
 import pytorch_lightning as pl
 
+from uncertainty_est.models import MODELS
 from uncertainty_est.data.dataloaders import get_dataloader
-from uncertainty_est.models.ce_baseline import CEBaseline
 
 
 ex = Experiment()
@@ -36,29 +36,36 @@ def config():
 @ex.automain
 def run(
     trainer_config,
-    arch_name,
-    arch_config,
-    lr,
-    momentum,
-    weight_decay,
+    model_name,
+    model_config,
     dataset,
     seed,
     batch_size,
-    monitor=None,
+    ood_dataset,
+    earlystop_config,
+    checkpoint_config,
+    sigma=0.0,
 ):
     pl.seed_everything(seed)
 
-    out_path = Path("logs") / datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+    model = MODELS[model_name](**model_config)
+
+    train_loader = get_dataloader(
+        dataset, "train", batch_size, img_size=32, ood_dataset=ood_dataset, sigma=sigma
+    )
+    val_loader = get_dataloader(dataset, "val", batch_size, img_size=32, sigma=sigma)
+    test_loader = get_dataloader(dataset, "test", batch_size, img_size=32, sigma=sigma)
+
+    out_path = (
+        Path("logs")
+        / model_name
+        / dataset
+        / datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+    )
     out_path.mkdir(exist_ok=False, parents=True)
 
-    model = CEBaseline(arch_name, dict(arch_config), float(lr), momentum, weight_decay)
-
-    train_loader = get_dataloader(dataset, "train", batch_size, img_size=32)
-    val_loader = get_dataloader(dataset, "val", batch_size, img_size=32)
-    test_loader = get_dataloader(dataset, "test", batch_size, img_size=32)
-
-    ckpt_callback = pl.callbacks.ModelCheckpoint(out_path, monitor=monitor)
-    es_callback = pl.callbacks.EarlyStopping(monitor=monitor, patience=10, mode="min")
+    ckpt_callback = pl.callbacks.ModelCheckpoint(out_path, **checkpoint_config)
+    es_callback = pl.callbacks.EarlyStopping(**earlystop_config)
     logger = pl.loggers.TensorBoardLogger(out_path)
 
     trainer = pl.Trainer(

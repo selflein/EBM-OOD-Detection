@@ -20,9 +20,8 @@ from uncertainty_eval.metrics.calibration_error import classification_calibratio
 from uncertainty_est.utils.utils import to_np
 from uncertainty_est.utils.dirichlet import dirichlet_prior_network_uncertainty
 from uncertainty_est.data.dataloaders import get_dataloader
-from uncertainty_est.models.ce_baseline import CEBaseline
-from uncertainty_est.models.priornet.priornet import PriorNet
 from uncertainty_est.utils.metrics import accuracy
+from uncertainty_est.models import MODELS
 
 
 parser = ArgumentParser()
@@ -30,6 +29,7 @@ parser.add_argument("--checkpoint", type=str)
 parser.add_argument("--dataset", type=str)
 parser.add_argument("--ood_dataset", type=str, action="append")
 parser.add_argument("--log_file", type=str)
+parser.add_argument("--model", type=str)
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -40,12 +40,12 @@ logger.addHandler(stdout_handler)
 if __name__ == "__main__":
     args = parser.parse_args()
 
-    if args.log_file is not None:
-        logger.addHandler(logging.FileHandler(args.log_file, mode="w"))
-
-    model = PriorNet.load_from_checkpoint(args.checkpoint)
+    model = MODELS[args.model].load_from_checkpoint(args.checkpoint)
     model.eval()
     model.cuda()
+
+    if args.log_file is not None:
+        logger.addHandler(logging.FileHandler(args.log_file, mode="w"))
 
     id_test_loader = get_dataloader(args.dataset, "test", 128, img_size=32)
     y, logits = model.get_gt_preds(id_test_loader)
