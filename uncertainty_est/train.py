@@ -6,6 +6,7 @@ sys.path.insert(0, os.getcwd())
 from pathlib import Path
 from datetime import datetime
 
+import torch
 import seml
 from sacred import Experiment
 import pytorch_lightning as pl
@@ -45,16 +46,27 @@ def run(
     earlystop_config,
     checkpoint_config,
     sigma=0.0,
+    data_shape=(3, 32, 32),
 ):
+    torch.set_default_tensor_type(torch.FloatTensor)
     pl.seed_everything(seed)
 
     model = MODELS[model_name](**model_config)
 
     train_loader = get_dataloader(
-        dataset, "train", batch_size, img_size=32, ood_dataset=ood_dataset, sigma=sigma
+        dataset,
+        "train",
+        batch_size,
+        data_shape=data_shape,
+        ood_dataset=ood_dataset,
+        sigma=sigma,
     )
-    val_loader = get_dataloader(dataset, "val", batch_size, img_size=32, sigma=sigma)
-    test_loader = get_dataloader(dataset, "test", batch_size, img_size=32, sigma=sigma)
+    val_loader = get_dataloader(
+        dataset, "val", batch_size, data_shape=data_shape, sigma=sigma
+    )
+    test_loader = get_dataloader(
+        dataset, "test", batch_size, data_shape=data_shape, sigma=sigma
+    )
 
     out_path = (
         Path("logs")

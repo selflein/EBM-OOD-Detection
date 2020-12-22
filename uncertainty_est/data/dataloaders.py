@@ -2,7 +2,7 @@ from pathlib import Path
 
 import torch
 from PIL import Image
-from torch.utils.data import DataLoader, random_split
+from torch.utils.data import DataLoader
 from torchvision import datasets as dset
 from torchvision import transforms as tvt
 from uncertainty_eval.datasets.image.datasets import DATASETS
@@ -13,36 +13,42 @@ DATA_ROOT = Path("../data")
 
 
 def get_dataloader(
-    dataset, split, batch_size=32, img_size=32, ood_dataset=None, sigma=0.0
+    dataset, split, batch_size=32, data_shape=(3, 32, 32), ood_dataset=None, sigma=0.0
 ):
-    train_transform = tvt.Compose(
-        [
-            tvt.Resize(img_size, Image.BICUBIC),
-            tvt.CenterCrop(img_size),
-            tvt.Pad(4, padding_mode="reflect"),
-            tvt.RandomRotation(15, resample=Image.BICUBIC),
-            tvt.RandomHorizontalFlip(),
-            tvt.RandomCrop(img_size),
-            tvt.ToTensor(),
-            tvt.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
-        ]
-    )
+    train_transform = []
+    test_transform = []
 
-    test_transform = tvt.Compose(
-        [
-            tvt.Resize(img_size, Image.BICUBIC),
-            tvt.CenterCrop(img_size),
-            tvt.ToTensor(),
-            tvt.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
-        ]
-    )
+    if len(data_shape) == 3:
+        img_size = data_shape[-1]
+        train_transform.extend(
+            [
+                tvt.Resize(img_size, Image.BICUBIC),
+                tvt.CenterCrop(img_size),
+                tvt.Pad(4, padding_mode="reflect"),
+                tvt.RandomRotation(15, resample=Image.BICUBIC),
+                tvt.RandomHorizontalFlip(),
+                tvt.RandomCrop(img_size),
+                tvt.ToTensor(),
+                tvt.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+            ]
+        )
+
+        test_transform.extend(
+            [
+                tvt.Resize(img_size, Image.BICUBIC),
+                tvt.CenterCrop(img_size),
+                tvt.ToTensor(),
+                tvt.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+            ]
+        )
 
     if sigma > 0.0:
-        noise_transform = tvt.transforms.Lambda(
-            lambda x: x + sigma * torch.randn_like(x)
-        )
-        train_transform.transforms.append(noise_transform)
-        test_transform.transforms.append(noise_transform)
+        noise_transform = lambda x: x + sigma * torch.randn_like(x)
+        train_transform.append(noise_transform)
+        test_transform.append(noise_transform)
+
+    train_transform = tvt.Compose(train_transform)
+    test_transform = tvt.Compose(test_transform)
 
     try:
         ds = DATASETS[dataset](DATA_ROOT)
@@ -53,7 +59,21 @@ def get_dataloader(
         ds = ds.train(train_transform)
         if ood_dataset is not None:
             try:
-                ood_ds = DATASETS[dataset](DATA_ROOT)
+                ood_ds_class = DATASETS[dataset]
+                if dataset == "GaussianNoise":
+                    m = 127.5 if len(data_shape) == 3 else 0.0
+                    s = 60.0 if len(data_shape) == 3 else 1.0
+                    mean = torch.empty(*data_shape)._fill(m)
+                    std = torch.empty(*data_shape)._fill(s)
+                    ood_ds = ood_ds_class(DATA_ROOT, length=len(ds), mean=mean, std=std)
+                elif dataset == "UniformNoise":
+                    l = 0.0 if len(data_shape) == 3 else -5.0
+                    h = 255.0 if len(data_shape) == 3 else 5.0
+                    low = torch.empty(*data_shape)._fill(l)
+                    high = torch.empty(*data_shape)._fill(h)
+                    ood_ds = ood_ds_class(DATA_ROOT, length=len(ds), low=low, high=high)
+                else:
+                    ood_ds = ood_ds(DATA_ROOT)
             except KeyError as e:
                 raise ValueError(f'Dataset "{dataset}" not supported') from e
 

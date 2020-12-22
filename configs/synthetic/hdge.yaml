@@ -3,15 +3,15 @@ trainer_config:
   gpus: "0"
 
 checkpoint_config:
-  monitor: val_acc
-  mode: max
+  monitor: val_loss
+  mode: min
 
 earlystop_config:
-  monitor: val_acc
-  mode: max
+  monitor: val_loss
+  mode: min
   patience: 10
 
-dataset: cifar10
+dataset: Gaussian2D
 ood_dataset:
 seed: 1
 batch_size: 128
@@ -19,6 +19,10 @@ sigma: 0.03
 
 model_name: HDGE
 model_config:
+  arch_name: fc
+  arch_config:
+    inp_dim: 2
+    num_classes: 3
   learning_rate: 0.0001
   momentum: 0.9
   weight_decay: 0.0

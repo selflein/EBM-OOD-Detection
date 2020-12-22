@@ -15,13 +15,10 @@ from uncertainty_est.models.priornet.uncertainties import (
 class CEBaseline(pl.LightningModule):
     def __init__(self, arch_name, arch_config, learning_rate, momentum, weight_decay):
         super().__init__()
+        self.__dict__.update(locals())
         self.save_hyperparameters()
 
-        arch = get_arch(arch_name, arch_config)
-        self.backbone = arch
-        self.lr = learning_rate
-        self.momentum = momentum
-        self.weight_decay = weight_decay
+        self.backbone = get_arch(arch_name, arch_config)
 
     def forward(self, x):
         return self.backbone(x)
@@ -31,7 +28,7 @@ class CEBaseline(pl.LightningModule):
         y_hat = self.backbone(x)
 
         loss = F.cross_entropy(y_hat, y)
-        self.logs("train_loss", loss)
+        self.log("train_loss", loss)
         return loss
 
     def validation_step(self, batch, batch_idx):
