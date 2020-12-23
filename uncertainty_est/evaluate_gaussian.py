@@ -33,7 +33,7 @@ if __name__ == "__main__":
     model.eval()
     model.cuda()
 
-    interp = torch.linspace(-5, 5, 300)
+    interp = torch.linspace(-10, 10, 500)
     x, y = torch.meshgrid(interp, interp)
     data = torch.stack((x.reshape(-1), y.reshape(-1)), 1)
 

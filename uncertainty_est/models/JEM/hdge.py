@@ -37,7 +37,7 @@ class HDGEModel(pl.LightningModule):
     def forward(self, x):
         return self.model.classify(x)
 
-    def compute_losses(self, x_lab, dist, logits=None):
+    def compute_losses(self, x_lab, dist, logits=None, evaluation=False):
         l_pyxce, l_pxcontrast, l_pxycontrast = 0.0, 0.0, 0.0
         # log p(y|x) cross entropy loss
         if self.pyxce > 0:
@@ -50,13 +50,17 @@ class HDGEModel(pl.LightningModule):
         if self.pxcontrast > 0:
             # ones like dist to use all indexes
             ones_dist = torch.ones_like(dist).to(self.device)
-            output, target, _, _ = self.model.joint(img=x_lab, dist=ones_dist)
+            output, target, _, _ = self.model.joint(
+                img=x_lab, dist=ones_dist, evaluation=evaluation
+            )
             l_pxcontrast = F.cross_entropy(output, target)
             l_pxcontrast *= self.pxycontrast
 
         # log p(x|y) using contrastive learning
         if self.pxycontrast > 0:
-            output, target, _, _ = self.model.joint(img=x_lab, dist=dist)
+            output, target, _, _ = self.model.joint(
+                img=x_lab, dist=dist, evaluation=evaluation
+            )
             l_pxycontrast = F.cross_entropy(output, target)
             l_pxycontrast *= self.pxycontrast
 
@@ -74,7 +78,10 @@ class HDGEModel(pl.LightningModule):
         logits = self.model.classify(x)
         dist = smooth_one_hot(y, self.n_classes, self.smoothing)
 
-        self.log("val_loss", sum(self.compute_losses(x, dist, logits=logits)))
+        self.log(
+            "val_loss",
+            sum(self.compute_losses(x, dist, logits=logits, evaluation=True)),
+        )
 
         acc = (y == logits.argmax(1)).float().mean(0).item()
         self.log("val_acc", acc)

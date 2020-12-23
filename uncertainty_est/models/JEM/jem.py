@@ -138,7 +138,17 @@ class JEM(pl.LightningModule):
         return torch.cat(gt), torch.cat(preds)
 
     def ood_detect(self, loader):
-        raise NotImplementedError
+        self.eval()
+        torch.set_grad_enabled(False)
+        scores = []
+        for x, y in tqdm(loader):
+            x = x.to(self.device)
+            score = self.model(x).cpu()
+            scores.append(score)
+
+        uncert = {}
+        uncert["p(x)"] = torch.cat(scores).cpu().numpy()
+        return uncert
 
     def sample_p_0(self, replay_buffer, bs, y=None):
         if len(replay_buffer) == 0:
