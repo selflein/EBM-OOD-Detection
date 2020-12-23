@@ -9,16 +9,17 @@ checkpoint_config:
 earlystop_config:
   monitor: val_loss
   mode: min
-  patience: 10
+  patience: 50
 
 dataset: Gaussian2D
-ood_dataset:
+# Use second dataset
+ood_dataset: Gaussian2D
 seed: 1
 batch_size: 128
 sigma: 0.03
 data_shape: [2]
 
-model_name: HDGE
+model_name: JEM
 model_config:
   arch_name: fc
   arch_config:
@@ -27,10 +28,16 @@ model_config:
   learning_rate: 0.0005
   momentum: 0.9
   weight_decay: 0.0
-  pyxce: 1.0
-  pxcontrast: 0.0
-  pxycontrast: 1.0
   smoothing: 0.0
-  contrast_k: 65536
-  contrast_t:  0.1
+  sgld_lr: 1.0
+  sgld_std: 0.01
+  pyxce: 1.0
+  pxsgld: 1.0
+  pxysgld: 0.0
+  buffer_size: 9999
+  reinit_freq: 0.05
+  data_shape: [2]
+  uncond: False
+  sgld_batch_size: 128
+  class_cond_p_x_sample: False
   n_classes: 3

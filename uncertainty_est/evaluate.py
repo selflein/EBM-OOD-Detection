@@ -47,7 +47,7 @@ if __name__ == "__main__":
     if args.log_file is not None:
         logger.addHandler(logging.FileHandler(args.log_file, mode="w"))
 
-    id_test_loader = get_dataloader(args.dataset, "test", 128, img_size=32)
+    id_test_loader = get_dataloader(args.dataset, "test", 128)
     y, logits = model.get_gt_preds(id_test_loader)
 
     # Compute accuracy
@@ -79,7 +79,7 @@ if __name__ == "__main__":
     # Compute OOD detection metrics
     for ood_ds in args.ood_dataset:
         logger.info(f"\n\n{ood_ds}")
-        ood_loader = get_dataloader(ood_ds, "test", 128, img_size=32)
+        ood_loader = get_dataloader(ood_ds, "test", 128)
         ood_scores_dict = model.ood_detect(ood_loader)
 
         for score_name, id_scores in id_scores_dict.items():

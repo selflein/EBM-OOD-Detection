@@ -25,7 +25,6 @@ class JEM(pl.LightningModule):
         weight_decay,
         buffer_size,
         n_classes,
-        n_ch,
         data_shape,
         smoothing,
         pyxce,
@@ -35,6 +34,8 @@ class JEM(pl.LightningModule):
         sgld_batch_size,
         sgld_lr,
         sgld_std,
+        reinit_freq,
+        uncond,
     ):
         super().__init__()
         self.__dict__.update(locals())
@@ -50,22 +51,20 @@ class JEM(pl.LightningModule):
                 self.buffer_size % self.n_classes == 0
             ), "Buffer size must be divisible by args.n_classes"
 
-        replay_buffer = init_random(self.buffer_size, data_shape)
-        self.register_buffer("replay_buffer", replay_buffer, persistent=True)
+        self.replay_buffer = init_random(self.buffer_size, data_shape).cpu()
 
     def forward(self, x):
         return self.model.classify(x)
 
-    def training_step(self, batch, batch_idx):
-        (x_lab, y_lab), (x_p_d, _) = batch
-        dist = smooth_one_hot(y_lab, self.n_classes, self.smoothing)
+    def compute_losses(self, x_lab, y_lab, x_p_d, dist, logits=None):
+        l_pyxce, l_pxsgld, l_pxysgld = 0.0, 0.0, 0.0
 
-        loss = 0.0
         # log p(y|x) cross entropy loss
         if self.pyxce > 0:
-            logits = self.model.classify(x_lab)
+            if logits is None:
+                logits = self.model.classify(x_lab)
             l_pyxce = KHotCrossEntropyLoss()(logits, dist)
-            loss += self.pyxce * l_pyxce
+            l_pyxce *= self.pyxce
 
         # log p(x) using sgld
         if self.pxsgld > 0:
@@ -81,21 +80,33 @@ class JEM(pl.LightningModule):
             fp = self.model(x_p_d).mean()
             fq = self.model(x_q).mean()
             l_pxsgld = -(fp - fq)
-            loss += self.pxsgld * l_pxsgld
+            l_pxsgld *= self.pxsgld
 
         # log p(x|y) using sgld
         if self.pxysgld > 0:
             x_q_lab = self.sample_q(self.replay_buffer, y=y_lab)
             fp, fq = self.model(x_lab).mean(), self.model(x_q_lab).mean()
             l_pxysgld = -(fp - fq)
-            loss += self.pxysgld * l_pxysgld
+            l_pxysgld *= self.pxysgld
+
+        return l_pyxce, l_pxysgld, l_pxysgld
+
+    def training_step(self, batch, batch_idx):
+        (x_lab, y_lab), (x_p_d, _) = batch
+        dist = smooth_one_hot(y_lab, self.n_classes, self.smoothing)
+        loss = sum(self.compute_losses(x_lab, y_lab, x_p_d, dist))
         return loss
 
     def validation_step(self, batch, batch_idx):
-        x, y = batch
-        y_hat = self(x)
+        x_lab, y_lab = batch
+        dist = smooth_one_hot(y_lab, self.n_classes, self.smoothing)
+        logits = self(x_lab)
+        torch.set_grad_enabled(True)
+        loss = sum(self.compute_losses(x_lab, y_lab, x_lab, dist, logits=logits))
+        torch.set_grad_enabled(False)
+        self.log("val_loss", loss)
 
-        acc = (y == y_hat.argmax(1)).float().mean(0).item()
+        acc = (y_lab == logits.argmax(1)).float().mean(0).item()
         self.log("val_acc", acc)
 
     def test_step(self, batch, batch_idx):
@@ -109,7 +120,7 @@ class JEM(pl.LightningModule):
         optim = torch.optim.AdamW(
             self.parameters(),
             betas=(self.momentum, 0.999),
-            lr=self.lr,
+            lr=self.learning_rate,
             weight_decay=self.weight_decay,
         )
         scheduler = torch.optim.lr_scheduler.StepLR(optim, step_size=30, gamma=0.5)
@@ -144,9 +155,11 @@ class JEM(pl.LightningModule):
                 not self.uncond
             ), "Can't drawn conditional samples without giving me y"
 
-        buffer_samples = replay_buffer[inds]
-        random_samples = init_random(bs, self.data_shape)
-        choose_random = (torch.rand(bs) < self.reinit_freq).float()[:, None, None, None]
+        buffer_samples = replay_buffer[inds].to(self.device)
+        random_samples = init_random(bs, self.data_shape).to(self.device)
+        choose_random = (torch.rand(bs) < self.reinit_freq).to(buffer_samples)[
+            (...,) + (None,) * len(self.data_shape)
+        ]
         samples = choose_random * random_samples + (1 - choose_random) * buffer_samples
         return samples.to(self.device), inds
 

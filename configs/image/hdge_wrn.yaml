@@ -16,6 +16,7 @@ ood_dataset:
 seed: 1
 batch_size: 128
 sigma: 0.03
+data_shape: [3, 32, 32]
 
 model_name: HDGE
 model_config:

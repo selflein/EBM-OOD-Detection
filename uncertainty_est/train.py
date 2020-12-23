@@ -45,8 +45,8 @@ def run(
     ood_dataset,
     earlystop_config,
     checkpoint_config,
+    data_shape,
     sigma=0.0,
-    data_shape=(3, 32, 32),
 ):
     torch.set_default_tensor_type(torch.FloatTensor)
     pl.seed_everything(seed)
@@ -76,13 +76,15 @@ def run(
     )
     out_path.mkdir(exist_ok=False, parents=True)
 
-    ckpt_callback = pl.callbacks.ModelCheckpoint(out_path, **checkpoint_config)
-    es_callback = pl.callbacks.EarlyStopping(**earlystop_config)
+    callbacks = []
+    callbacks.append(pl.callbacks.ModelCheckpoint(out_path, **checkpoint_config))
+    if earlystop_config is not None:
+        es_callback = pl.callbacks.EarlyStopping(**earlystop_config)
+        callbacks.append(es_callback)
+
     logger = pl.loggers.TensorBoardLogger(out_path)
 
-    trainer = pl.Trainer(
-        **trainer_config, logger=logger, callbacks=[ckpt_callback, es_callback]
-    )
+    trainer = pl.Trainer(**trainer_config, logger=logger, callbacks=callbacks)
     trainer.fit(model, train_loader, val_loader)
 
     result = trainer.test(test_dataloaders=test_loader)

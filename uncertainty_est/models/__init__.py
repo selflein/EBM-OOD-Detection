@@ -5,7 +5,7 @@ from uncertainty_est.models.energy_finetuning import EnergyFinetune
 from uncertainty_est.models.priornet.priornet import PriorNet
 
 MODELS = {
-    "hdge": HDGEModel,
+    "HDGE": HDGEModel,
     "JEM": JEM,
     "CEBaseline": CEBaseline,
     "EnergyOOD": EnergyFinetune,

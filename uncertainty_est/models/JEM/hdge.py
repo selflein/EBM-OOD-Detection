@@ -37,16 +37,14 @@ class HDGEModel(pl.LightningModule):
     def forward(self, x):
         return self.model.classify(x)
 
-    def training_step(self, batch, batch_idx):
-        x_lab, y_lab = batch
-        dist = smooth_one_hot(y_lab, self.n_classes, self.smoothing)
-
-        loss = 0.0
+    def compute_losses(self, x_lab, dist, logits=None):
+        l_pyxce, l_pxcontrast, l_pxycontrast = 0.0, 0.0, 0.0
         # log p(y|x) cross entropy loss
         if self.pyxce > 0:
-            logits = self.model.classify(x_lab)
+            if logits is None:
+                logits = self.model.classify(x_lab)
             l_pyxce = KHotCrossEntropyLoss()(logits, dist)
-            loss += self.pyxce * l_pyxce
+            l_pyxce *= self.pyxce
 
         # log p(x) using contrastive learning
         if self.pxcontrast > 0:
@@ -54,20 +52,31 @@ class HDGEModel(pl.LightningModule):
             ones_dist = torch.ones_like(dist).to(self.device)
             output, target, _, _ = self.model.joint(img=x_lab, dist=ones_dist)
             l_pxcontrast = F.cross_entropy(output, target)
-            loss += self.pxycontrast * l_pxcontrast
+            l_pxcontrast *= self.pxycontrast
 
         # log p(x|y) using contrastive learning
         if self.pxycontrast > 0:
             output, target, _, _ = self.model.joint(img=x_lab, dist=dist)
             l_pxycontrast = F.cross_entropy(output, target)
-            loss += self.pxycontrast * l_pxycontrast
+            l_pxycontrast *= self.pxycontrast
+
+        return l_pyxce, l_pxcontrast, l_pxycontrast
+
+    def training_step(self, batch, batch_idx):
+        x_lab, y_lab = batch
+        dist = smooth_one_hot(y_lab, self.n_classes, self.smoothing)
+
+        loss = sum(self.compute_losses(x_lab, dist))
         return loss
 
     def validation_step(self, batch, batch_idx):
         x, y = batch
-        y_hat = self(x)
+        logits = self.model.classify(x)
+        dist = smooth_one_hot(y, self.n_classes, self.smoothing)
 
-        acc = (y == y_hat.argmax(1)).float().mean(0).item()
+        self.log("val_loss", sum(self.compute_losses(x, dist, logits=logits)))
+
+        acc = (y == logits.argmax(1)).float().mean(0).item()
         self.log("val_acc", acc)
 
     def test_step(self, batch, batch_idx):

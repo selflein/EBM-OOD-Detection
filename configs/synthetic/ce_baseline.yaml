@@ -15,6 +15,7 @@ dataset: Gaussian2D
 ood_dataset:
 seed: 1
 batch_size: 128
+data_shape: [2]
 
 model_name: CEBaseline
 model_config:

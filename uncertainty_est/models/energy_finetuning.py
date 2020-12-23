@@ -22,14 +22,13 @@ class EnergyFinetune(CEBaseline):
         score,
         m_in,
         m_out,
-        epochs,
-        dl_len,
         checkpoint,
+        max_steps,
     ):
         super().__init__(arch_name, arch_config, learning_rate, momentum, weight_decay)
         self.__dict__.update(locals())
         self.save_hyperparameters()
-        self.arch.load_state_dict(torch.load(checkpoint))
+        self.load_state_dict(torch.load(checkpoint)["state_dict"])
 
     def forward(self, x):
         return self.backbone(x)
@@ -97,21 +96,10 @@ class EnergyFinetune(CEBaseline):
                 step,
                 self.max_steps,
                 1,  # since lr_lambda computes multiplicative factor
-                1e-6 / self.lr,
+                1e-6 / self.learning_rate,
             ),
         )
         return [optim], [scheduler]
-
-    def get_gt_preds(self, loader):
-        self.eval()
-        torch.set_grad_enabled(False)
-        gt, preds = [], []
-        for x, y in tqdm(loader):
-            x = x.to(self.device)
-            y_hat = self(x).cpu()
-            gt.append(y)
-            preds.append(y_hat)
-        return torch.cat(gt), torch.cat(preds)
 
     def ood_detect(self, loader):
         _, logits = self.get_gt_preds(loader)

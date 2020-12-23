@@ -3,18 +3,19 @@ trainer_config:
   gpus: "0"
 
 checkpoint_config:
-  monitor: val_loss
-  mode: min
+  monitor: val_acc
+  mode: max
 
 earlystop_config:
-  monitor: val_loss
-  mode: min
+  monitor: val_acc
+  mode: max
   patience: 10
 
 dataset: Gaussian2D
 ood_dataset: AnomalousGaussian2D
 seed: 1
 batch_size: 128
+data_shape: [2]
 
 model_name: PriorNet
 model_config:

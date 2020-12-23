@@ -73,7 +73,7 @@ def get_dataloader(
                     high = torch.empty(*data_shape)._fill(h)
                     ood_ds = ood_ds_class(DATA_ROOT, length=len(ds), low=low, high=high)
                 else:
-                    ood_ds = ood_ds(DATA_ROOT)
+                    ood_ds = ood_ds_class(DATA_ROOT)
             except KeyError as e:
                 raise ValueError(f'Dataset "{dataset}" not supported') from e
 
