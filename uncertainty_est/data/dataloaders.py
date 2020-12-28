@@ -57,32 +57,33 @@ def get_dataloader(
 
     if split == "train":
         ds = ds.train(train_transform)
-        if ood_dataset is not None:
-            try:
-                ood_ds_class = DATASETS[dataset]
-                if dataset == "GaussianNoise":
-                    m = 127.5 if len(data_shape) == 3 else 0.0
-                    s = 60.0 if len(data_shape) == 3 else 1.0
-                    mean = torch.empty(*data_shape)._fill(m)
-                    std = torch.empty(*data_shape)._fill(s)
-                    ood_ds = ood_ds_class(DATA_ROOT, length=len(ds), mean=mean, std=std)
-                elif dataset == "UniformNoise":
-                    l = 0.0 if len(data_shape) == 3 else -5.0
-                    h = 255.0 if len(data_shape) == 3 else 5.0
-                    low = torch.empty(*data_shape)._fill(l)
-                    high = torch.empty(*data_shape)._fill(h)
-                    ood_ds = ood_ds_class(DATA_ROOT, length=len(ds), low=low, high=high)
-                else:
-                    ood_ds = ood_ds_class(DATA_ROOT)
-            except KeyError as e:
-                raise ValueError(f'Dataset "{dataset}" not supported') from e
-
-            ood_train = ood_ds.train(train_transform)
-            ds = ConcatDataset(ds, ood_train)
     elif split == "val":
         ds = ds.val(test_transform)
     else:
         ds = ds.test(test_transform)
+
+    if ood_dataset is not None:
+        try:
+            ood_ds_class = DATASETS[dataset]
+            if dataset == "GaussianNoise":
+                m = 127.5 if len(data_shape) == 3 else 0.0
+                s = 60.0 if len(data_shape) == 3 else 1.0
+                mean = torch.empty(*data_shape)._fill(m)
+                std = torch.empty(*data_shape)._fill(s)
+                ood_ds = ood_ds_class(DATA_ROOT, length=len(ds), mean=mean, std=std)
+            elif dataset == "UniformNoise":
+                l = 0.0 if len(data_shape) == 3 else -5.0
+                h = 255.0 if len(data_shape) == 3 else 5.0
+                low = torch.empty(*data_shape)._fill(l)
+                high = torch.empty(*data_shape)._fill(h)
+                ood_ds = ood_ds_class(DATA_ROOT, length=len(ds), low=low, high=high)
+            else:
+                ood_ds = ood_ds_class(DATA_ROOT)
+        except KeyError as e:
+            raise ValueError(f'Dataset "{dataset}" not supported') from e
+
+        ood_train = ood_ds.train(train_transform)
+        ds = ConcatDataset(ds, ood_train)
 
     dataloader = DataLoader(
         ds,

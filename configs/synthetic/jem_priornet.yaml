@@ -1,0 +1,46 @@
+trainer_config:
+  max_epochs: 500
+  gpus: "0"
+
+checkpoint_config:
+  monitor: val_acc
+  mode: max
+
+earlystop_config:
+  monitor: val_acc
+  mode: max
+  patience: 50
+
+dataset: Gaussian2D
+ood_dataset: Gaussian2D
+seed: 1
+batch_size: 128
+sigma: 0.03
+data_shape: [2]
+
+model_name: JEMPriorNet
+model_config:
+  arch_name: fc
+  arch_config:
+    inp_dim: 2
+    num_classes: 3
+  learning_rate: 0.0005
+  momentum: 0.9
+  weight_decay: 0.0
+  smoothing: 0.0
+  sgld_lr: 1.0
+  sgld_std: 0.01
+  pyxce: 0.0
+  pxsgld: 1.0
+  pxysgld: 0.0
+  buffer_size: 9999
+  reinit_freq: 0.05
+  data_shape: [2]
+  uncond: False
+  sgld_batch_size: 128
+  class_cond_p_x_sample: False
+  n_classes: 3
+  kl_weight: 0.1
+  concentration: 1.0
+  target_concentration:
+  alpha_fix: True

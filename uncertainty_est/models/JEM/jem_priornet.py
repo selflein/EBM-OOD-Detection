@@ -1,6 +1,7 @@
 from collections import defaultdict
 
 import torch
+import numpy as np
 from tqdm import tqdm
 import pytorch_lightning as pl
 import torch.nn.functional as F
@@ -8,6 +9,10 @@ from pytorch_lightning.core.decorators import auto_move_data
 
 from uncertainty_est.archs.arch_factory import get_arch
 from uncertainty_est.models.JEM.model import F, ConditionalF
+from uncertainty_est.models.priornet.dpn_losses import dirichlet_kl_divergence
+from uncertainty_est.models.priornet.uncertainties import (
+    dirichlet_prior_network_uncertainty,
+)
 from uncertainty_est.models.JEM.utils import (
     KHotCrossEntropyLoss,
     smooth_one_hot,
@@ -15,7 +20,7 @@ from uncertainty_est.models.JEM.utils import (
 )
 
 
-class JEM(pl.LightningModule):
+class JEMPriorNet(pl.LightningModule):
     def __init__(
         self,
         arch_name,
@@ -36,6 +41,10 @@ class JEM(pl.LightningModule):
         sgld_std,
         reinit_freq,
         uncond,
+        target_concentration,
+        alpha_fix,
+        kl_weight,
+        concentration,
     ):
         super().__init__()
         self.__dict__.update(locals())
@@ -93,8 +102,28 @@ class JEM(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         (x_lab, y_lab), (x_p_d, _) = batch
+
+        logits = self.model.classify(x_lab)
         dist = smooth_one_hot(y_lab, self.n_classes, self.smoothing)
-        loss = sum(self.compute_losses(x_lab, y_lab, x_p_d, dist))
+        loss = sum(self.compute_losses(x_lab, y_lab, x_p_d, dist, logits=logits))
+
+        alphas = torch.exp(logits)
+        if self.alpha_fix:
+            alphas = alphas + 1
+
+        if self.target_concentration is None:
+            target_concentration = torch.exp(self.model(x_lab))
+        else:
+            target_concentration = (
+                torch.empty(len(alphas))
+                .fill_(self.target_concentration)
+                .to(self.device)
+            )
+
+        target_alphas = torch.empty_like(alphas).fill_(self.concentration)
+        target_alphas[torch.arange(len(y_lab)), y_lab] = target_concentration
+        kl_term = self.kl_weight * dirichlet_kl_divergence(alphas, target_alphas)
+        loss += kl_term.mean()
         return loss
 
     def validation_step(self, batch, batch_idx):
@@ -110,8 +139,8 @@ class JEM(pl.LightningModule):
         self.log("val_acc", acc)
 
     def test_step(self, batch, batch_idx):
-        (x, y), (_, _) = batch
-        y_hat = self(x)
+        (x_lab, y), (_, _) = batch
+        y_hat = self(x_lab)
 
         acc = (y == y_hat.argmax(1)).float().mean(0).item()
         self.log("test_acc", acc)
@@ -140,14 +169,19 @@ class JEM(pl.LightningModule):
     def ood_detect(self, loader):
         self.eval()
         torch.set_grad_enabled(False)
-        scores = []
+        scores, logits = [], []
         for x, y in tqdm(loader):
             x = x.to(self.device)
             score = self.model(x).cpu()
             scores.append(score)
+            logits.append(self.model.classify(x).cpu().numpy())
 
         uncert = {}
         uncert["p(x)"] = torch.cat(scores).cpu().numpy()
+        dirichlet_uncerts = dirichlet_prior_network_uncertainty(
+            np.concatenate(logits), alpha_correction=self.alpha_fix
+        )
+        uncert = {**uncert, **dirichlet_uncerts}
         return uncert
 
     def sample_p_0(self, replay_buffer, bs, y=None):

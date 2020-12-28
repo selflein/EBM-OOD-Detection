@@ -69,7 +69,7 @@ class CEBaseline(pl.LightningModule):
             preds.append(y_hat)
         return torch.cat(gt), torch.cat(preds)
 
-    def ood_detect(self, loader, method):
+    def ood_detect(self, loader):
         _, logits = self.get_gt_preds(loader)
 
         dir_uncert = dirichlet_prior_network_uncertainty(

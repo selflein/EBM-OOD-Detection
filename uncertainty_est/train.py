@@ -47,6 +47,7 @@ def run(
     checkpoint_config,
     data_shape,
     sigma=0.0,
+    output_folder=None,
 ):
     torch.set_default_tensor_type(torch.FloatTensor)
     pl.seed_everything(seed)
@@ -62,18 +63,28 @@ def run(
         sigma=sigma,
     )
     val_loader = get_dataloader(
-        dataset, "val", batch_size, data_shape=data_shape, sigma=sigma
+        dataset,
+        "val",
+        batch_size,
+        data_shape=data_shape,
+        sigma=sigma,
+        ood_dataset=ood_dataset,
     )
     test_loader = get_dataloader(
-        dataset, "test", batch_size, data_shape=data_shape, sigma=sigma
+        dataset,
+        "test",
+        batch_size,
+        data_shape=data_shape,
+        sigma=sigma,
+        ood_dataset=ood_dataset,
     )
 
-    out_path = (
-        Path("logs")
-        / model_name
-        / dataset
-        / datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+    output_folder = (
+        datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+        if output_folder is None
+        else output_folder
     )
+    out_path = Path("logs") / model_name / dataset / output_folder
     out_path.mkdir(exist_ok=False, parents=True)
 
     callbacks = []

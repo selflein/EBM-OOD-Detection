@@ -3,12 +3,13 @@ trainer_config:
   gpus: "0"
 
 checkpoint_config:
-  monitor: val_acc
-  mode: max
+  monitor: val_loss
+  mode: min
+  save_last: True
 
 earlystop_config:
-  monitor: val_acc
-  mode: max
+  monitor: val_loss
+  mode: min
   patience: 10
 
 dataset: Gaussian2D

@@ -70,14 +70,20 @@ class PriorNet(pl.LightningModule):
         return loss
 
     def validation_step(self, batch, batch_idx):
-        x, y = batch
+        (x, y), (x_ood, _) = batch
 
-        y_hat = self(x)
+        y_hat = self(torch.cat((x, x_ood)))
+        y_hat_ood = y_hat[len(x) :]
+        y_hat = y_hat[: len(x)]
+
         acc = (y == y_hat.argmax(1)).float().mean(0).item()
         self.log("val_acc", acc)
 
+        loss = self.criterion((y_hat, y_hat_ood), (y, None))
+        self.log("val_loss", loss)
+
     def test_step(self, batch, batch_idx):
-        x, y = batch
+        (x, y), (_, _) = batch
 
         y_hat = self(x)
         acc = (y == y_hat.argmax(1)).float().mean(0).item()

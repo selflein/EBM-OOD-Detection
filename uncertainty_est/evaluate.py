@@ -10,12 +10,14 @@ from argparse import ArgumentParser
 
 import torch
 import numpy as np
+import pandas as pd
 from tqdm import tqdm
 import pytorch_lightning as pl
 import matplotlib.pyplot as plt
 from sklearn.metrics import roc_auc_score, average_precision_score
 from uncertainty_eval.metrics.brier import brier_score, brier_decomposition
 from uncertainty_eval.metrics.calibration_error import classification_calibration
+from uncertainty_eval.vis import draw_reliability_graph
 
 from uncertainty_est.utils.utils import to_np
 from uncertainty_est.utils.dirichlet import dirichlet_prior_network_uncertainty
@@ -28,7 +30,6 @@ parser = ArgumentParser()
 parser.add_argument("--checkpoint", type=str)
 parser.add_argument("--dataset", type=str)
 parser.add_argument("--ood_dataset", type=str, action="append")
-parser.add_argument("--log_file", type=str)
 parser.add_argument("--model", type=str)
 
 logger = logging.getLogger()
@@ -37,22 +38,37 @@ stdout_handler = logging.StreamHandler(sys.stdout)
 logger.addHandler(stdout_handler)
 
 
+def plot_score_hist(real_scores, fake_scores, title=None, ax=None):
+    if ax is None:
+        _, ax = plt.subplots()
+
+    if title is not None:
+        ax.set_title(title)
+
+    ax.hist(real_scores, bins=100, alpha=0.5, density=True, stacked=True)
+    ax.hist(fake_scores, bins=100, alpha=0.5, density=True, stacked=True)
+    ax.legend(labels=("Real", "Fake"))
+    return ax
+
+
 if __name__ == "__main__":
     args = parser.parse_args()
+    checkpoint_path = Path(args.checkpoint)
+    output_folder = checkpoint_path.parent
 
-    model = MODELS[args.model].load_from_checkpoint(args.checkpoint)
+    model = MODELS[args.model].load_from_checkpoint(checkpoint_path)
     model.eval()
     model.cuda()
 
-    if args.log_file is not None:
-        logger.addHandler(logging.FileHandler(args.log_file, mode="w"))
+    logger.addHandler(logging.FileHandler(output_folder / "out.log", mode="w"))
 
     id_test_loader = get_dataloader(args.dataset, "test", 128)
     y, logits = model.get_gt_preds(id_test_loader)
 
     # Compute accuracy
     probs = torch.softmax(logits, dim=1)
-    logger.info(f"Accuracy: {accuracy(y, probs) * 100.:.02f}")
+    acc = accuracy(y, probs)
+    logger.info(f"Accuracy: {acc * 100.:.02f}")
 
     # Compute calibration
     y_np, probs_np = to_np(y), to_np(probs)
@@ -60,9 +76,9 @@ if __name__ == "__main__":
     brier_score = brier_score(y_np, probs_np)
     uncertainty, resolution, reliability = brier_decomposition(y_np, probs_np)
 
-    # fig, ax = plt.subplots(figsize=(10, 10))
-    # draw_reliability_graph(y_np, probs_np, 10, ax=ax)
-    # fig.savefig("logs/calibration.png", dpi=200)
+    fig, ax = plt.subplots(figsize=(10, 10))
+    draw_reliability_graph(y_np, probs_np, 10, ax=ax)
+    fig.savefig(output_folder / "calibration.png", dpi=200)
 
     logger.info(f"ECE: {ece * 100:.02f}")
     logger.info(f"Brier: {brier_score * 100:.02f}")
@@ -84,6 +100,14 @@ if __name__ == "__main__":
 
         for score_name, id_scores in id_scores_dict.items():
             ood_scores = ood_scores_dict[score_name]
+
+            ax = plot_score_hist(
+                id_scores,
+                ood_scores,
+                title=f"{ood_ds}, {score_name.replace('_', ' ').title()}",
+            )
+            ax.figure.savefig(str(output_folder / f"{ood_ds}_{score_name}.png"))
+
             labels = np.concatenate(
                 [np.ones_like(ood_scores), np.zeros_like(id_scores)]
             )
