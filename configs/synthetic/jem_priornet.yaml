@@ -1,15 +1,17 @@
 trainer_config:
   max_epochs: 500
-  gpus: "0"
+  min_epochs: 50
+  gpus: 1
 
 checkpoint_config:
   monitor: val_acc
   mode: max
+  save_last: True
 
 earlystop_config:
   monitor: val_acc
   mode: max
-  patience: 50
+  patience: 10
 
 dataset: Gaussian2D
 ood_dataset: Gaussian2D
@@ -40,7 +42,7 @@ model_config:
   sgld_batch_size: 128
   class_cond_p_x_sample: False
   n_classes: 3
-  kl_weight: 0.1
+  kl_weight: 1.0
   concentration: 1.0
   target_concentration:
   alpha_fix: True

@@ -1,0 +1,41 @@
+trainer_config:
+  max_epochs: 500
+  gpus: "0"
+
+checkpoint_config:
+  monitor: val_loss
+  mode: min
+
+earlystop_config:
+  monitor: val_loss
+  mode: min
+  patience: 10
+
+dataset: cifar10
+ood_dataset:
+seed: 1
+batch_size: 128
+sigma: 0.03
+data_shape: [3, 32, 32]
+
+model_name: HDGEPriorNet
+model_config:
+  arch_name: wrn
+  arch_config:
+    depth: 28
+    num_classes: 10
+    widen_factor: 10
+  learning_rate: 0.0005
+  momentum: 0.9
+  weight_decay: 0.0
+  pyxce: 0.0
+  pxcontrast: 0.0
+  pxycontrast: 1.0
+  smoothing: 0.0
+  contrast_k: 65536
+  contrast_t:  0.1
+  n_classes: 10
+  alpha_fix: True
+  target_concentration:
+  concentration: 1.0
+  kl_weight: 1.0

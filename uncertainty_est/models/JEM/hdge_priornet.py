@@ -1,17 +1,22 @@
 import torch
+import numpy as np
 from tqdm import tqdm
 import pytorch_lightning as pl
 import torch.nn.functional as F
 
 from uncertainty_est.models.JEM.model import HDGE
 from uncertainty_est.archs.arch_factory import get_arch
+from uncertainty_est.models.priornet.dpn_losses import dirichlet_kl_divergence
+from uncertainty_est.models.priornet.uncertainties import (
+    dirichlet_prior_network_uncertainty,
+)
 from uncertainty_est.models.JEM.utils import (
     KHotCrossEntropyLoss,
     smooth_one_hot,
 )
 
 
-class HDGEModel(pl.LightningModule):
+class HDGEPriorNetModel(pl.LightningModule):
     def __init__(
         self,
         arch_name,
@@ -26,6 +31,10 @@ class HDGEModel(pl.LightningModule):
         n_classes,
         contrast_k,
         contrast_t,
+        target_concentration,
+        alpha_fix,
+        kl_weight,
+        concentration,
     ):
         super().__init__()
         self.__dict__.update(locals())
@@ -66,22 +75,40 @@ class HDGEModel(pl.LightningModule):
 
         return l_pyxce, l_pxcontrast, l_pxycontrast
 
-    def training_step(self, batch, batch_idx):
+    def training_step(self, batch, batch_idx, evaluation=False):
         x_lab, y_lab = batch
         dist = smooth_one_hot(y_lab, self.n_classes, self.smoothing)
+        logits = self.model.classify(x_lab)
 
-        loss = sum(self.compute_losses(x_lab, dist))
+        loss = sum(
+            self.compute_losses(x_lab, dist, logits=logits, evaluation=evaluation)
+        )
+
+        alphas = torch.exp(logits)
+        if self.alpha_fix:
+            alphas = alphas + 1
+
+        if self.target_concentration is None:
+            target_concentration = torch.exp(-self.model(x_lab)) + self.concentration
+        else:
+            target_concentration = (
+                torch.empty(len(alphas))
+                .fill_(self.target_concentration)
+                .to(self.device)
+            )
+
+        target_alphas = torch.empty_like(alphas).fill_(self.concentration)
+        target_alphas[torch.arange(len(y_lab)), y_lab] = target_concentration
+        kl_term = dirichlet_kl_divergence(target_alphas, alphas)
+        loss += self.kl_weight * kl_term.mean()
         return loss
 
     def validation_step(self, batch, batch_idx):
         x, y = batch
         logits = self.model.classify(x)
-        dist = smooth_one_hot(y, self.n_classes, self.smoothing)
 
-        self.log(
-            "val_loss",
-            sum(self.compute_losses(x, dist, logits=logits, evaluation=True)),
-        )
+        val_loss = self.training_step(batch, batch_idx, evaluation=True)
+        self.log("val_loss", val_loss)
 
         acc = (y == logits.argmax(1)).float().mean(0).item()
         self.log("val_acc", acc)
@@ -119,9 +146,15 @@ class HDGEModel(pl.LightningModule):
         torch.set_grad_enabled(False)
         uncert = {}
 
-        px = []
+        px, logits = [], []
         for x, _ in tqdm(loader):
             x = x.to(self.device)
             px.append(torch.exp(-self.model(x).cpu()))
+            logits.append(self.model.classify(x).cpu().numpy())
         uncert["p(x)"] = torch.cat(px)
+        dirichlet_uncerts = dirichlet_prior_network_uncertainty(
+            np.concatenate(logits), alpha_correction=self.alpha_fix
+        )
+        uncert = {**uncert, **dirichlet_uncerts}
+
         return uncert
