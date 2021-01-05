@@ -5,7 +5,7 @@ from PIL import Image
 from torch.utils.data import DataLoader
 from torchvision import datasets as dset
 from torchvision import transforms as tvt
-from uncertainty_eval.datasets.image.datasets import DATASETS
+from uncertainty_eval.datasets import get_dataset, DATASETS
 
 from uncertainty_est.data.datasets import ConcatDataset
 

@@ -45,6 +45,7 @@ class JEMPriorNet(pl.LightningModule):
         alpha_fix,
         kl_weight,
         concentration,
+        entropy_reg=0.0,
     ):
         super().__init__()
         self.__dict__.update(locals())
@@ -98,7 +99,7 @@ class JEMPriorNet(pl.LightningModule):
             l_pxysgld = -(fp - fq)
             l_pxysgld *= self.pxysgld
 
-        return l_pyxce, l_pxysgld, l_pxysgld
+        return l_pyxce, l_pxsgld, l_pxysgld
 
     def training_step(self, batch, batch_idx):
         (x_lab, y_lab), (x_p_d, _) = batch
@@ -112,7 +113,7 @@ class JEMPriorNet(pl.LightningModule):
             alphas = alphas + 1
 
         if self.target_concentration is None:
-            target_concentration = torch.exp(-self.model(x_lab)) + self.concentration
+            target_concentration = torch.exp(self.model(x_lab)) + self.concentration
         else:
             target_concentration = (
                 torch.empty(len(alphas))
@@ -124,6 +125,9 @@ class JEMPriorNet(pl.LightningModule):
         target_alphas[torch.arange(len(y_lab)), y_lab] = target_concentration
         kl_term = dirichlet_kl_divergence(target_alphas, alphas)
         loss += self.kl_weight * kl_term.mean()
+        loss += (
+            self.entropy_reg * -torch.distributions.Dirichlet(alphas).entropy().mean()
+        )
         return loss
 
     def validation_step(self, batch, batch_idx):
@@ -173,7 +177,7 @@ class JEMPriorNet(pl.LightningModule):
         for x, _ in tqdm(loader):
             x = x.to(self.device)
             # exp(-E(x)) ~ p(x)
-            score = torch.exp(-self.model(x).cpu())
+            score = torch.exp(self.model(x).cpu())
             scores.append(score)
             logits.append(self.model.classify(x).cpu().numpy())
 

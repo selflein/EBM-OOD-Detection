@@ -35,6 +35,7 @@ class HDGEPriorNetModel(pl.LightningModule):
         alpha_fix,
         kl_weight,
         concentration,
+        entropy_reg=0.0,
     ):
         super().__init__()
         self.__dict__.update(locals())
@@ -101,6 +102,9 @@ class HDGEPriorNetModel(pl.LightningModule):
         target_alphas[torch.arange(len(y_lab)), y_lab] = target_concentration
         kl_term = dirichlet_kl_divergence(target_alphas, alphas)
         loss += self.kl_weight * kl_term.mean()
+        loss += (
+            self.entropy_reg * -torch.distributions.Dirichlet(alphas).entropy().mean()
+        )
         return loss
 
     def validation_step(self, batch, batch_idx):

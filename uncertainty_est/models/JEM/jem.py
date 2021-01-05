@@ -36,6 +36,7 @@ class JEM(pl.LightningModule):
         sgld_std,
         reinit_freq,
         uncond,
+        sgld_steps=20,
     ):
         super().__init__()
         self.__dict__.update(locals())
@@ -72,10 +73,14 @@ class JEM(pl.LightningModule):
                 assert (
                     not self.uncond
                 ), "can only draw class-conditional samples if EBM is class-cond"
-                y_q = torch.randint(0, self.n_classes, (self.sgld_batch_size,))
+                y_q = torch.randint(0, self.n_classes, (self.sgld_batch_size,)).to(
+                    self.device
+                )
                 x_q = self.sample_q(self.replay_buffer, y=y_q)
             else:
-                x_q = self.sample_q(self.replay_buffer)  # sample from log-sumexp
+                x_q = self.sample_q(
+                    self.replay_buffer, n_steps=self.sgld_steps
+                )  # sample from log-sumexp
 
             fp = self.model(x_p_d).mean()
             fq = self.model(x_q).mean()
@@ -89,7 +94,7 @@ class JEM(pl.LightningModule):
             l_pxysgld = -(fp - fq)
             l_pxysgld *= self.pxysgld
 
-        return l_pyxce, l_pxysgld, l_pxysgld
+        return l_pyxce, l_pxsgld, l_pxysgld
 
     def training_step(self, batch, batch_idx):
         (x_lab, y_lab), (x_p_d, _) = batch
