@@ -36,6 +36,7 @@ class HDGEPriorNetModel(pl.LightningModule):
         kl_weight,
         concentration,
         entropy_reg=0.0,
+        warmup_steps=-1,
     ):
         super().__init__()
         self.__dict__.update(locals())
@@ -133,6 +134,29 @@ class HDGEPriorNetModel(pl.LightningModule):
         )
         scheduler = torch.optim.lr_scheduler.StepLR(optim, step_size=30, gamma=0.5)
         return [optim], [scheduler]
+
+    def optimizer_step(
+        self,
+        *args,
+        epoch: int = None,
+        batch_idx: int = None,
+        optimizer=None,
+        optimizer_idx: int = None,
+        optimizer_closure=None,
+        on_tpu: bool = None,
+        using_native_amp: bool = None,
+        using_lbfgs: bool = None,
+        **kwargs,
+    ):
+        # learning rate warm-up
+        if self.trainer.global_step < self.warmup_steps:
+            lr_scale = min(
+                1.0, float(self.trainer.global_step + 1) / float(self.warmup_steps)
+            )
+            for pg in optimizer.param_groups:
+                pg["lr"] = lr_scale * self.hparams.learning_rate
+
+        optimizer.step(closure=optimizer_closure)
 
     def get_gt_preds(self, loader):
         self.eval()

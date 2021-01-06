@@ -24,7 +24,7 @@ model_config:
   arch_config:
     inp_dim: 2
     num_classes: 3
-  learning_rate: 0.00005
+  learning_rate: 0.0005
   momentum: 0.9
   weight_decay: 0.0
   pyxce: 1.0
@@ -34,4 +34,4 @@ model_config:
   contrast_k: 65536
   contrast_t:  0.1
   n_classes: 3
-  warmup_steps: -1
+  warmup_steps: 1000

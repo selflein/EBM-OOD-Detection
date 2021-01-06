@@ -45,7 +45,7 @@ class PriorNet(pl.LightningModule):
         )
 
         ood_criterion = DirichletKLLoss(
-            target_concentration=0.0,
+            target_concentration=1.0,
             concentration=self.concentration,
             reverse=self.reverse_kl,
             alpha_fix=self.alpha_fix,

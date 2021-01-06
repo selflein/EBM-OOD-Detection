@@ -39,3 +39,4 @@ model_config:
   concentration: 1.0
   kl_weight: 1.0
   entropy_reg: 0.0
+  warmup_steps: 1000

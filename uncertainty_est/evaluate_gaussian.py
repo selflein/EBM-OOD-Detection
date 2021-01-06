@@ -49,4 +49,6 @@ if __name__ == "__main__":
         mesh = ax.pcolormesh(to_np(x), to_np(y), ood_grid)
         fig.colorbar(mesh)
 
-        fig.savefig(checkpoint.parent / f"{score_name}_heatmap.png")
+        fig.savefig(
+            checkpoint.parent / f"{score_name}_heatmap.png", bbox_inches="tight"
+        )
