@@ -4,13 +4,13 @@ trainer_config:
   gpus: 1
 
 checkpoint_config:
-  monitor: val_acc
-  mode: max
+  monitor: val_loss
+  mode: min
   save_last: True
 
 earlystop_config:
-  monitor: val_acc
-  mode: max
+  monitor: val_loss
+  mode: min
   patience: 10
 
 dataset: Gaussian2D
@@ -41,7 +41,7 @@ model_config:
   data_shape: [2]
   uncond: False
   sgld_batch_size: 128
-  class_cond_p_x_sample: False
+  class_cond_p_x_sample: True
   n_classes: 3
   kl_weight: 1.0
   concentration: 1.0

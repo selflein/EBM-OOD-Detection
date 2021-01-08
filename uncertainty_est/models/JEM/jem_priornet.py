@@ -46,6 +46,7 @@ class JEMPriorNet(pl.LightningModule):
         kl_weight,
         concentration,
         entropy_reg=0.0,
+        sgld_steps=20,
     ):
         super().__init__()
         self.__dict__.update(locals())
@@ -82,10 +83,14 @@ class JEMPriorNet(pl.LightningModule):
                 assert (
                     not self.uncond
                 ), "can only draw class-conditional samples if EBM is class-cond"
-                y_q = torch.randint(0, self.n_classes, (self.sgld_batch_size,))
-                x_q = self.sample_q(self.replay_buffer, y=y_q)
+                y_q = torch.randint(0, self.n_classes, (self.sgld_batch_size,)).to(
+                    self.device
+                )
+                x_q = self.sample_q(self.replay_buffer, y=y_q, n_steps=self.sgld_steps)
             else:
-                x_q = self.sample_q(self.replay_buffer)  # sample from log-sumexp
+                x_q = self.sample_q(
+                    self.replay_buffer, n_steps=self.sgld_steps
+                )  # sample from log-sumexp
 
             fp = self.model(x_p_d).mean()
             fq = self.model(x_q).mean()
@@ -94,7 +99,9 @@ class JEMPriorNet(pl.LightningModule):
 
         # log p(x|y) using sgld
         if self.pxysgld > 0:
-            x_q_lab = self.sample_q(self.replay_buffer, y=y_lab)
+            x_q_lab = self.sample_q(
+                self.replay_buffer, y=y_lab, n_steps=self.sgld_steps
+            )
             fp, fq = self.model(x_lab).mean(), self.model(x_q_lab).mean()
             l_pxysgld = -(fp - fq)
             l_pxysgld *= self.pxysgld

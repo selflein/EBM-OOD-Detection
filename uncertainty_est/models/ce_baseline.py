@@ -75,4 +75,5 @@ class CEBaseline(pl.LightningModule):
         dir_uncert = dirichlet_prior_network_uncertainty(
             logits.cpu().numpy(),
         )
+        dir_uncert["p(x)"] = logits.logsumexp(1).numpy()
         return dir_uncert
