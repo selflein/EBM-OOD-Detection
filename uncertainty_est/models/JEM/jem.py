@@ -37,6 +37,8 @@ class JEM(pl.LightningModule):
         reinit_freq,
         uncond,
         sgld_steps=20,
+        energy_reg_weight=0.0,
+        energy_reg_type="2",
     ):
         super().__init__()
         self.__dict__.update(locals())
@@ -94,6 +96,8 @@ class JEM(pl.LightningModule):
             l_pxysgld = -(fp - fq)
             l_pxysgld *= self.pxysgld
 
+        l_pyxce += self.energy_reg_weight * self.compute_energy_reg(fp)
+
         return l_pyxce, l_pxsgld, l_pxysgld
 
     def training_step(self, batch, batch_idx):
@@ -130,6 +134,9 @@ class JEM(pl.LightningModule):
         )
         scheduler = torch.optim.lr_scheduler.StepLR(optim, step_size=30, gamma=0.5)
         return [optim], [scheduler]
+
+    def compute_energy_reg(self, energy):
+        return torch.linalg.norm(energy, dim=-1, ord=self.energy_reg_type).mean()
 
     def get_gt_preds(self, loader):
         self.eval()

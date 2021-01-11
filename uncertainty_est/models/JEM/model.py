@@ -22,10 +22,13 @@ class ConditionalF(F):
     def __init__(self, model, n_classes):
         super(ConditionalF, self).__init__(model, n_classes)
 
-    def forward(self, x, y=None):
+    def forward(self, x, y=None, return_logits=False):
         logits = self.classify(x)
         if y is None:
-            return logits.logsumexp(1)
+            if return_logits:
+                return logits.logsumexp(1), logits
+            else:
+                return logits.logsumexp(1)
         else:
             return torch.gather(logits, 1, y[:, None])
 

@@ -62,9 +62,6 @@ def get_dataloader(
     else:
         ds = ds.test(test_transform)
 
-    import pdb
-
-    pdb.set_trace()
     if ood_dataset is not None:
         try:
             ood_ds_class = DATASETS[ood_dataset]
