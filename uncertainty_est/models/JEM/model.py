@@ -11,11 +11,11 @@ class F(nn.Module):
 
     def forward(self, x, y=None):
         penult_z = self.f(x)
-        return self.energy_output(penult_z).squeeze()
+        return self.energy_output(penult_z)
 
     def classify(self, x):
         penult_z = self.f(x)
-        return self.class_output(penult_z).squeeze()
+        return self.class_output(penult_z)
 
 
 class ConditionalF(F):

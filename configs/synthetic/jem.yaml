@@ -42,3 +42,5 @@ model_config:
   sgld_batch_size: 128
   class_cond_p_x_sample: False
   n_classes: 3
+  energy_reg_weight: 0.0
+  energy_reg_type: 2

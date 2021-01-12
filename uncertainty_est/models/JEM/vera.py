@@ -28,7 +28,8 @@ class VERA(pl.LightningModule):
         arch_name,
         arch_config,
         learning_rate,
-        momentum,
+        beta1,
+        beta2,
         weight_decay,
         n_classes,
         uncond,
@@ -129,8 +130,10 @@ class VERA(pl.LightningModule):
             unsup_ent = distributions.Categorical(logits=unsup_logits).entropy()
         elif self.ebm_type == "jem":
             ld, ld_logits = self.model(x_l, return_logits=True)
-        else:
+        elif self.ebm_type == "p_x":
             ld, ld_logits = self.model(x_l).squeeze(), torch.tensor(0.0).to(self.device)
+        else:
+            raise NotImplementedError(f"EBM type '{self.ebm_type}' not implemented!")
 
         grad_ld = (
             torch.autograd.grad(ld.sum(), x_l, create_graph=True)[0]
@@ -167,6 +170,10 @@ class VERA(pl.LightningModule):
         (x_lab, y_lab), (_, _) = batch
         logits = self(x_lab)
 
+        # Performing density estimation only
+        if logits.shape[1] < 2:
+            return
+
         self.log("val_loss", tf.cross_entropy(logits, y_lab))
 
         acc = (y_lab == logits.argmax(1)).float().mean(0).item()
@@ -176,19 +183,22 @@ class VERA(pl.LightningModule):
         (x, y), (_, _) = batch
         y_hat = self(x)
 
+        # Performing density estimation only
+        if y_hat.shape[1] < 2:
+            return
         acc = (y == y_hat.argmax(1)).float().mean(0).item()
         self.log("test_acc", acc)
 
     def configure_optimizers(self):
         optim = torch.optim.AdamW(
             self.model.parameters(),
-            betas=(self.momentum, 0.999),
+            betas=(self.beta1, self.beta2),
             lr=self.learning_rate,
             weight_decay=self.weight_decay,
         )
         gen_optim = torch.optim.AdamW(
             self.generator.parameters(),
-            betas=(self.momentum, 0.999),
+            betas=(self.beta1, self.beta2),
             lr=self.gen_learning_rate,
             weight_decay=self.weight_decay,
         )
