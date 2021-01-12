@@ -23,6 +23,7 @@ from uncertainty_est.models import MODELS
 parser = ArgumentParser()
 parser.add_argument("--checkpoint", type=str)
 parser.add_argument("--model", type=str)
+parser.add_argument("--extend", type=float, default=10.0)
 
 if __name__ == "__main__":
     args = parser.parse_args()
@@ -33,7 +34,7 @@ if __name__ == "__main__":
     model.eval()
     model.cuda()
 
-    interp = torch.linspace(-10, 10, 500)
+    interp = torch.linspace(-args.extend, args.extend, 500)
     x, y = torch.meshgrid(interp, interp)
     data = torch.stack((x.reshape(-1), y.reshape(-1)), 1)
 

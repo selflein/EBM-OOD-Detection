@@ -1,6 +1,8 @@
 trainer_config:
   max_epochs: 500
+  min_epochs: 50
   gpus: "0"
+  enable_pl_optimizer: True
 
 checkpoint_config:
   monitor: val_loss
@@ -35,3 +37,4 @@ model_config:
   contrast_t:  0.1
   n_classes: 3
   warmup_steps: 1000
+  vis_every: 1

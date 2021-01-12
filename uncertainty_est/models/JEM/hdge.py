@@ -1,9 +1,11 @@
 import torch
 from tqdm import tqdm
+import matplotlib.pyplot as plt
 import pytorch_lightning as pl
 import torch.nn.functional as F
 
 from uncertainty_est.models.JEM.model import HDGE
+from uncertainty_est.utils.utils import to_np
 from uncertainty_est.archs.arch_factory import get_arch
 from uncertainty_est.models.JEM.utils import (
     KHotCrossEntropyLoss,
@@ -27,6 +29,7 @@ class HDGEModel(pl.LightningModule):
         contrast_k,
         contrast_t,
         warmup_steps=-1,
+        vis_every=-1,
     ):
         super().__init__()
         self.__dict__.update(locals())
@@ -87,6 +90,21 @@ class HDGEModel(pl.LightningModule):
         acc = (y == logits.argmax(1)).float().mean(0).item()
         self.log("val_acc", acc)
 
+    def validation_epoch_end(self, training_step_outputs):
+        if self.vis_every > 0 and self.current_epoch % self.vis_every == 0:
+            interp = torch.linspace(-10, 10, 500)
+            x, y = torch.meshgrid(interp, interp)
+            data = torch.stack((x.reshape(-1), y.reshape(-1)), 1)
+
+            log_px = to_np(self.model(data.to(self.device)))
+
+            fig, ax = plt.subplots()
+            ax.set_title(f"log p(x)")
+            mesh = ax.pcolormesh(to_np(x), to_np(y), log_px.reshape(*x.shape))
+            fig.colorbar(mesh)
+            self.logger.experiment.add_figure("log p(x)", fig, self.current_epoch)
+            plt.close()
+
     def test_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self(x)
@@ -106,7 +124,6 @@ class HDGEModel(pl.LightningModule):
 
     def optimizer_step(
         self,
-        *args,
         epoch: int = None,
         batch_idx: int = None,
         optimizer=None,
