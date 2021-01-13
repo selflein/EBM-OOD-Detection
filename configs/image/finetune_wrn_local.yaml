@@ -16,7 +16,7 @@ dataset: cifar10
 ood_dataset: cifar100
 seed: 1
 batch_size: 128
-data_shape: [3, 32, 32]
+data_shape: [32, 32, 3]
 
 model_name: EnergyOOD
 model_config:

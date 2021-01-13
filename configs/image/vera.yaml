@@ -16,7 +16,7 @@ dataset: cifar10
 ood_dataset: cifar10
 seed: 1
 batch_size: 40
-data_shape: [3, 32, 32]
+data_shape: [32, 32, 3]
 
 model_name: VERA
 model_config:

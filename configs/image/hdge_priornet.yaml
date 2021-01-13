@@ -16,7 +16,7 @@ ood_dataset:
 seed: 1
 batch_size: 128
 sigma: 0.03
-data_shape: [3, 32, 32]
+data_shape: [32, 32, 3]
 
 model_name: HDGEPriorNet
 model_config:
