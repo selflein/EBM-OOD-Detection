@@ -5,11 +5,33 @@ from PIL import Image
 from torch.utils.data import DataLoader
 from torchvision import datasets as dset
 from torchvision import transforms as tvt
-from uncertainty_eval.datasets import get_dataset, DATASETS
+from uncertainty_eval.datasets import DATASETS
 
 from uncertainty_est.data.datasets import ConcatDataset
 
 DATA_ROOT = Path("../data")
+
+
+def get_dataset(dataset, data_shape, length=10_000):
+    try:
+        ds_class = DATASETS[dataset]
+        if dataset == "gaussian_noise":
+            m = 127.5 if len(data_shape) == 3 else 0.0
+            s = 60.0 if len(data_shape) == 3 else 1.0
+            mean = torch.empty(*data_shape).fill_(m)
+            std = torch.empty(*data_shape).fill_(s)
+            ds = ds_class(DATA_ROOT, length=length, mean=mean, std=std)
+        elif dataset == "uniform_noise":
+            l = 0.0 if len(data_shape) == 3 else -5.0
+            h = 255.0 if len(data_shape) == 3 else 5.0
+            low = torch.empty(*data_shape).fill_(l)
+            high = torch.empty(*data_shape).fill_(h)
+            ds = ds_class(DATA_ROOT, length=length, low=low, high=high)
+        else:
+            ds = ds_class(DATA_ROOT)
+    except KeyError as e:
+        raise ValueError(f'Dataset "{dataset}" not supported') from e
+    return ds
 
 
 def get_dataloader(
@@ -50,10 +72,7 @@ def get_dataloader(
     train_transform = tvt.Compose(train_transform)
     test_transform = tvt.Compose(test_transform)
 
-    try:
-        ds = DATASETS[dataset](DATA_ROOT)
-    except KeyError as e:
-        raise ValueError(f'Dataset "{dataset}" not supported') from e
+    ds = get_dataset(dataset, data_shape)
 
     if split == "train":
         ds = ds.train(train_transform)
@@ -63,24 +82,7 @@ def get_dataloader(
         ds = ds.test(test_transform)
 
     if ood_dataset is not None:
-        try:
-            ood_ds_class = DATASETS[ood_dataset]
-            if ood_dataset == "gaussian_noise":
-                m = 127.5 if len(data_shape) == 3 else 0.0
-                s = 60.0 if len(data_shape) == 3 else 1.0
-                mean = torch.empty(*data_shape).fill_(m)
-                std = torch.empty(*data_shape).fill_(s)
-                ood_ds = ood_ds_class(DATA_ROOT, length=len(ds), mean=mean, std=std)
-            elif ood_dataset == "uniform_noise":
-                l = 0.0 if len(data_shape) == 3 else -5.0
-                h = 255.0 if len(data_shape) == 3 else 5.0
-                low = torch.empty(*data_shape).fill_(l)
-                high = torch.empty(*data_shape).fill_(h)
-                ood_ds = ood_ds_class(DATA_ROOT, length=len(ds), low=low, high=high)
-            else:
-                ood_ds = ood_ds_class(DATA_ROOT)
-        except KeyError as e:
-            raise ValueError(f'Dataset "{dataset}" not supported') from e
+        ood_ds = get_dataset(ood_dataset, data_shape, length=len(ds))
 
         ood_train = ood_ds.train(train_transform)
         ds = ConcatDataset(ds, ood_train)

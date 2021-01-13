@@ -3,13 +3,13 @@ trainer_config:
   gpus: 1
 
 checkpoint_config:
-  monitor: val_loss
-  mode: min
+  monitor: val_acc
+  mode: max
   save_last: True
 
 earlystop_config:
-  monitor: val_loss
-  mode: min
+  monitor: val_acc
+  mode: max
   patience: 10
 
 dataset: cifar10
@@ -26,7 +26,7 @@ model_config:
     depth: 28
     num_classes: 10
     widen_factor: 10
-  learning_rate: 0.00005
+  learning_rate: 0.00001
   momentum: 0.9
   weight_decay: 0.0
   smoothing: 0.0

@@ -46,7 +46,7 @@ if __name__ == "__main__":
         ood_grid = ood_score.reshape(*x.shape)
 
         fig, ax = plt.subplots()
-        ax.set_title(f"{args.model}: {score_name.replace('_', ' ').title()}")
+        # ax.set_title(f"{args.model}: {score_name.replace('_', ' ').title()}")
         mesh = ax.pcolormesh(to_np(x), to_np(y), ood_grid)
         fig.colorbar(mesh)
 

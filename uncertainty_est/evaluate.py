@@ -104,7 +104,7 @@ if __name__ == "__main__":
             ax = plot_score_hist(
                 id_scores,
                 ood_scores,
-                title=f"{ood_ds}, {score_name.replace('_', ' ').title()}",
+                title="",  # f"{ood_ds}, {score_name.replace('_', ' ').title()}",
             )
             ax.figure.savefig(str(output_folder / f"{ood_ds}_{score_name}.png"))
 
