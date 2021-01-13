@@ -33,6 +33,7 @@ class SynthModel(nn.Module):
         num_classes,
         hidden_dims=[
             50,
+            50,
         ],
         activation="leaky_relu",
         batch_norm=False,
