@@ -39,6 +39,7 @@ class JEM(pl.LightningModule):
         sgld_steps=20,
         energy_reg_weight=0.0,
         energy_reg_type="2",
+        entropy_reg_weight=0.0,
     ):
         super().__init__()
         self.__dict__.update(locals())
@@ -62,12 +63,18 @@ class JEM(pl.LightningModule):
     def compute_losses(self, x_lab, y_lab, x_p_d, dist, logits=None):
         l_pyxce, l_pxsgld, l_pxysgld = 0.0, 0.0, 0.0
 
+        if logits is None:
+            logits = self.model.classify(x_lab)
+
         # log p(y|x) cross entropy loss
         if self.pyxce > 0:
-            if logits is None:
-                logits = self.model.classify(x_lab)
             l_pyxce = KHotCrossEntropyLoss()(logits, dist)
             l_pyxce *= self.pyxce
+
+        l_pyxce += (
+            self.entropy_reg_weight
+            * -torch.distributions.Categorical(logits=logits).entropy().mean()
+        )
 
         # log p(x) using sgld
         if self.pxsgld > 0:

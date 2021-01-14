@@ -44,3 +44,4 @@ model_config:
   n_classes: 3
   energy_reg_weight: 0.0
   energy_reg_type: 2
+  entropy_reg_weight: 0.0

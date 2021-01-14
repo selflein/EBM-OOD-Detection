@@ -16,9 +16,6 @@ def get_dataset(dataset, data_shape, length=10_000):
     try:
         ds_class = DATASETS[dataset]
         if dataset == "gaussian_noise":
-            import pdb
-
-            pdb.set_trace()
             m = 127.5 if len(data_shape) == 3 else 0.0
             s = 60.0 if len(data_shape) == 3 else 1.0
             mean = torch.empty(*data_shape).fill_(m)
@@ -68,17 +65,19 @@ def get_dataloader(
             ]
         )
 
-    if unscaled:
-        unscaled_transform = tvt.Lambda(lambda x: torch.from_numpy(np.array(x)).float())
-        test_transform.append(unscaled_transform)
-        train_transform.append(unscaled_transform)
-    else:
-        scale_transform = [
-            tvt.ToTensor(),
-            tvt.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
-        ]
-        test_transform.extend(scale_transform)
-        train_transform.extend(scale_transform)
+        if unscaled:
+            unscaled_transform = tvt.Lambda(
+                lambda x: torch.from_numpy(np.array(x)).float()
+            )
+            test_transform.append(unscaled_transform)
+            train_transform.append(unscaled_transform)
+        else:
+            scale_transform = [
+                tvt.ToTensor(),
+                tvt.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+            ]
+            test_transform.extend(scale_transform)
+            train_transform.extend(scale_transform)
 
     if sigma > 0.0:
         noise_transform = lambda x: x + sigma * torch.randn_like(x)
