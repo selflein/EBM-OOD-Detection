@@ -88,7 +88,9 @@ def run(
     out_path.mkdir(exist_ok=False, parents=True)
 
     callbacks = []
-    callbacks.append(pl.callbacks.ModelCheckpoint(out_path, **checkpoint_config))
+    callbacks.append(
+        pl.callbacks.ModelCheckpoint(dirpath=out_path, **checkpoint_config)
+    )
     if earlystop_config is not None:
         es_callback = pl.callbacks.EarlyStopping(**earlystop_config)
         callbacks.append(es_callback)

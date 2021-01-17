@@ -74,7 +74,7 @@ def get_dataloader(
         else:
             scale_transform = [
                 tvt.ToTensor(),
-                tvt.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+                tvt.Normalize((0.5,) * data_shape[2], (0.5,) * data_shape[2]),
             ]
             test_transform.extend(scale_transform)
             train_transform.extend(scale_transform)

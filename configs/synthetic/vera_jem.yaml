@@ -1,15 +1,12 @@
 trainer_config:
-  max_epochs: 500
+  max_steps: 10_000
   gpus: "0"
 
 checkpoint_config:
-  monitor: val_loss
-  mode: min
+  monitor:
+  save_last: True
 
 earlystop_config:
-  monitor: val_loss
-  mode: min
-  patience: 10
 
 dataset: Gaussian2D
 # Use second dataset
@@ -35,18 +32,19 @@ model_config:
   gen_learning_rate: 0.001
   ebm_iters: 1
   generator_iters: 1
-  entropy_weight: 0.0001
+  entropy_weight: 0.1
   generator_type: vera
   generator_arch_name: fc
   generator_arch_config:
     inp_dim: 2
     num_classes: 2
-    hidden_dims: [50]
+    hidden_dims: [100, 100]
     batch_norm: True
   generator_config:
     noise_dim: 2
     post_lr: 0.001
-    init_post_logsigma: 0.1
+    init_post_logsigma: 0.001
+
   min_sigma: 0.01
   max_sigma: 0.3
   p_control: 0.0
@@ -60,3 +58,4 @@ model_config:
   batch_size: 128
   lr_decay: 0.3
   lr_decay_epochs: [30, 50]
+  vis_every: 1

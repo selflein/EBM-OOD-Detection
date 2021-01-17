@@ -5,7 +5,9 @@ from tqdm import tqdm
 import pytorch_lightning as pl
 import torch.nn.functional as tf
 from torch import distributions
+import matplotlib.pyplot as plt
 
+from uncertainty_est.utils.utils import to_np
 from uncertainty_est.archs.arch_factory import get_arch
 from uncertainty_est.models.JEM.model import F, ConditionalF
 from uncertainty_est.models.JEM.vera_utils import (
@@ -54,6 +56,7 @@ class VERA(pl.LightningModule):
         batch_size,
         lr_decay,
         lr_decay_epochs,
+        vis_every=-1,
     ):
         super().__init__()
         self.__dict__.update(locals())
@@ -87,7 +90,7 @@ class VERA(pl.LightningModule):
         x_d.requires_grad_()
 
         # sample from q(x, h)
-        x_g, h_g = self.generator.sample(self.batch_size, requires_grad=True)
+        x_g, h_g = self.generator.sample(x_l.size(0), requires_grad=True)
 
         # ebm (contrastive divergence) objective
         if batch_idx % self.ebm_iters == 0:
@@ -167,17 +170,32 @@ class VERA(pl.LightningModule):
         return -logq_obj
 
     def validation_step(self, batch, batch_idx):
-        (x_lab, y_lab), (_, _) = batch
-        logits = self(x_lab)
+        (x_l, y_l), (x_d, _) = batch
+        logits = self(x_l)
+
+        log_px = self.model(x_l).mean()
+        self.log("val_loss", -log_px)
 
         # Performing density estimation only
         if logits.shape[1] < 2:
             return
 
-        self.log("val_loss", tf.cross_entropy(logits, y_lab))
-
-        acc = (y_lab == logits.argmax(1)).float().mean(0).item()
+        acc = (y_l == logits.argmax(1)).float().mean(0).item()
         self.log("val_acc", acc)
+
+    def validation_epoch_end(self, training_step_outputs):
+        if self.vis_every > 0 and self.current_epoch % self.vis_every == 0:
+            interp = torch.linspace(-4, 4, 500)
+            x, y = torch.meshgrid(interp, interp)
+            data = torch.stack((x.reshape(-1), y.reshape(-1)), 1)
+
+            px = to_np(torch.exp(self.model(data.to(self.device))))
+
+            fig, ax = plt.subplots()
+            mesh = ax.pcolormesh(to_np(x), to_np(y), px.reshape(*x.shape))
+            fig.colorbar(mesh)
+            self.logger.experiment.add_figure("p(x)", fig, self.current_epoch)
+            plt.close()
 
     def test_step(self, batch, batch_idx):
         (x, y), (_, _) = batch

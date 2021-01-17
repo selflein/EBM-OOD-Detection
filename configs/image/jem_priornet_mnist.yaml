@@ -1,0 +1,50 @@
+trainer_config:
+  max_epochs: 500
+  gpus: 1
+
+checkpoint_config:
+  monitor: val_acc
+  mode: max
+
+earlystop_config:
+  monitor: val_acc
+  mode: max
+  patience: 10
+
+dataset: mnist
+ood_dataset: mnist
+seed: 1
+batch_size: 64
+sigma: 0.03
+data_shape: [32, 32, 1]
+
+model_name: JEMPriorNet
+model_config:
+  arch_name: wrn
+  arch_config:
+    depth: 28
+    num_classes: 10
+    widen_factor: 10
+    input_channels: 1
+  learning_rate: 0.00001
+  momentum: 0.9
+  weight_decay: 0.0
+  smoothing: 0.0
+  sgld_lr: 1.0
+  sgld_std: 0.01
+  sgld_steps: 100
+  pyxce: 0.0
+  pxsgld: 1.0
+  pxysgld: 0.0
+  buffer_size: 1000
+  reinit_freq: 0.05
+  data_shape: [1, 32, 32]
+  uncond: False
+  sgld_batch_size: 128
+  class_cond_p_x_sample: True
+  n_classes: 10
+  kl_weight: 1.0
+  concentration: 1.0
+  target_concentration:
+  alpha_fix: True
+  entropy_reg: 0.0
