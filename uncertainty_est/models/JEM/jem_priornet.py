@@ -111,9 +111,12 @@ class JEMPriorNet(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         (x_lab, y_lab), (x_p_d, _) = batch
 
+        loss = torch.tensor(0.0).to(self.device)
         logits = self.model.classify(x_lab)
         dist = smooth_one_hot(y_lab, self.n_classes, self.smoothing)
-        loss = sum(self.compute_losses(x_lab, y_lab, x_p_d, dist, logits=logits))
+        ebm_term = sum(self.compute_losses(x_lab, y_lab, x_p_d, dist, logits=logits))
+        self.log("train/ebm_term", ebm_term, logger=True)
+        loss += ebm_term
 
         alphas = torch.exp(logits)
         if self.alpha_fix:
@@ -130,8 +133,10 @@ class JEMPriorNet(pl.LightningModule):
 
         target_alphas = torch.empty_like(alphas).fill_(self.concentration)
         target_alphas[torch.arange(len(y_lab)), y_lab] = target_concentration
-        kl_term = dirichlet_kl_divergence(target_alphas, alphas)
-        loss += self.kl_weight * kl_term.mean()
+        kl_term = self.kl_weight * dirichlet_kl_divergence(target_alphas, alphas).mean()
+        loss += kl_term
+        self.log("train/kl_term", kl_term.mean(), logger=True)
+
         loss += (
             self.entropy_reg * -torch.distributions.Dirichlet(alphas).entropy().mean()
         )

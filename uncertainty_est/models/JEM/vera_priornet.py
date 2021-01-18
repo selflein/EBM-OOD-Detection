@@ -22,9 +22,10 @@ from uncertainty_est.models.JEM.utils import (
     smooth_one_hot,
     init_random,
 )
+from uncertainty_est.models.priornet.dpn_losses import dirichlet_kl_divergence
 
 
-class VERA(pl.LightningModule):
+class VERAPriorNet(pl.LightningModule):
     def __init__(
         self,
         arch_name,
@@ -57,6 +58,11 @@ class VERA(pl.LightningModule):
         lr_decay,
         lr_decay_epochs,
         vis_every=-1,
+        alpha_fix=True,
+        concentration=1.0,
+        target_concentration=None,
+        kl_weight=1.0,
+        entropy_reg=0.0,
     ):
         super().__init__()
         self.__dict__.update(locals())
@@ -123,6 +129,7 @@ class VERA(pl.LightningModule):
         else:
             lg_detach = self.model(x_g_detach).squeeze()
 
+        loss = torch.tensor(0.0).to(self.device)
         unsup_ent = torch.tensor(0.0)
         if self.ebm_type == "ssl":
             ld, unsup_logits = self.model(x_d, return_logits=True)
@@ -132,6 +139,29 @@ class VERA(pl.LightningModule):
             ld, ld_logits = self.model(x_l, return_logits=True)
         elif self.ebm_type == "p_x":
             ld, ld_logits = self.model(x_l).squeeze(), torch.tensor(0.0).to(self.device)
+        elif self.ebm_type == "priornet":
+            ld, ld_logits = self.model(x_l, return_logits=True)
+            alphas = torch.exp(ld_logits)
+            if self.alpha_fix:
+                alphas = alphas + 1
+
+            if self.target_concentration is None:
+                target_concentration = torch.exp(self.model(x_l)) + self.concentration
+            else:
+                target_concentration = (
+                    torch.empty(len(alphas))
+                    .fill_(self.target_concentration)
+                    .to(self.device)
+                )
+
+            target_alphas = torch.empty_like(alphas).fill_(self.concentration)
+            target_alphas[torch.arange(len(y_l)), y_l] = target_concentration
+            kl_term = dirichlet_kl_divergence(target_alphas, alphas)
+            loss += self.kl_weight * kl_term.mean()
+            loss += (
+                self.entropy_reg
+                * -torch.distributions.Dirichlet(alphas).entropy().mean()
+            )
         else:
             raise NotImplementedError(f"EBM type '{self.ebm_type}' not implemented!")
 
@@ -142,7 +172,7 @@ class VERA(pl.LightningModule):
         )
 
         logp_obj = (ld - lg_detach).mean()
-        e_loss = (
+        loss += (
             -logp_obj
             + self.p_control * (ld ** 2).mean()
             + self.n_control * (lg_detach ** 2).mean()
@@ -151,9 +181,9 @@ class VERA(pl.LightningModule):
         )
 
         if self.clf_weight > 0:
-            e_loss += self.clf_weight * torch.nn.CrossEntropyLoss()(ld_logits, y_l)
+            loss += self.clf_weight * torch.nn.CrossEntropyLoss()(ld_logits, y_l)
 
-        return e_loss
+        return loss
 
     def generator_step(self, x_g, h_g):
         lg = self.model(x_g).squeeze()
