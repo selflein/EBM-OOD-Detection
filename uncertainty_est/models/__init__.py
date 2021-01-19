@@ -6,6 +6,8 @@ from uncertainty_est.models.ce_baseline import CEBaseline
 from uncertainty_est.models.energy_finetuning import EnergyFinetune
 from uncertainty_est.models.priornet.priornet import PriorNet
 from uncertainty_est.models.JEM.vera import VERA
+from uncertainty_est.models.JEM.vera_priornet import VERAPriorNet
+from uncertainty_est.models.JEM.vera_posteriornet import VERAPosteriorNet
 
 MODELS = {
     "HDGE": HDGEModel,
@@ -16,4 +18,6 @@ MODELS = {
     "JEMPriorNet": JEMPriorNet,
     "HDGEPriorNet": HDGEPriorNetModel,
     "VERA": VERA,
+    "VERAPriorNet": VERAPriorNet,
+    "VERAPosteriorNet": VERAPosteriorNet,
 }

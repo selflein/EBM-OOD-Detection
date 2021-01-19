@@ -62,7 +62,10 @@ if __name__ == "__main__":
 
     logger.addHandler(logging.FileHandler(output_folder / "out.log", mode="w"))
 
-    id_test_loader = get_dataloader(args.dataset, "test", 128)
+    id_test_loader = get_dataloader(args.dataset, "test", 128, data_shape=(32, 32, 1))
+    import pdb
+
+    pdb.set_trace()
     y, logits = model.get_gt_preds(id_test_loader)
 
     # Compute accuracy
