@@ -1,6 +1,7 @@
 from collections import defaultdict
 
 import torch
+import numpy as np
 from tqdm import tqdm
 import pytorch_lightning as pl
 import torch.nn.functional as tf
@@ -23,6 +24,9 @@ from uncertainty_est.models.JEM.utils import (
     init_random,
 )
 from uncertainty_est.models.priornet.dpn_losses import dirichlet_kl_divergence
+from uncertainty_est.models.priornet.uncertainties import (
+    dirichlet_prior_network_uncertainty,
+)
 
 
 class VERAPriorNet(pl.LightningModule):
@@ -291,12 +295,20 @@ class VERAPriorNet(pl.LightningModule):
     def ood_detect(self, loader):
         self.eval()
         torch.set_grad_enabled(False)
-        scores = []
-        for x, y in tqdm(loader):
+        scores, logits = [], []
+        for x, _ in tqdm(loader):
             x = x.to(self.device)
-            score = self.model(x).cpu()
+            # exp(-E(x)) ~ p(x)
+            score = torch.exp(self.model(x).cpu())
             scores.append(score)
+            logits.append(self.model.classify(x).cpu().numpy())
+        scores = torch.cat(scores)
 
         uncert = {}
-        uncert["p(x)"] = torch.cat(scores).cpu().numpy()
+        uncert["p(x)"] = scores.cpu().numpy()
+        uncert["log p(x)"] = scores.log().cpu().numpy()
+        dirichlet_uncerts = dirichlet_prior_network_uncertainty(
+            np.concatenate(logits), alpha_correction=self.alpha_fix
+        )
+        uncert = {**uncert, **dirichlet_uncerts}
         return uncert

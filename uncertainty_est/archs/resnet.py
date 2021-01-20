@@ -46,7 +46,7 @@ class GeneratorBlock(nn.Module):
 class ResNetGenerator(nn.Module):
     """The generator model."""
 
-    def __init__(self, unit_interval, feats=128):
+    def __init__(self, unit_interval, feats=128, out_channels=3):
         super().__init__()
 
         self.input_linear = nn.Linear(128, 4 * 4 * feats)
@@ -54,7 +54,7 @@ class ResNetGenerator(nn.Module):
         self.block2 = GeneratorBlock(feats, feats, upsample=True)
         self.block3 = GeneratorBlock(feats, feats, upsample=True)
         self.output_bn = nn.BatchNorm2d(feats)
-        self.output_conv = nn.Conv2d(feats, 3, kernel_size=3, padding=1)
+        self.output_conv = nn.Conv2d(feats, out_channels, kernel_size=3, padding=1)
         self.relu = nn.ReLU()
         self.feats = feats
 

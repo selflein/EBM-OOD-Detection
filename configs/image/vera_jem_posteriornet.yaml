@@ -1,53 +1,50 @@
 trainer_config:
-  max_steps: 10_000
+  max_epochs: 200
   gpus: "0"
 
 checkpoint_config:
-  monitor:
+  monitor: val_acc
+  mode: max
   save_last: True
 
 earlystop_config:
 
-dataset: Gaussian2D
+dataset: cifar10
 # Use second dataset
-ood_dataset: Gaussian2D
+ood_dataset: cifar10
 seed: 1
-batch_size: 128
-data_shape: [2]
+batch_size: 32
+data_shape: [32, 32, 3]
 
 model_name: VERAPosteriorNet
 model_config:
-  arch_name: fc
+  arch_name: wrn
   arch_config:
-    inp_dim: 2
-    num_classes: 3
-    hidden_dims: [100, 100]
-    batch_norm: False
-    bias: True
-    slope: 0.2
+    depth: 28
+    num_classes: 10
+    widen_factor: 10
+    input_channels: 3
 
-  learning_rate: 0.001
+  learning_rate: 0.00003
   beta1: 0.0
   beta2: 0.9
   weight_decay: 0.0
-  n_classes: 3
+  n_classes: 10
   uncond: False
-  gen_learning_rate: 0.001
+  gen_learning_rate: 0.00006
   ebm_iters: 1
   generator_iters: 1
-  entropy_weight: 0.1
+  entropy_weight: 0.0001
 
   generator_type: vera
-  generator_arch_name: fc
+  generator_arch_name: resnetgenerator
   generator_arch_config:
-    inp_dim: 2
-    num_classes: 2
-    hidden_dims: [100, 100]
-    activation: relu
-    batch_norm: True
-    bias: False
+    unit_interval: True
+    feats: 256
+    out_channels: 3
+
   generator_config:
-    noise_dim: 2
+    noise_dim: 128
     post_lr: 0.001
     init_post_logsigma: 0.001
 
@@ -55,15 +52,15 @@ model_config:
   max_sigma: 0.3
   p_control: 0.0
   n_control: 0.0
-  pg_control: 0.1
+  pg_control: 1.0
   clf_ent_weight: 0.0
   ebm_type: jem
   clf_weight: 1.0
   warmup_steps: 2500
   no_g_batch_norm: False
-  batch_size: 128
+  batch_size: 32
   lr_decay: 0.3
-  lr_decay_epochs: [200, 300]
-  vis_every: 1
+  lr_decay_epochs: [150, 175]
+  vis_every: -1
   alpha_fix: True
-  entropy_reg: 0.0
+  entropy_reg: 0.1

@@ -172,13 +172,12 @@ class VERAPosteriorNet(pl.LightningModule):
                 alpha = alpha + 1
 
             alpha_0 = alpha.sum(1)
-            entropy_reg = Dirichlet(alpha).entropy()
-            UCE_loss = torch.sum(
-                (
-                    torch.digamma(alpha_0)
-                    - torch.digamma(alpha[torch.arange(len(y_l)), y_l])
-                )
-            ) - self.entropy_reg * torch.sum(entropy_reg)
+            UCE_loss = self.clf_weight * torch.mean(
+                torch.digamma(alpha_0)
+                - torch.digamma(alpha[torch.arange(len(y_l)), y_l])
+            )
+            entropy_reg = self.entropy_reg * -Dirichlet(alpha).entropy().mean()
+            UCE_loss += entropy_reg
             self.log("train/uce_loss", UCE_loss.item())
             e_loss += UCE_loss
 

@@ -3,13 +3,10 @@ trainer_config:
   gpus: "0"
 
 checkpoint_config:
-  monitor: "val_acc"
-  mode: "min"
+  monitor:
   save_last: True
 
 earlystop_config:
-  monitor: "val_acc"
-  mode: "min"
 
 dataset: Gaussian2D
 # Use second dataset
