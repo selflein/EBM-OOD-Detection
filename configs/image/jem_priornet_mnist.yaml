@@ -26,6 +26,8 @@ model_config:
     num_classes: 10
     widen_factor: 10
     input_channels: 1
+    norm: batch
+
   learning_rate: 0.00001
   momentum: 0.9
   weight_decay: 0.0

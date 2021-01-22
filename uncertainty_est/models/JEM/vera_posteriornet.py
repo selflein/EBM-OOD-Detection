@@ -164,7 +164,6 @@ class VERAPosteriorNet(pl.LightningModule):
         )
 
         if self.clf_weight > 0:
-            ld, ld_logits = self.model(x_l, return_logits=True)
             p_x_given_y = torch.exp(ld_logits) / self.p_y.unsqueeze(0).to(self.device)
             alpha = self.class_counts.unsqueeze(0).to(self.device) * p_x_given_y
 
