@@ -96,7 +96,12 @@ if __name__ == "__main__":
     # Compute OOD detection metrics
     for ood_ds in args.ood_dataset:
         logger.info(f"\n\n{ood_ds}")
-        ood_loader = get_dataloader(ood_ds, "test", 128)
+        ood_loader = get_dataloader(
+            ood_ds,
+            "test",
+            128,
+            data_shape=np.array(id_test_loader.dataset[0][0].shape)[[1, 2, 0]].tolist(),
+        )
         ood_scores_dict = model.ood_detect(ood_loader)
 
         for score_name, id_scores in id_scores_dict.items():
