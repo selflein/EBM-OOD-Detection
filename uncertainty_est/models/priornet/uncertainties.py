@@ -42,12 +42,12 @@ def dirichlet_prior_network_uncertainty(logits, epsilon=1e-10, alpha_correction=
     )
 
     uncertainty = {
-        "confidence": 1 - conf,
-        "entropy_of_expected": entropy_of_exp,
-        "expected_entropy": expected_entropy,
-        "mutual_information": mutual_info,
-        "EPKL": epkl,
-        "differential_entropy": np.squeeze(dentropy),
+        "confidence_alea_uncert.": conf,
+        "entropy_of_expected": -entropy_of_exp,
+        "expected_entropy": -expected_entropy,
+        "mutual_information": -mutual_info,
+        "EPKL": -epkl,
+        "differential_entropy": -np.squeeze(dentropy),
     }
 
     return uncertainty

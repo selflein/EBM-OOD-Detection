@@ -23,6 +23,9 @@ from uncertainty_est.models.JEM.utils import (
     smooth_one_hot,
     init_random,
 )
+from uncertainty_est.models.priornet.uncertainties import (
+    dirichlet_prior_network_uncertainty,
+)
 
 
 class VERAPosteriorNet(pl.LightningModule):
@@ -288,12 +291,19 @@ class VERAPosteriorNet(pl.LightningModule):
     def ood_detect(self, loader):
         self.eval()
         torch.set_grad_enabled(False)
-        scores = []
-        for x, y in tqdm(loader):
+        logits = []
+        for x, _ in tqdm(loader):
             x = x.to(self.device)
-            score = self.model(x).cpu()
-            scores.append(score)
+            logits.append(self.model.classify(x).cpu())
+        logits = torch.cat(logits)
+        scores = logits.exp().sum(1)
 
         uncert = {}
-        uncert["p(x)"] = torch.cat(scores).cpu().numpy()
+        # exp(-E(x)) ~ p(x)
+        uncert["p(x)-epistemic_uncert"] = scores.numpy()
+        uncert["log p(x)"] = scores.log().numpy()
+        dirichlet_uncerts = dirichlet_prior_network_uncertainty(
+            logits.numpy(), alpha_correction=self.alpha_fix
+        )
+        uncert = {**uncert, **dirichlet_uncerts}
         return uncert

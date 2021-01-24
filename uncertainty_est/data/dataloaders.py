@@ -106,7 +106,7 @@ def get_dataloader(
         ds,
         batch_size=batch_size,
         pin_memory=True,
-        num_workers=4,
+        num_workers=0,
         shuffle=split == "train",
         drop_last=split == "train",
     )

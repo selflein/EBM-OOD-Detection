@@ -113,9 +113,10 @@ if __name__ == "__main__":
                 title="",  # f"{ood_ds}, {score_name.replace('_', ' ').title()}",
             )
             ax.figure.savefig(str(output_folder / f"{ood_ds}_{score_name}.png"))
+            plt.close()
 
             labels = np.concatenate(
-                [np.ones_like(ood_scores), np.zeros_like(id_scores)]
+                [np.zeros_like(ood_scores), np.ones_like(id_scores)]
             )
             preds = np.concatenate([ood_scores, id_scores])
 

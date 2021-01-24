@@ -295,20 +295,19 @@ class VERAPriorNet(pl.LightningModule):
     def ood_detect(self, loader):
         self.eval()
         torch.set_grad_enabled(False)
-        scores, logits = [], []
+        logits = []
         for x, _ in tqdm(loader):
             x = x.to(self.device)
-            # exp(-E(x)) ~ p(x)
-            score = torch.exp(self.model(x).cpu())
-            scores.append(score)
-            logits.append(self.model.classify(x).cpu().numpy())
-        scores = torch.cat(scores)
+            logits.append(self.model.classify(x).cpu())
+        logits = torch.cat(logits)
+        scores = logits.exp().sum(1)
 
         uncert = {}
-        uncert["p(x)"] = scores.cpu().numpy()
-        uncert["log p(x)"] = scores.log().cpu().numpy()
+        # exp(-E(x)) ~ p(x)
+        uncert["p(x)-epistemic_uncert"] = scores.numpy()
+        uncert["log p(x)"] = scores.log().numpy()
         dirichlet_uncerts = dirichlet_prior_network_uncertainty(
-            np.concatenate(logits), alpha_correction=self.alpha_fix
+            logits.numpy(), alpha_correction=self.alpha_fix
         )
         uncert = {**uncert, **dirichlet_uncerts}
         return uncert
