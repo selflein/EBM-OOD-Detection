@@ -1,0 +1,69 @@
+from collections import defaultdict
+
+import torch
+from tqdm import tqdm
+import pytorch_lightning as pl
+import torch.nn.functional as F
+
+from uncertainty_est.models.normalizing_flow.flows import NormalizingFlowDensity
+
+
+class NormalizingFlow(pl.LightningModule):
+    def __init__(
+        self, density_type, latent_dim, n_density, learning_rate, momentum, weight_decay
+    ):
+        super().__init__()
+        self.__dict__.update(locals())
+        self.save_hyperparameters()
+
+        self.density_estimation = NormalizingFlowDensity(
+            dim=self.latent_dim, flow_length=n_density, flow_type=self.density_type
+        )
+
+    def forward(self, x):
+        return self.density_estimation(x)
+
+    def training_step(self, batch, batch_idx):
+        x, _ = batch
+        log_p = self.density_estimation.log_prob(x)
+
+        loss = -log_p.mean()
+        self.log("train_loss", loss)
+        return loss
+
+    def validation_step(self, batch, batch_idx):
+        x, _ = batch
+        log_p = self.density_estimation.log_prob(x)
+
+        loss = -log_p.mean()
+        self.log("val_loss", loss)
+
+    def test_step(self, batch, batch_idx):
+        x, _ = batch
+        log_p = self.density_estimation.log_prob(x)
+        return log_p
+
+    def test_epoch_end(self, test_outputs):
+        self.log("test_log_likelihood", test_outputs[0].mean(0))
+
+    def configure_optimizers(self):
+        optim = torch.optim.AdamW(
+            self.parameters(),
+            betas=(self.momentum, 0.999),
+            lr=self.learning_rate,
+            weight_decay=self.weight_decay,
+        )
+        return optim
+
+    def ood_detect(self, loader):
+        with torch.no_grad():
+            log_p = []
+            for x, _ in loader:
+                x = x.to(self.device)
+                log_p.append(self.density_estimation.log_prob(x))
+        log_p = torch.cat(log_p)
+
+        dir_uncert = {}
+        dir_uncert["log p(x)"] = log_p.cpu().numpy()
+        dir_uncert["p(x)"] = log_p.exp().cpu().numpy()
+        return dir_uncert

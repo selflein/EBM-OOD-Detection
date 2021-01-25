@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import torch
+import numpy as np
 from PIL import Image
 from torch.utils.data import DataLoader
 from torchvision import datasets as dset
@@ -106,7 +107,7 @@ def get_dataloader(
         ds,
         batch_size=batch_size,
         pin_memory=True,
-        num_workers=0,
+        num_workers=4,
         shuffle=split == "train",
         drop_last=split == "train",
     )

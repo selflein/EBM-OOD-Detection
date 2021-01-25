@@ -63,7 +63,7 @@ class ResNetGenerator(nn.Module):
         for module in self.modules():
             if isinstance(module, (nn.Conv2d, nn.Linear)):
                 gain = relu_gain if module != self.input_linear else 1.0
-                nninit.xavier_uniform(module.weight.data, gain=gain)
+                nninit.xavier_uniform_(module.weight.data, gain=gain)
                 module.bias.data.zero_()
 
         if unit_interval:

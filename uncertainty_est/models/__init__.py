@@ -8,6 +8,7 @@ from uncertainty_est.models.priornet.priornet import PriorNet
 from uncertainty_est.models.JEM.vera import VERA
 from uncertainty_est.models.JEM.vera_priornet import VERAPriorNet
 from uncertainty_est.models.JEM.vera_posteriornet import VERAPosteriorNet
+from uncertainty_est.models.normalizing_flow.norm_flow import NormalizingFlow
 
 MODELS = {
     "HDGE": HDGEModel,
@@ -20,4 +21,5 @@ MODELS = {
     "VERA": VERA,
     "VERAPriorNet": VERAPriorNet,
     "VERAPosteriorNet": VERAPosteriorNet,
+    "NormalizingFlow": NormalizingFlow,
 }
