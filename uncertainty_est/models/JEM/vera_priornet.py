@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 
 from uncertainty_est.utils.utils import to_np
 from uncertainty_est.archs.arch_factory import get_arch
-from uncertainty_est.models.JEM.model import F, ConditionalF
+from uncertainty_est.models.JEM.model import EBM, ConditionalEBM
 from uncertainty_est.models.JEM.vera_utils import (
     VERAGenerator,
     VERAHMCGenerator,
@@ -75,7 +75,7 @@ class VERAPriorNet(pl.LightningModule):
 
         arch = get_arch(arch_name, arch_config)
         self.model = (
-            F(arch, n_classes) if self.uncond else ConditionalF(arch, n_classes)
+            EBM(arch, n_classes) if self.uncond else ConditionalEBM(arch, n_classes)
         )
 
         g = get_arch(generator_arch_name, generator_arch_config)

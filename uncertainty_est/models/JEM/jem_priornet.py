@@ -4,11 +4,11 @@ import torch
 import numpy as np
 from tqdm import tqdm
 import pytorch_lightning as pl
-import torch.nn.functional as F
+import torch.nn.functional as EBM
 from pytorch_lightning.core.decorators import auto_move_data
 
 from uncertainty_est.archs.arch_factory import get_arch
-from uncertainty_est.models.JEM.model import F, ConditionalF
+from uncertainty_est.models.JEM.model import EBM, ConditionalEBM
 from uncertainty_est.models.priornet.dpn_losses import dirichlet_kl_divergence
 from uncertainty_est.models.priornet.uncertainties import (
     dirichlet_prior_network_uncertainty,
@@ -54,7 +54,7 @@ class JEMPriorNet(pl.LightningModule):
 
         arch = get_arch(arch_name, arch_config)
         self.model = (
-            F(arch, n_classes) if self.uncond else ConditionalF(arch, n_classes)
+            EBM(arch, n_classes) if self.uncond else ConditionalEBM(arch, n_classes)
         )
 
         if not self.uncond:
@@ -245,7 +245,7 @@ class JEMPriorNet(pl.LightningModule):
                 output, target, _, _ = self.model.joint(
                     img=x_k, dist=dist, evaluation=True
                 )
-                energy = -1.0 * F.cross_entropy(output, target)
+                energy = -1.0 * EBM.cross_entropy(output, target)
             f_prime = torch.autograd.grad(energy, [x_k], retain_graph=True)[0]
             x_k.data += self.sgld_lr * f_prime + self.sgld_std * torch.randn_like(x_k)
         self.model.train()

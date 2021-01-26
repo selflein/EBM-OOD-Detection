@@ -2,9 +2,9 @@ import torch
 import torch.nn as nn
 
 
-class F(nn.Module):
+class EBM(nn.Module):
     def __init__(self, model, n_classes):
-        super(F, self).__init__()
+        super(EBM, self).__init__()
         self.f = model
         self.energy_output = nn.Linear(n_classes, 1)
         self.class_output = nn.Linear(n_classes, n_classes)
@@ -18,9 +18,9 @@ class F(nn.Module):
         return self.class_output(penult_z)
 
 
-class ConditionalF(F):
+class ConditionalEBM(EBM):
     def __init__(self, model, n_classes):
-        super(ConditionalF, self).__init__(model, n_classes)
+        super(ConditionalEBM, self).__init__(model, n_classes)
 
     def forward(self, x, y=None, return_logits=False):
         logits = self.classify(x)
@@ -33,7 +33,7 @@ class ConditionalF(F):
             return torch.gather(logits, 1, y[:, None])
 
 
-class HDGE(ConditionalF):
+class HDGE(ConditionalEBM):
     def __init__(self, model, n_classes, contrast_k, contrast_t):
         super(HDGE, self).__init__(model, n_classes)
 
