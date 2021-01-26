@@ -1,5 +1,5 @@
 trainer_config:
-  max_epochs: 500
+  max_steps: 10000
   gpus: "0"
 
 checkpoint_config:

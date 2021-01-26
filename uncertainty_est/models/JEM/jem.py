@@ -40,6 +40,7 @@ class JEM(pl.LightningModule):
         energy_reg_weight=0.0,
         energy_reg_type="2",
         entropy_reg_weight=0.0,
+        warmup_steps=0,
     ):
         super().__init__()
         self.__dict__.update(locals())
@@ -111,6 +112,7 @@ class JEM(pl.LightningModule):
         (x_lab, y_lab), (x_p_d, _) = batch
         dist = smooth_one_hot(y_lab, self.n_classes, self.smoothing)
         loss = sum(self.compute_losses(x_lab, y_lab, x_p_d, dist))
+        self.log("train_loss", loss)
         return loss
 
     def validation_step(self, batch, batch_idx):
@@ -142,6 +144,28 @@ class JEM(pl.LightningModule):
         scheduler = torch.optim.lr_scheduler.StepLR(optim, step_size=30, gamma=0.5)
         return [optim], [scheduler]
 
+    def optimizer_step(
+        self,
+        epoch: int = None,
+        batch_idx: int = None,
+        optimizer=None,
+        optimizer_idx: int = None,
+        optimizer_closure=None,
+        on_tpu: bool = None,
+        using_native_amp: bool = None,
+        using_lbfgs: bool = None,
+        **kwargs,
+    ):
+        # learning rate warm-up
+        if self.trainer.global_step < self.warmup_steps:
+            lr_scale = min(
+                1.0, float(self.trainer.global_step + 1) / float(self.warmup_steps)
+            )
+            for pg in optimizer.param_groups:
+                pg["lr"] = lr_scale * self.hparams.learning_rate
+
+        optimizer.step(closure=optimizer_closure)
+
     def compute_energy_reg(self, energy):
         return torch.linalg.norm(energy, dim=-1, ord=self.energy_reg_type).mean()
 
@@ -160,13 +184,14 @@ class JEM(pl.LightningModule):
         self.eval()
         torch.set_grad_enabled(False)
         scores = []
-        for x, y in tqdm(loader):
+        for x, _ in tqdm(loader):
             x = x.to(self.device)
             score = self.model(x).cpu()
             scores.append(score)
 
         uncert = {}
-        uncert["p(x)"] = torch.cat(scores).cpu().numpy()
+        uncert["log p(x)"] = torch.cat(scores).cpu().numpy()
+        uncert["p(x)"] = torch.cat(scores).exp().cpu().numpy()
         return uncert
 
     def sample_p_0(self, replay_buffer, bs, y=None):

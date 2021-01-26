@@ -268,5 +268,6 @@ class VERA(pl.LightningModule):
             scores.append(score)
 
         uncert = {}
-        uncert["p(x)"] = torch.cat(scores).cpu().numpy()
+        uncert["log p(x)"] = torch.cat(scores).cpu().numpy()
+        uncert["p(x)"] = torch.cat(scores).exp().cpu().numpy()
         return uncert

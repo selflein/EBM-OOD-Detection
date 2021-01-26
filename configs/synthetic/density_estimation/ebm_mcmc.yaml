@@ -1,21 +1,20 @@
 trainer_config:
-  max_epochs: 500
+  max_steps: 10000
   gpus: "0"
+  limit_val_batches: 0
 
 checkpoint_config:
-  monitor: val_loss
+  monitor: train_loss
   mode: min
+  save_last: True
 
 earlystop_config:
-  monitor: val_loss
-  mode: min
-  patience: 10
 
 dataset: Gaussian2D
 # Use second dataset
 ood_dataset: Gaussian2D
 seed: 1
-batch_size: 128
+batch_size: 512
 sigma: 0.03
 data_shape: [2]
 
@@ -24,19 +23,19 @@ model_config:
   arch_name: fc
   arch_config:
     inp_dim: 2
-    num_classes: 1
+    num_classes: 3
     hidden_dims: [100, 100]
     batch_norm: False
     bias: True
     slope: 0.2
 
-  learning_rate: 0.0005
+  learning_rate: 0.005
   momentum: 0.9
   weight_decay: 0.0
   smoothing: 0.0
   sgld_lr: 1.0
   sgld_std: 0.01
-  sgld_steps: 100
+  sgld_steps: 200
   pyxce: 0.0
   pxsgld: 1.0
   pxysgld: 0.0
@@ -44,9 +43,10 @@ model_config:
   reinit_freq: 0.05
   data_shape: [2]
   uncond: True
-  sgld_batch_size: 128
+  sgld_batch_size: 512
   class_cond_p_x_sample: False
-  n_classes: 1
+  n_classes: 3
+  warmup_steps: 2500
   energy_reg_weight: 0.0
   energy_reg_type: 2
   entropy_reg_weight: 0.0
