@@ -9,6 +9,9 @@ checkpoint_config:
   save_last: True
 
 earlystop_config:
+  monitor: val_acc
+  mode: max
+  patience: 10
 
 dataset: mnist
 # Use second dataset

@@ -30,6 +30,8 @@ class NormalizingFlowDensity(nn.Module):
                     for _ in range(flow_length)
                 ]
             )
+        elif self.flow_type == "planar_flow":
+            self.transforms = nn.ModuleList([Planar(dim) for _ in range(flow_length)])
         else:
             raise NotImplementedError
 

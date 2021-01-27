@@ -3,7 +3,7 @@ trainer_config:
   gpus: "0"
 
 checkpoint_config:
-  monitor:
+  monitor: "gen_loss"
   save_last: True
 
 earlystop_config:
