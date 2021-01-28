@@ -10,7 +10,14 @@ from uncertainty_est.models.normalizing_flow.flows import NormalizingFlowDensity
 
 class NormalizingFlow(pl.LightningModule):
     def __init__(
-        self, density_type, latent_dim, n_density, learning_rate, momentum, weight_decay
+        self,
+        density_type,
+        latent_dim,
+        n_density,
+        learning_rate,
+        momentum,
+        weight_decay,
+        vis_every=-1,
     ):
         super().__init__()
         self.__dict__.update(locals())
@@ -37,6 +44,20 @@ class NormalizingFlow(pl.LightningModule):
 
         loss = -log_p.mean()
         self.log("val_loss", loss)
+
+    def validation_epoch_end(self, training_step_outputs):
+        if self.vis_every > 0 and self.current_epoch % self.vis_every == 0:
+            interp = torch.linspace(-4, 4, 500)
+            x, y = torch.meshgrid(interp, interp)
+            data = torch.stack((x.reshape(-1), y.reshape(-1)), 1)
+
+            px = to_np(torch.exp(self.model(data.to(self.device))))
+
+            fig, ax = plt.subplots()
+            mesh = ax.pcolormesh(to_np(x), to_np(y), px.reshape(*x.shape))
+            fig.colorbar(mesh)
+            self.logger.experiment.add_figure("p(x)", fig, self.current_epoch)
+            plt.close()
 
     def test_step(self, batch, batch_idx):
         x, _ = batch

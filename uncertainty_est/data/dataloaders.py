@@ -68,7 +68,7 @@ def get_dataloader(
 
         if unscaled:
             unscaled_transform = tvt.Lambda(
-                lambda x: torch.from_numpy(np.array(x)).float()
+                lambda x: torch.from_numpy(np.array(x)).permute(2, 0, 1).float()
             )
             test_transform.append(unscaled_transform)
             train_transform.append(unscaled_transform)

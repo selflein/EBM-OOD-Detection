@@ -29,15 +29,15 @@ model_config:
     widen_factor: 10
     input_channels: 3
     dropout: 0.3
-    norm:
+    norm: batch
 
-  learning_rate: 0.000003
+  learning_rate: 0.00003
   beta1: 0.0
   beta2: 0.9
   weight_decay: 0.0
   n_classes: 10
   uncond: False
-  gen_learning_rate: 0.000006
+  gen_learning_rate: 0.00006
   ebm_iters: 1
   generator_iters: 1
   entropy_weight: 0.0001

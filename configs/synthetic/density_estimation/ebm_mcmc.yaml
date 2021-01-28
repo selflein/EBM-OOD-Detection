@@ -1,7 +1,8 @@
 trainer_config:
   max_steps: 10000
   gpus: "0"
-  limit_val_batches: 0
+  max_epochs: 10000
+  limit_val_batches: 1
 
 checkpoint_config:
   monitor: train_loss
@@ -50,3 +51,4 @@ model_config:
   energy_reg_weight: 0.0
   energy_reg_type: 2
   entropy_reg_weight: 0.0
+  vis_every: 10

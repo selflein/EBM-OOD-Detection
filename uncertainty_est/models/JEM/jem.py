@@ -2,10 +2,12 @@ from collections import defaultdict
 
 import torch
 from tqdm import tqdm
+import matplotlib.pyplot as plt
 import pytorch_lightning as pl
 import torch.nn.functional as EBM
 from pytorch_lightning.core.decorators import auto_move_data
 
+from uncertainty_est.utils.utils import to_np
 from uncertainty_est.archs.arch_factory import get_arch
 from uncertainty_est.models.JEM.model import EBM, ConditionalEBM
 from uncertainty_est.models.JEM.utils import (
@@ -41,6 +43,7 @@ class JEM(pl.LightningModule):
         energy_reg_type="2",
         entropy_reg_weight=0.0,
         warmup_steps=0,
+        vis_every=-1,
     ):
         super().__init__()
         self.__dict__.update(locals())
@@ -126,6 +129,20 @@ class JEM(pl.LightningModule):
 
         acc = (y_lab == logits.argmax(1)).float().mean(0).item()
         self.log("val_acc", acc)
+
+    def validation_epoch_end(self, training_step_outputs):
+        if self.vis_every > 0 and self.current_epoch % self.vis_every == 0:
+            interp = torch.linspace(-4, 4, 500)
+            x, y = torch.meshgrid(interp, interp)
+            data = torch.stack((x.reshape(-1), y.reshape(-1)), 1)
+
+            px = to_np(torch.exp(self.model(data.to(self.device))))
+
+            fig, ax = plt.subplots()
+            mesh = ax.pcolormesh(to_np(x), to_np(y), px.reshape(*x.shape))
+            fig.colorbar(mesh)
+            self.logger.experiment.add_figure("p(x)", fig, self.current_epoch)
+            plt.close()
 
     def test_step(self, batch, batch_idx):
         (x, y), (_, _) = batch
