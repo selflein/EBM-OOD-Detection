@@ -1,10 +1,9 @@
 trainer_config:
   max_steps: 10_000
+  max_epochs: 10_000
   gpus: "0"
 
 checkpoint_config:
-  monitor:
-  save_last: True
 
 earlystop_config:
 
@@ -57,16 +56,15 @@ model_config:
   n_control: 0.0
   pg_control: 0.1
   clf_ent_weight: 0.0
-  ebm_type: priornet
+  ebm_type: jem
   clf_weight: 1.0
   warmup_steps: 2500
   no_g_batch_norm: False
   batch_size: 128
   lr_decay: 0.3
   lr_decay_epochs: [200, 300]
-  vis_every: 1
   alpha_fix: True
   concentration: 1.0
   target_concentration:
-  kl_weight: 1.0
+  vis_every: 10
   entropy_reg: 0.0

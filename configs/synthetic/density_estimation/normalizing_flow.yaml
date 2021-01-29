@@ -1,5 +1,6 @@
 trainer_config:
-  max_steps: 10000
+  max_steps: 100_000
+  max_epochs: 100_000
   gpus: "0"
 
 checkpoint_config:
@@ -25,4 +26,4 @@ model_config:
   learning_rate: 0.001
   momentum: 0.9
   weight_decay: 0.0
-  vis_every: 100
+  vis_every: 1000

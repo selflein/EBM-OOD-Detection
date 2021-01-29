@@ -56,6 +56,7 @@ class VERA(pl.LightningModule):
         batch_size,
         lr_decay,
         lr_decay_epochs,
+        is_toy_dataset=False,
         vis_every=-1,
     ):
         super().__init__()
@@ -198,11 +199,31 @@ class VERA(pl.LightningModule):
         (x, y), (_, _) = batch
         y_hat = self(x)
 
+        # Toy datasets
+        if self.is_toy_dataset:
+            return y_hat
+
         # Performing density estimation only
         if y_hat.shape[1] < 2:
             return
+
         acc = (y == y_hat.argmax(1)).float().mean(0).item()
         self.log("test_acc", acc)
+
+    def test_step_end(self, logits):
+        # Estimate normalizing constant Z by numerical integration
+        interp = torch.linspace(-10, 10, 1000)
+        interval = 20.0 / 1000.0
+        x, y = torch.meshgrid(interp, interp)
+        grid = torch.stack((x.reshape(-1), y.reshape(-1)), 1)
+        log_ex = self.model(grid.to(self.device))
+        log_Z = torch.sum(log_ex * (interval ** 2))
+
+        log_px = logits.logsumexp(1) - log_Z
+        self.log("test_log_likelihood", log_px.mean())
+        self.logger.log_hyperparams(
+            self.hparams, {"test_log_likelihood": log_px.mean().item()}
+        )
 
     def configure_optimizers(self):
         optim = torch.optim.AdamW(

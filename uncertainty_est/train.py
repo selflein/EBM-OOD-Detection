@@ -95,12 +95,15 @@ def run(
         es_callback = pl.callbacks.EarlyStopping(**earlystop_config)
         callbacks.append(es_callback)
 
-    logger = pl.loggers.TensorBoardLogger(out_path)
+    logger = pl.loggers.TensorBoardLogger(out_path, default_hp_metric=False)
 
     trainer = pl.Trainer(**trainer_config, logger=logger, callbacks=callbacks)
     trainer.fit(model, train_loader, val_loader)
 
     result = trainer.test(test_dataloaders=test_loader)
+    import pdb
+
+    pdb.set_trace()
     return result
 
 

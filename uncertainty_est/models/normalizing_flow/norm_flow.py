@@ -3,8 +3,10 @@ from collections import defaultdict
 import torch
 from tqdm import tqdm
 import pytorch_lightning as pl
+import matplotlib.pyplot as plt
 import torch.nn.functional as F
 
+from uncertainty_est.utils.utils import to_np
 from uncertainty_est.models.normalizing_flow.flows import NormalizingFlowDensity
 
 
@@ -51,7 +53,9 @@ class NormalizingFlow(pl.LightningModule):
             x, y = torch.meshgrid(interp, interp)
             data = torch.stack((x.reshape(-1), y.reshape(-1)), 1)
 
-            px = to_np(torch.exp(self.model(data.to(self.device))))
+            px = to_np(
+                torch.exp(self.density_estimation.log_prob(data.to(self.device)))
+            )
 
             fig, ax = plt.subplots()
             mesh = ax.pcolormesh(to_np(x), to_np(y), px.reshape(*x.shape))
@@ -65,7 +69,11 @@ class NormalizingFlow(pl.LightningModule):
         return log_p
 
     def test_epoch_end(self, test_outputs):
-        self.log("test_log_likelihood", test_outputs[0].mean(0))
+        log_px = test_outputs[0].mean(0)
+        self.log("test_log_likelihood", log_px)
+        self.logger.log_hyperparams(
+            self.hparams, {"test_log_likelihood": log_px.item()}
+        )
 
     def configure_optimizers(self):
         optim = torch.optim.AdamW(

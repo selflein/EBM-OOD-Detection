@@ -1,5 +1,6 @@
 trainer_config:
-  max_steps: 10_000
+  max_steps: 100_000
+  max_epochs: 100_000
   gpus: "0"
 
 checkpoint_config:
@@ -63,5 +64,6 @@ model_config:
   no_g_batch_norm: False
   batch_size: 128
   lr_decay: 0.3
-  lr_decay_epochs: [200, 300]
-  vis_every: 1
+  lr_decay_epochs: [1000, 5000]
+  vis_every: 100
+  is_toy_dataset: True

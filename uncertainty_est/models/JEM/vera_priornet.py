@@ -65,8 +65,9 @@ class VERAPriorNet(pl.LightningModule):
         alpha_fix=True,
         concentration=1.0,
         target_concentration=None,
-        kl_weight=1.0,
         entropy_reg=0.0,
+        reverse_kl=True,
+        **kwargs,
     ):
         super().__init__()
         self.__dict__.update(locals())
@@ -143,29 +144,6 @@ class VERAPriorNet(pl.LightningModule):
             ld, ld_logits = self.model(x_l, return_logits=True)
         elif self.ebm_type == "p_x":
             ld, ld_logits = self.model(x_l).squeeze(), torch.tensor(0.0).to(self.device)
-        elif self.ebm_type == "priornet":
-            ld, ld_logits = self.model(x_l, return_logits=True)
-            alphas = torch.exp(ld_logits)
-            if self.alpha_fix:
-                alphas = alphas + 1
-
-            if self.target_concentration is None:
-                target_concentration = torch.exp(self.model(x_l)) + self.concentration
-            else:
-                target_concentration = (
-                    torch.empty(len(alphas))
-                    .fill_(self.target_concentration)
-                    .to(self.device)
-                )
-
-            target_alphas = torch.empty_like(alphas).fill_(self.concentration)
-            target_alphas[torch.arange(len(y_l)), y_l] = target_concentration
-            kl_term = dirichlet_kl_divergence(target_alphas, alphas)
-            loss += self.kl_weight * kl_term.mean()
-            loss += (
-                self.entropy_reg
-                * -torch.distributions.Dirichlet(alphas).entropy().mean()
-            )
         else:
             raise NotImplementedError(f"EBM type '{self.ebm_type}' not implemented!")
 
@@ -185,7 +163,34 @@ class VERAPriorNet(pl.LightningModule):
         )
 
         if self.clf_weight > 0:
-            loss += self.clf_weight * torch.nn.CrossEntropyLoss()(ld_logits, y_l)
+            p_xy = torch.exp(ld_logits)
+            p_x = torch.sum(p_xy, 1)
+
+            # Update prior with evidence
+            alphas = self.concentration + p_xy
+
+            if self.target_concentration is None:
+                target_concentration = p_x + self.concentration
+            else:
+                target_concentration = (
+                    torch.empty(len(alphas))
+                    .fill_(self.target_concentration)
+                    .to(self.device)
+                )
+
+            target_alphas = torch.empty_like(alphas).fill_(self.concentration)
+            target_alphas[torch.arange(len(y_l)), y_l] = target_concentration
+
+            if self.reverse_kl:
+                kl_term = dirichlet_kl_divergence(target_alphas, alphas)
+            else:
+                kl_term = dirichlet_kl_divergence(alphas, target_alphas)
+
+            loss += self.clf_weight * kl_term.mean()
+            loss += (
+                self.entropy_reg
+                * -torch.distributions.Dirichlet(alphas).entropy().mean()
+            )
 
         return loss
 

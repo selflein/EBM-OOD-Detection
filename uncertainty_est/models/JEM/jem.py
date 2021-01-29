@@ -44,6 +44,8 @@ class JEM(pl.LightningModule):
         entropy_reg_weight=0.0,
         warmup_steps=0,
         vis_every=-1,
+        is_toy_dataset=False,
+        lr_step_size=50,
     ):
         super().__init__()
         self.__dict__.update(locals())
@@ -113,19 +115,19 @@ class JEM(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         (x_lab, y_lab), (x_p_d, _) = batch
-        dist = smooth_one_hot(y_lab, self.n_classes, self.smoothing)
+        if self.n_classes > 1:
+            dist = smooth_one_hot(y_lab, self.n_classes, self.smoothing)
+        else:
+            dist = y_lab[None, :]
         loss = sum(self.compute_losses(x_lab, y_lab, x_p_d, dist))
         self.log("train_loss", loss)
         return loss
 
     def validation_step(self, batch, batch_idx):
-        (x_lab, y_lab), (x_p_d, _) = batch
-        dist = smooth_one_hot(y_lab, self.n_classes, self.smoothing)
-        logits = self(x_lab)
-        torch.set_grad_enabled(True)
-        loss = sum(self.compute_losses(x_lab, y_lab, x_p_d, dist, logits=logits))
-        torch.set_grad_enabled(False)
-        self.log("val_loss", loss)
+        (x_lab, y_lab), (_, _) = batch
+
+        if self.n_classes < 2:
+            return
 
         acc = (y_lab == logits.argmax(1)).float().mean(0).item()
         self.log("val_acc", acc)
@@ -148,8 +150,27 @@ class JEM(pl.LightningModule):
         (x, y), (_, _) = batch
         y_hat = self(x)
 
+        # Toy datasets
+        if self.is_toy_dataset:
+            return y_hat
+
         acc = (y == y_hat.argmax(1)).float().mean(0).item()
         self.log("test_acc", acc)
+
+    def test_step_end(self, logits):
+        # Estimate normalizing constant Z by numerical integration
+        interp = torch.linspace(-10, 10, 1000)
+        interval = 20.0 / 1000.0
+        x, y = torch.meshgrid(interp, interp)
+        grid = torch.stack((x.reshape(-1), y.reshape(-1)), 1)
+        log_ex = self.model(grid.to(self.device))
+        log_Z = torch.sum(log_ex * (interval ** 2))
+
+        log_px = logits.logsumexp(1) - log_Z
+        self.log("test_log_likelihood", log_px.mean())
+        self.logger.log_hyperparams(
+            self.hparams, {"test_log_likelihood": log_px.mean().item()}
+        )
 
     def configure_optimizers(self):
         optim = torch.optim.AdamW(
@@ -158,7 +179,9 @@ class JEM(pl.LightningModule):
             lr=self.learning_rate,
             weight_decay=self.weight_decay,
         )
-        scheduler = torch.optim.lr_scheduler.StepLR(optim, step_size=30, gamma=0.5)
+        scheduler = torch.optim.lr_scheduler.StepLR(
+            optim, step_size=self.lr_step_size, gamma=0.5
+        )
         return [optim], [scheduler]
 
     def optimizer_step(

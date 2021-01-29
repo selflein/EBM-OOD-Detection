@@ -71,5 +71,4 @@ model_config:
   alpha_fix: True
   concentration: 1.0
   target_concentration:
-  kl_weight: 1.0
   entropy_reg: 0.01
