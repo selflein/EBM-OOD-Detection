@@ -67,3 +67,4 @@ model_config:
   vis_every: 1
   alpha_fix: True
   entropy_reg: 0.0
+  is_toy_dataset: True

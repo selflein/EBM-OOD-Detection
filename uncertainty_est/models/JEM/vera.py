@@ -94,7 +94,7 @@ class VERA(pl.LightningModule):
         if batch_idx % self.ebm_iters == 0:
             ebm_loss = self.ebm_step(x_d, x_l, x_g, y_l)
 
-            self.log("ebm_loss", ebm_loss, prog_bar=True)
+            self.log("train/ebm_loss", ebm_loss, prog_bar=True)
 
             opt_e.zero_grad()
             self.manual_backward(ebm_loss, opt_e)
@@ -104,7 +104,7 @@ class VERA(pl.LightningModule):
         if batch_idx % self.generator_iters == 0:
             gen_loss = self.generator_step(x_g, h_g)
 
-            self.log("gen_loss", gen_loss, prog_bar=True)
+            self.log("train/gen_loss", gen_loss, prog_bar=True)
 
             opt_g.zero_grad()
             self.manual_backward(gen_loss, opt_g)
@@ -175,14 +175,14 @@ class VERA(pl.LightningModule):
         logits = self(x_l)
 
         log_px = self.model(x_l).mean()
-        self.log("val_loss", -log_px)
+        self.log("val/val_loss", -log_px)
 
         # Performing density estimation only
         if logits.shape[1] < 2:
             return
 
         acc = (y_l == logits.argmax(1)).float().mean(0).item()
-        self.log("val_acc", acc)
+        self.log("val/val_acc", acc)
 
     def validation_epoch_end(self, training_step_outputs):
         if self.vis_every > 0 and self.current_epoch % self.vis_every == 0:
@@ -202,20 +202,16 @@ class VERA(pl.LightningModule):
         (x, y), (_, _) = batch
         y_hat = self(x)
 
-        # Toy datasets
+        acc = (y == y_hat.argmax(1)).float().mean(0).item()
+        self.log("acc", acc)
+
         if self.is_toy_dataset:
             return y_hat
 
-        # Performing density estimation only
-        if y_hat.shape[1] < 2:
-            return
-
-        acc = (y == y_hat.argmax(1)).float().mean(0).item()
-        self.log("test_acc", acc)
-
     def test_epoch_end(self, logits):
-        if len(logits) == 0:
+        if not self.is_toy_dataset:
             return
+
         # Estimate normalizing constant Z by numerical integration
         interp = torch.linspace(-10, 10, 1000)
         interval = 20.0 / 1000.0
@@ -224,11 +220,9 @@ class VERA(pl.LightningModule):
         log_ex = self.model(grid.to(self.device))
         log_Z = torch.sum(log_ex * (interval ** 2))
 
+        logits = torch.cat(logits, 0)
         log_px = logits.logsumexp(1) - log_Z
-        self.log("test_log_likelihood", log_px.mean())
-        self.logger.log_hyperparams(
-            self.hparams, {"test_log_likelihood": log_px.mean().item()}
-        )
+        self.log("log_likelihood", log_px.mean())
 
     def configure_optimizers(self):
         optim = torch.optim.AdamW(

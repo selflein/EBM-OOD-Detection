@@ -1,6 +1,6 @@
 seml:
   executable: uncertainty_est/train.py
-  name: ce_baseline_wrn
+  name: vera_density_estimation
   output_dir: slurm
   project_root_dir: ..
 
@@ -13,3 +13,93 @@ slurm:
     time: 0-08:00     # max time, D-HH:MM
 
 ###### BEGIN PARAMETER CONFIGURATION ######
+
+fixed:
+  trainer_config:
+    max_steps: 100_000
+    max_epochs: 100_000
+    gpus: "0"
+
+  checkpoint_config:
+    monitor:
+    period: 1000
+    save_last: True
+
+  earlystop_config:
+
+  dataset: Gaussian2D
+  # Use second dataset
+  ood_dataset: Gaussian2D
+  seed: 1
+  batch_size: 512
+  data_shape: [2]
+
+  model_name: VERA
+  model_config:
+    arch_name: fc
+    arch_config:
+      inp_dim: 2
+      num_classes: 1
+      hidden_dims: [100, 100]
+      batch_norm: False
+      bias: True
+      slope: 0.2
+
+    learning_rate: 0.001
+    beta1: 0.0
+    beta2: 0.9
+    weight_decay: 0.0
+    n_classes: 1
+    uncond: False
+    gen_learning_rate: 0.001
+    ebm_iters: 1
+    generator_iters: 1
+    entropy_weight: 0.1
+
+    generator_type: vera
+    generator_arch_name: fc
+    generator_arch_config:
+      inp_dim: 2
+      num_classes: 2
+      hidden_dims: [100, 100]
+      activation: relu
+      batch_norm: True
+      bias: False
+    generator_config:
+      noise_dim: 2
+      post_lr: 0.001
+      init_post_logsigma: 0.001
+
+    min_sigma: 0.01
+    max_sigma: 0.3
+    p_control: 0.0
+    n_control: 0.0
+    pg_control: 0.1
+    clf_ent_weight: 0.0
+    ebm_type: p_x
+    clf_weight: 0.0
+    warmup_steps: 2500
+    no_g_batch_norm: False
+    batch_size: 128
+    lr_decay: 0.3
+    lr_decay_epochs: [1000, 5000]
+    vis_every: 100
+    is_toy_dataset: True
+
+grid:
+  model_config:
+    learning_rate:
+      type: loguniform
+      min: 1e-5
+      max: 1e-3
+      num: 3
+    gen_learning_rate:
+      type: loguniform
+      min: 1e-5
+      max: 1e-3
+      num: 3
+    entropy_weight:
+      type: loguniform
+      min: 1e-3
+      max: 1
+      num: 4

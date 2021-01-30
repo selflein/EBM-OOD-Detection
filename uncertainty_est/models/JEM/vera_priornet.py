@@ -113,6 +113,7 @@ class VERAPriorNet(VERA):
         clf_loss += (
             self.entropy_reg * -torch.distributions.Dirichlet(alphas).entropy().mean()
         )
+        self.log("train/clf_loss", clf_loss)
         return clf_loss
 
     def ood_detect(self, loader):
