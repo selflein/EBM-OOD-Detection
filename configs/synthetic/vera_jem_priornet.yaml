@@ -71,3 +71,4 @@ model_config:
   vis_every: 10
   entropy_reg: 0.0
   is_toy_dataset: True
+  reverse_kl: True
