@@ -101,9 +101,9 @@ def run(
     trainer.fit(model, train_loader, val_loader)
 
     result = trainer.test(test_dataloaders=test_loader)
-    import pdb
 
-    pdb.set_trace()
+    model.logger.log_hyperparams(model.hparams, result[0])
+
     return result
 
 

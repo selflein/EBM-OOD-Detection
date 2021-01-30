@@ -157,7 +157,7 @@ class JEM(pl.LightningModule):
         acc = (y == y_hat.argmax(1)).float().mean(0).item()
         self.log("test_acc", acc)
 
-    def test_step_end(self, logits):
+    def test_epoch_end(self, logits):
         # Estimate normalizing constant Z by numerical integration
         interp = torch.linspace(-10, 10, 1000)
         interval = 20.0 / 1000.0
@@ -168,9 +168,6 @@ class JEM(pl.LightningModule):
 
         log_px = logits.logsumexp(1) - log_Z
         self.log("test_log_likelihood", log_px.mean())
-        self.logger.log_hyperparams(
-            self.hparams, {"test_log_likelihood": log_px.mean().item()}
-        )
 
     def configure_optimizers(self):
         optim = torch.optim.AdamW(

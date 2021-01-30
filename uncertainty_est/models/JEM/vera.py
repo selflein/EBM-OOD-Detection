@@ -137,7 +137,7 @@ class VERA(pl.LightningModule):
             raise NotImplementedError(f"EBM type '{self.ebm_type}' not implemented!")
 
         grad_ld = (
-            torch.autograd.grad(ld.sum(), x_l, create_graph=True)[0]
+            torch.autograd.grad(ld.mean(), x_l, create_graph=True)[0]
             .flatten(start_dim=1)
             .norm(2, 1)
         )
@@ -152,9 +152,12 @@ class VERA(pl.LightningModule):
         )
 
         if self.clf_weight > 0:
-            e_loss += self.clf_weight * torch.nn.CrossEntropyLoss()(ld_logits, y_l)
+            e_loss += self.clf_weight * self.classifier_loss(ld_logits, y_l)
 
         return e_loss
+
+    def classifier_loss(self, ld_logits, y_l):
+        return torch.nn.CrossEntropyLoss()(ld_logits, y_l)
 
     def generator_step(self, x_g, h_g):
         lg = self.model(x_g).squeeze()
@@ -210,7 +213,9 @@ class VERA(pl.LightningModule):
         acc = (y == y_hat.argmax(1)).float().mean(0).item()
         self.log("test_acc", acc)
 
-    def test_step_end(self, logits):
+    def test_epoch_end(self, logits):
+        if len(logits) == 0:
+            return
         # Estimate normalizing constant Z by numerical integration
         interp = torch.linspace(-10, 10, 1000)
         interval = 20.0 / 1000.0
