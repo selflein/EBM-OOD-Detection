@@ -7,9 +7,9 @@ import torch.nn.functional as tf
 from torch import distributions
 import matplotlib.pyplot as plt
 
-from uncertainty_est.utils.utils import to_np
 from uncertainty_est.archs.arch_factory import get_arch
 from uncertainty_est.models.JEM.model import EBM, ConditionalEBM
+from uncertainty_est.utils.utils import to_np, estimate_normalizing_constant
 from uncertainty_est.models.JEM.vera_utils import (
     VERAGenerator,
     VERAHMCGenerator,
@@ -213,12 +213,11 @@ class VERA(pl.LightningModule):
             return
 
         # Estimate normalizing constant Z by numerical integration
-        interp = torch.linspace(-10, 10, 1000)
-        interval = 20.0 / 1000.0
-        x, y = torch.meshgrid(interp, interp)
-        grid = torch.stack((x.reshape(-1), y.reshape(-1)), 1)
-        log_ex = self.model(grid.to(self.device))
-        log_Z = torch.sum(log_ex * (interval ** 2))
+        log_Z = torch.log(
+            estimate_normalizing_constant(
+                lambda x: self(x).exp().sum(1), device=self.device
+            )
+        )
 
         logits = torch.cat(logits, 0)
         log_px = logits.logsumexp(1) - log_Z

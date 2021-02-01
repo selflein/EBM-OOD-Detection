@@ -7,9 +7,9 @@ import pytorch_lightning as pl
 import torch.nn.functional as EBM
 from pytorch_lightning.core.decorators import auto_move_data
 
-from uncertainty_est.utils.utils import to_np
 from uncertainty_est.archs.arch_factory import get_arch
 from uncertainty_est.models.JEM.model import EBM, ConditionalEBM
+from uncertainty_est.utils.utils import to_np, estimate_normalizing_constant
 from uncertainty_est.models.JEM.utils import (
     KHotCrossEntropyLoss,
     smooth_one_hot,
@@ -158,16 +158,18 @@ class JEM(pl.LightningModule):
         self.log("test_acc", acc)
 
     def test_epoch_end(self, logits):
+        if not self.is_toy_dataset:
+            return
+
         # Estimate normalizing constant Z by numerical integration
-        interp = torch.linspace(-10, 10, 1000)
-        interval = 20.0 / 1000.0
-        x, y = torch.meshgrid(interp, interp)
-        grid = torch.stack((x.reshape(-1), y.reshape(-1)), 1)
-        log_ex = self.model(grid.to(self.device))
-        log_Z = torch.sum(log_ex * (interval ** 2))
+        log_Z = torch.log(
+            estimate_normalizing_constant(
+                lambda x: -self(x).logsumexp(1), device=self.device
+            )
+        )
 
         log_px = logits.logsumexp(1) - log_Z
-        self.log("test_log_likelihood", log_px.mean())
+        self.log("log_likelihood", log_px.mean())
 
     def configure_optimizers(self):
         optim = torch.optim.AdamW(

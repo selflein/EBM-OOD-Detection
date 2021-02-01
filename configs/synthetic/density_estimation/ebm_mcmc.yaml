@@ -1,5 +1,5 @@
 trainer_config:
-  max_steps: 1000_000
+  max_steps: 100_000
   gpus: "0"
   max_epochs: 100_000
   limit_val_batches: 1
@@ -16,7 +16,6 @@ dataset: Gaussian2D
 ood_dataset: Gaussian2D
 seed: 1
 batch_size: 512
-sigma: 0.03
 data_shape: [2]
 
 model_name: JEM

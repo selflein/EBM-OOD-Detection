@@ -2,5 +2,7 @@
 __pycache__
 
 logs
+grid_search
 slurm
 /_cache_datalsuntestlmdb
+notebooks

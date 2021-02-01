@@ -1,11 +1,11 @@
 seml:
   executable: uncertainty_est/train.py
-  name: vera_density_estimation
+  name: mcmc_density_estimation
   output_dir: slurm
   project_root_dir: ..
 
 slurm:
-  experiments_per_job: 4
+  experiments_per_job: 6
   sbatch_options:
     gres: gpu:1       # num GPUs
     mem: 8G          # memory
@@ -17,16 +17,18 @@ slurm:
 fixed:
   trainer_config:
     max_steps: 100_000
+    gpus: 1
     max_epochs: 100_000
-    gpus: "0"
+    limit_val_batches: 1
 
   checkpoint_config:
-    monitor:
-    period: 1000
+    monitor: train_loss
+    mode: min
     save_last: True
 
   earlystop_config:
 
+  log_dir: grid_search/mcmc_density_estimation
   dataset: Gaussian2D
   # Use second dataset
   ood_dataset: Gaussian2D
@@ -34,7 +36,7 @@ fixed:
   batch_size: 512
   data_shape: [2]
 
-  model_name: VERA
+  model_name: JEM
   model_config:
     arch_name: fc
     arch_config:
@@ -45,46 +47,30 @@ fixed:
       bias: True
       slope: 0.2
 
-    # learning_rate: 0.001
-    beta1: 0.0
-    beta2: 0.9
+    # learning_rate: 0.005
+    momentum: 0.9
     weight_decay: 0.0
+    smoothing: 0.0
+    # sgld_lr: 1.0
+    # sgld_std: 0.01
+    # sgld_steps: 200
+    pyxce: 0.0
+    pxsgld: 1.0
+    pxysgld: 0.0
+    buffer_size: 9999
+    reinit_freq: 0.05
+    data_shape: [2]
+    uncond: True
+    sgld_batch_size: 512
+    class_cond_p_x_sample: False
     n_classes: 1
-    uncond: False
-    # gen_learning_rate: 0.001
-    ebm_iters: 1
-    generator_iters: 1
-    # entropy_weight: 0.1
-
-    generator_type: vera
-    generator_arch_name: fc
-    generator_arch_config:
-      inp_dim: 2
-      num_classes: 2
-      hidden_dims: [100, 100]
-      activation: relu
-      batch_norm: True
-      bias: False
-    generator_config:
-      noise_dim: 2
-      post_lr: 0.001
-      init_post_logsigma: 0.001
-
-    min_sigma: 0.01
-    max_sigma: 0.3
-    p_control: 0.0
-    n_control: 0.0
-    pg_control: 0.1
-    clf_ent_weight: 0.0
-    ebm_type: p_x
-    clf_weight: 0.0
     warmup_steps: 2500
-    no_g_batch_norm: False
-    batch_size: 128
-    lr_decay: 0.3
-    lr_decay_epochs: [1000, 5000]
-    vis_every: 100
+    energy_reg_weight: 0.0
+    energy_reg_type: 2
+    entropy_reg_weight: 0.0
+    vis_every: 1000
     is_toy_dataset: True
+    lr_step_size: 1000
 
 grid:
   model_config:
@@ -95,13 +81,19 @@ grid:
         min: 1e-5
         max: 1e-3
         num: 3
-      gen_learning_rate:
+      sgld_lr:
         type: loguniform
-        min: 1e-5
-        max: 1e-3
-        num: 3
-      entropy_weight:
-        type: loguniform
-        min: 1e-3
+        min: 1e-2
         max: 1
-        num: 4
+        num: 3
+      sgld_std:
+        type: loguniform
+        min: 1e-2
+        max: 1e-1
+        num: 2
+      sgld_steps:
+        type: choice
+        options:
+          - 20
+          - 50
+          - 100

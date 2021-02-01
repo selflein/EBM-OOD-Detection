@@ -36,7 +36,13 @@ def get_dataset(dataset, data_shape, length=10_000):
 
 
 def get_dataloader(
-    dataset, split, batch_size=32, data_shape=(32, 32, 3), ood_dataset=None, sigma=0.0
+    dataset,
+    split,
+    batch_size=32,
+    data_shape=(32, 32, 3),
+    ood_dataset=None,
+    sigma=0.0,
+    num_workers=0,
 ):
     train_transform = []
     test_transform = []
@@ -107,7 +113,7 @@ def get_dataloader(
         ds,
         batch_size=batch_size,
         pin_memory=True,
-        num_workers=4,
+        num_workers=num_workers,
         shuffle=split == "train",
         drop_last=split == "train",
     )

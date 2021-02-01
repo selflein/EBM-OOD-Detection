@@ -1,5 +1,9 @@
+# Fix https://github.com/pytorch/pytorch/issues/37377
+import numpy as _
+
 import os
 import sys
+from uuid import uuid4
 
 sys.path.insert(0, os.getcwd())
 
@@ -48,6 +52,8 @@ def run(
     data_shape,
     sigma=0.0,
     output_folder=None,
+    log_dir="logs",
+    num_workers=4,
 ):
     torch.set_default_tensor_type(torch.FloatTensor)
     pl.seed_everything(seed)
@@ -61,6 +67,7 @@ def run(
         data_shape=data_shape,
         ood_dataset=ood_dataset,
         sigma=sigma,
+        num_workers=num_workers,
     )
     val_loader = get_dataloader(
         dataset,
@@ -69,6 +76,7 @@ def run(
         data_shape=data_shape,
         sigma=sigma,
         ood_dataset=ood_dataset,
+        num_workers=num_workers,
     )
     test_loader = get_dataloader(
         dataset,
@@ -77,6 +85,7 @@ def run(
         data_shape=data_shape,
         sigma=sigma,
         ood_dataset=ood_dataset,
+        num_workers=num_workers,
     )
 
     output_folder = (
@@ -84,7 +93,7 @@ def run(
         if output_folder is None
         else output_folder
     )
-    out_path = Path("logs") / model_name / dataset / output_folder
+    out_path = Path(log_dir) / model_name / dataset / f"{output_folder}_{uuid4()}"
     out_path.mkdir(exist_ok=False, parents=True)
 
     callbacks = []

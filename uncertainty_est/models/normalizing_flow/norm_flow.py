@@ -66,7 +66,7 @@ class NormalizingFlow(pl.LightningModule):
     def test_step(self, batch, batch_idx):
         x, _ = batch
         log_p = self.density_estimation.log_prob(x)
-        self.log("test_log_likelihood", log_p.mean())
+        self.log("log_likelihood", log_p.mean())
 
     def configure_optimizers(self):
         optim = torch.optim.AdamW(
