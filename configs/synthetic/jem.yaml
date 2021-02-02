@@ -25,12 +25,12 @@ model_config:
   arch_config:
     inp_dim: 2
     num_classes: 3
-  learning_rate: 0.0005
+  learning_rate: 0.0001
   momentum: 0.9
   weight_decay: 0.0
   smoothing: 0.0
-  sgld_lr: 1.0
-  sgld_std: 0.01
+  sgld_lr: 0.01
+  sgld_std: 0.1
   sgld_steps: 100
   pyxce: 1.0
   pxsgld: 1.0

@@ -33,10 +33,10 @@ model_config:
   weight_decay: 0.0
   n_classes: 3
   uncond: False
-  gen_learning_rate: 0.0001
+  gen_learning_rate: 0.001
   ebm_iters: 1
   generator_iters: 1
-  entropy_weight: 0.1
+  entropy_weight: 1.0
 
   generator_type: vera
   generator_arch_name: fc

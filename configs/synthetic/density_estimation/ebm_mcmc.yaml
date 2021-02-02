@@ -29,13 +29,13 @@ model_config:
     bias: True
     slope: 0.2
 
-  learning_rate: 0.005
+  learning_rate: 0.0001
   momentum: 0.9
   weight_decay: 0.0
   smoothing: 0.0
-  sgld_lr: 1.0
-  sgld_std: 0.01
-  sgld_steps: 200
+  sgld_lr: 0.01
+  sgld_std: 0.1
+  sgld_steps: 100
   pyxce: 0.0
   pxsgld: 1.0
   pxysgld: 0.0
