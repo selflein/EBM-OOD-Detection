@@ -4,14 +4,15 @@ trainer_config:
   gpus: "0"
 
 checkpoint_config:
-  monitor: "gen_loss"
+  monitor: "train/ebm_loss"
+  mode: min
   save_last: True
 
 earlystop_config:
 
-dataset: Gaussian2D
+dataset: &dataset Gaussian2D
 # Use second dataset
-ood_dataset: Gaussian2D
+ood_dataset: *dataset
 seed: 1
 batch_size: 512
 data_shape: [2]
@@ -22,7 +23,7 @@ model_config:
   arch_config:
     inp_dim: 2
     num_classes: 1
-    hidden_dims: [100, 100]
+    hidden_dims: &dims [100, 100]
     batch_norm: False
     bias: True
     slope: 0.2
@@ -43,7 +44,7 @@ model_config:
   generator_arch_config:
     inp_dim: 2
     num_classes: 2
-    hidden_dims: [100, 100]
+    hidden_dims: *dims
     activation: relu
     batch_norm: True
     bias: False

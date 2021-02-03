@@ -1,3 +1,4 @@
+import torch
 from torch import nn as nn
 from torch.nn import init as nninit
 
@@ -24,7 +25,7 @@ class GeneratorBlock(nn.Module):
         x = inputs[0]
 
         if self.upsample:
-            shortcut = nn.functional.upsample(x, scale_factor=2, mode="nearest")
+            shortcut = nn.functional.interpolate(x, scale_factor=2, mode="nearest")
         else:
             shortcut = x
 
@@ -34,7 +35,7 @@ class GeneratorBlock(nn.Module):
         x = self.bn1(x)
         x = self.relu(x)
         if self.upsample:
-            x = nn.functional.upsample(x, scale_factor=2, mode="nearest")
+            x = nn.functional.interpolate(x, scale_factor=2, mode="nearest")
         x = self.conv1(x)
         x = self.bn2(x)
         x = self.relu(x)
@@ -69,7 +70,7 @@ class ResNetGenerator(nn.Module):
         if unit_interval:
             self.final_act = nn.functional.sigmoid
         else:
-            self.final_act = nn.functional.tanh
+            self.final_act = torch.tanh
 
         self.last_output = None
 

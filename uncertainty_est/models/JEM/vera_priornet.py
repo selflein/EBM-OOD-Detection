@@ -92,6 +92,9 @@ class VERAPriorNet(VERA):
         # Update prior with evidence
         alphas = self.concentration + p_xy
 
+        if torch.isnan(alphas).any() or not torch.isfinite(alphas).any():
+            raise ValueError()
+
         if self.target_concentration is None:
             target_concentration = p_x + self.concentration
         else:
@@ -116,13 +119,18 @@ class VERAPriorNet(VERA):
         self.log("train/clf_loss", clf_loss)
         return clf_loss
 
+    def validation_epoch_end(self, outputs):
+        super().validation_epoch_end(outputs)
+        alphas = torch.exp(outputs[0]).reshape(-1) + self.concentration
+        self.logger.experiment.add_histogram("alphas", alphas, self.current_epoch)
+
     def ood_detect(self, loader):
         self.eval()
         torch.set_grad_enabled(False)
         logits = []
         for x, _ in tqdm(loader):
             x = x.to(self.device)
-            logits.append(self.model.classify(x).cpu())
+            logits.append(self(x).cpu())
         logits = torch.cat(logits)
         scores = logits.exp().sum(1)
 

@@ -3,11 +3,11 @@ trainer_config:
   gpus: "0"
 
 checkpoint_config:
-  monitor: val_loss
+  monitor: val/loss
   mode: min
 
 earlystop_config:
-  monitor: val_loss
+  monitor: val/loss
   mode: min
   patience: 10
 

@@ -108,6 +108,11 @@ class VERAPosteriorNet(VERA):
         self.log("train/uce_loss", UCE_loss)
         return UCE_loss
 
+    def validation_epoch_end(self, outputs):
+        super().validation_epoch_end(outputs)
+        alphas = torch.exp(outputs[0]).reshape(-1) + 1 if self.alpha_fix else 0
+        self.logger.experiment.add_histogram("alphas", alphas, self.current_epoch)
+
     def ood_detect(self, loader):
         self.eval()
         torch.set_grad_enabled(False)

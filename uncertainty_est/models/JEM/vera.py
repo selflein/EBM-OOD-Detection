@@ -152,7 +152,9 @@ class VERA(pl.LightningModule):
         )
 
         if self.clf_weight > 0:
-            e_loss += self.clf_weight * self.classifier_loss(ld_logits, y_l)
+            clf_loss = self.clf_weight * self.classifier_loss(ld_logits, y_l)
+            self.log("train/clf_loss", clf_loss)
+            e_loss += clf_loss
 
         return e_loss
 
@@ -175,16 +177,17 @@ class VERA(pl.LightningModule):
         logits = self(x_l)
 
         log_px = self.model(x_l).mean()
-        self.log("val/val_loss", -log_px)
+        self.log("val/loss", -log_px)
 
         # Performing density estimation only
         if logits.shape[1] < 2:
             return
 
         acc = (y_l == logits.argmax(1)).float().mean(0).item()
-        self.log("val/val_acc", acc)
+        self.log("val/acc", acc)
+        return logits
 
-    def validation_epoch_end(self, training_step_outputs):
+    def validation_epoch_end(self, outputs):
         if self.vis_every > 0 and self.current_epoch % self.vis_every == 0:
             interp = torch.linspace(-4, 4, 500)
             x, y = torch.meshgrid(interp, interp)

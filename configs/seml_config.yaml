@@ -1,6 +1,6 @@
 seml:
   executable: uncertainty_est/train.py
-  name: mcmc_density_estimation
+  name: nf_density_estimation
   output_dir: slurm
   project_root_dir: ..
 
@@ -17,60 +17,37 @@ slurm:
 fixed:
   trainer_config:
     max_steps: 100_000
-    gpus: 1
     max_epochs: 100_000
-    limit_val_batches: 1
+    gpus: "0"
+    check_val_every_n_epoch: 100
 
   checkpoint_config:
-    monitor: train_loss
+    monitor: val_loss
     mode: min
     save_last: True
 
   earlystop_config:
+    monitor: val_loss
+    mode: min
+    patience: 10
 
-  log_dir: grid_search/mcmc_density_estimation
-  dataset: Gaussian2D
-  # Use second dataset
-  ood_dataset: Gaussian2D
+  log_dir: grid_search/nf_density_estimation
+  # dataset: Gaussian2D
+  ood_dataset:
   seed: 1
   batch_size: 512
   data_shape: [2]
 
-  model_name: JEM
+  model_name: NormalizingFlow
   model_config:
-    arch_name: fc
-    arch_config:
-      inp_dim: 2
-      num_classes: 1
-      hidden_dims: [100, 100]
-      batch_norm: False
-      bias: True
-      slope: 0.2
-
-    # learning_rate: 0.005
+    # density_type: radial_flow
+    latent_dim: 2
+    n_density: 20
+    # learning_rate: 0.001
     momentum: 0.9
     weight_decay: 0.0
-    smoothing: 0.0
-    # sgld_lr: 1.0
-    # sgld_std: 0.01
-    # sgld_steps: 200
-    pyxce: 0.0
-    pxsgld: 1.0
-    pxysgld: 0.0
-    buffer_size: 9999
-    reinit_freq: 0.05
-    data_shape: [2]
-    uncond: True
-    sgld_batch_size: 512
-    class_cond_p_x_sample: False
-    n_classes: 1
-    warmup_steps: 2500
-    energy_reg_weight: 0.0
-    energy_reg_type: 2
-    entropy_reg_weight: 0.0
     vis_every: 1000
-    is_toy_dataset: True
-    lr_step_size: 1000
+
 
 grid:
   model_config:
@@ -81,19 +58,16 @@ grid:
         min: 1e-5
         max: 1e-3
         num: 3
-      sgld_lr:
-        type: loguniform
-        min: 1e-2
-        max: 1
-        num: 3
-      sgld_std:
-        type: loguniform
-        min: 1e-2
-        max: 1e-1
-        num: 2
-      sgld_steps:
+      density_type:
         type: choice
         options:
-          - 20
-          - 50
-          - 100
+          - radial_flow
+          - planar_flow
+          - iaf_flow
+
+  dataset:
+    type: choice
+    options:
+      - Checkerboard
+      - Gaussian2D
+      - TwoMoons

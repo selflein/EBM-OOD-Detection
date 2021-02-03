@@ -164,11 +164,11 @@ class JEM(pl.LightningModule):
         # Estimate normalizing constant Z by numerical integration
         log_Z = torch.log(
             estimate_normalizing_constant(
-                lambda x: -self(x).logsumexp(1), device=self.device
+                lambda x: self(x).exp().sum(1), device=self.device
             )
         )
 
-        log_px = logits.logsumexp(1) - log_Z
+        log_px = torch.cat(logits).logsumexp(1) - log_Z
         self.log("log_likelihood", log_px.mean())
 
     def configure_optimizers(self):
