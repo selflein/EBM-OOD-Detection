@@ -1,6 +1,8 @@
 trainer_config:
-  max_steps: 10_000
+  max_steps: &steps 10_000
+  max_epochs: *steps
   gpus: "0"
+  check_val_every_n_epoch: 10
 
 checkpoint_config:
   monitor:
@@ -8,9 +10,9 @@ checkpoint_config:
 
 earlystop_config:
 
-dataset: Gaussian2D
+dataset: &dataset Gaussian2D
 # Use second dataset
-ood_dataset: Gaussian2D
+ood_dataset: *dataset
 seed: 1
 batch_size: 128
 data_shape: [2]

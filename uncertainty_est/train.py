@@ -109,9 +109,12 @@ def run(
     trainer = pl.Trainer(**trainer_config, logger=logger, callbacks=callbacks)
     trainer.fit(model, train_loader, val_loader)
 
-    result = trainer.test(test_dataloaders=test_loader)
+    try:
+        result = trainer.test(test_dataloaders=test_loader)
+    except:
+        result = trainer.test(test_dataloaders=test_loader, ckpt_path=None)
 
-    model.logger.log_hyperparams(model.hparams, result[0])
+    model.logger.experiment.add_hparams(dict(model.hparams), result[0])
 
     return result[0]
 

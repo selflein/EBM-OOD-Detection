@@ -156,6 +156,8 @@ class VERA(pl.LightningModule):
             self.log("train/clf_loss", clf_loss)
             e_loss += clf_loss
 
+        self.log("train/acc", (ld_logits.argmax(1) == y_l).float().mean(0))
+
         return e_loss
 
     def classifier_loss(self, ld_logits, y_l):
@@ -192,13 +194,23 @@ class VERA(pl.LightningModule):
             interp = torch.linspace(-4, 4, 500)
             x, y = torch.meshgrid(interp, interp)
             data = torch.stack((x.reshape(-1), y.reshape(-1)), 1)
+            p_xy = torch.exp(self(data.to(self.device)))
+            px = to_np(p_xy.sum(1))
 
-            px = to_np(torch.exp(self.model(data.to(self.device))))
+            x, y = to_np(x), to_np(y)
+            for i in range(p_xy.shape[1]):
+                fig, ax = plt.subplots()
+                mesh = ax.pcolormesh(x, y, to_np(p_xy[:, i]).reshape(*x.shape))
+                fig.colorbar(mesh)
+                self.logger.experiment.add_figure(
+                    f"dist/p(x,y={i})", fig, self.current_epoch
+                )
+                plt.close()
 
             fig, ax = plt.subplots()
-            mesh = ax.pcolormesh(to_np(x), to_np(y), px.reshape(*x.shape))
+            mesh = ax.pcolormesh(x, y, px.reshape(*x.shape))
             fig.colorbar(mesh)
-            self.logger.experiment.add_figure("p(x)", fig, self.current_epoch)
+            self.logger.experiment.add_figure("dist/p(x)", fig, self.current_epoch)
             plt.close()
 
     def test_step(self, batch, batch_idx):
