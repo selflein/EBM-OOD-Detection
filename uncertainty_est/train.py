@@ -106,7 +106,12 @@ def run(
 
     logger = pl.loggers.TensorBoardLogger(out_path, default_hp_metric=False)
 
-    trainer = pl.Trainer(**trainer_config, logger=logger, callbacks=callbacks)
+    trainer = pl.Trainer(
+        **trainer_config,
+        logger=logger,
+        callbacks=callbacks,
+        progress_bar_refresh_rate=100,
+    )
     trainer.fit(model, train_loader, val_loader)
 
     try:
@@ -114,7 +119,7 @@ def run(
     except:
         result = trainer.test(test_dataloaders=test_loader, ckpt_path=None)
 
-    model.logger.experiment.add_hparams(dict(model.hparams), result[0])
+    model.logger.log_hyperparams(dict(model.hparams), result[0])
 
     return result[0]
 
