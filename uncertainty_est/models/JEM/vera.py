@@ -150,6 +150,7 @@ class VERA(pl.LightningModule):
             + self.pg_control * (grad_ld ** 2.0 / 2.0).mean()
             + self.clf_ent_weight * unsup_ent.mean()
         )
+        self.log("train/e_loss", e_loss.item())
 
         if self.clf_weight > 0:
             clf_loss = self.clf_weight * self.classifier_loss(ld_logits, y_l)

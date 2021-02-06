@@ -45,6 +45,7 @@ class VERAPosteriorNet(VERA):
         alpha_fix=True,
         entropy_reg=0.0,
         is_toy_dataset=False,
+        alpha_0_control=0.0,
     ):
         super().__init__(
             arch_name,
@@ -103,10 +104,13 @@ class VERAPosteriorNet(VERA):
         UCE_loss = self.clf_weight * torch.mean(
             torch.digamma(alpha_0) - torch.digamma(alpha[torch.arange(len(y_l)), y_l])
         )
-        entropy_reg = self.entropy_reg * -Dirichlet(alpha).entropy().mean()
-        UCE_loss += entropy_reg
         self.log("train/uce_loss", UCE_loss)
-        return UCE_loss
+
+        entropy_reg = self.entropy_reg * -Dirichlet(alpha).entropy().mean()
+        self.log("train/entropy_reg", UCE_loss)
+
+        alpha_reg = self.alpha_0_control * alpha_0.mean()
+        return UCE_loss + entropy_reg + alpha_reg
 
     def validation_epoch_end(self, outputs):
         super().validation_epoch_end(outputs)
