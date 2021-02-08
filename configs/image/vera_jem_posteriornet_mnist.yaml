@@ -31,16 +31,16 @@ model_config:
     dropout: 0.3
     norm: batch
 
-  learning_rate: 0.00003
+  learning_rate: 0.00001
   beta1: 0.0
   beta2: 0.9
   weight_decay: 0.0
   n_classes: 10
   uncond: False
-  gen_learning_rate: 0.00006
+  gen_learning_rate: 0.001
   ebm_iters: 1
   generator_iters: 1
-  entropy_weight: 0.0001
+  entropy_weight: 1.0
 
   generator_type: vera
   generator_arch_name: resnetgenerator
@@ -51,7 +51,7 @@ model_config:
 
   generator_config:
     noise_dim: 128
-    post_lr: 0.01
+    post_lr: 0.00003
     init_post_logsigma: 0.01
 
   min_sigma: 0.01
@@ -69,4 +69,4 @@ model_config:
   lr_decay_epochs: [150, 175]
   vis_every: -1
   alpha_fix: True
-  entropy_reg: 0.01
+  entropy_reg: 1.0

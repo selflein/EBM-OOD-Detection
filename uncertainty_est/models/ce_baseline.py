@@ -7,13 +7,22 @@ import torch.nn.functional as F
 from pytorch_lightning.core.decorators import auto_move_data
 
 from uncertainty_est.archs.arch_factory import get_arch
+from uncertainty_est.models.ood_detection_model import OODDetectionModel
 from uncertainty_est.models.priornet.uncertainties import (
     dirichlet_prior_network_uncertainty,
 )
 
 
-class CEBaseline(pl.LightningModule):
-    def __init__(self, arch_name, arch_config, learning_rate, momentum, weight_decay):
+class CEBaseline(OODDetectionModel):
+    def __init__(
+        self,
+        arch_name,
+        arch_config,
+        learning_rate,
+        momentum,
+        weight_decay,
+        test_ood_dataloaders=[],
+    ):
         super().__init__()
         self.__dict__.update(locals())
         self.save_hyperparameters()

@@ -9,6 +9,7 @@ from pytorch_lightning.core.decorators import auto_move_data
 
 from uncertainty_est.archs.arch_factory import get_arch
 from uncertainty_est.models.JEM.model import EBM, ConditionalEBM
+from uncertainty_est.models.ood_detection_model import OODDetectionModel
 from uncertainty_est.utils.utils import to_np, estimate_normalizing_constant
 from uncertainty_est.models.JEM.utils import (
     KHotCrossEntropyLoss,
@@ -17,7 +18,7 @@ from uncertainty_est.models.JEM.utils import (
 )
 
 
-class JEM(pl.LightningModule):
+class JEM(OODDetectionModel):
     def __init__(
         self,
         arch_name,
@@ -46,8 +47,9 @@ class JEM(pl.LightningModule):
         vis_every=-1,
         is_toy_dataset=False,
         lr_step_size=50,
+        test_ood_dataloaders=[],
     ):
-        super().__init__()
+        super().__init__(test_ood_dataloaders)
         self.__dict__.update(locals())
         self.save_hyperparameters()
 
@@ -147,7 +149,7 @@ class JEM(pl.LightningModule):
             plt.close()
 
     def test_step(self, batch, batch_idx):
-        (x, y), (_, _) = batch
+        x, y = batch
         y_hat = self(x)
 
         # Toy datasets
@@ -158,18 +160,18 @@ class JEM(pl.LightningModule):
         self.log("test_acc", acc)
 
     def test_epoch_end(self, logits):
-        if not self.is_toy_dataset:
-            return
-
-        # Estimate normalizing constant Z by numerical integration
-        log_Z = torch.log(
-            estimate_normalizing_constant(
-                lambda x: self(x).exp().sum(1), device=self.device
+        if self.is_toy_dataset:
+            # Estimate normalizing constant Z by numerical integration
+            log_Z = torch.log(
+                estimate_normalizing_constant(
+                    lambda x: self(x).exp().sum(1), device=self.device
+                )
             )
-        )
 
-        log_px = torch.cat(logits).logsumexp(1) - log_Z
-        self.log("log_likelihood", log_px.mean())
+            log_px = torch.cat(logits).logsumexp(1) - log_Z
+            self.log("log_likelihood", log_px.mean())
+
+        super().test_epoch_end()
 
     def configure_optimizers(self):
         optim = torch.optim.AdamW(
@@ -182,28 +184,6 @@ class JEM(pl.LightningModule):
             optim, step_size=self.lr_step_size, gamma=0.5
         )
         return [optim], [scheduler]
-
-    def optimizer_step(
-        self,
-        epoch: int = None,
-        batch_idx: int = None,
-        optimizer=None,
-        optimizer_idx: int = None,
-        optimizer_closure=None,
-        on_tpu: bool = None,
-        using_native_amp: bool = None,
-        using_lbfgs: bool = None,
-        **kwargs,
-    ):
-        # learning rate warm-up
-        if self.trainer.global_step < self.warmup_steps:
-            lr_scale = min(
-                1.0, float(self.trainer.global_step + 1) / float(self.warmup_steps)
-            )
-            for pg in optimizer.param_groups:
-                pg["lr"] = lr_scale * self.hparams.learning_rate
-
-        optimizer.step(closure=optimizer_closure)
 
     def compute_energy_reg(self, energy):
         return torch.linalg.norm(energy, dim=-1, ord=self.energy_reg_type).mean()

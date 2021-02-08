@@ -10,6 +10,7 @@ from pytorch_lightning.core.decorators import auto_move_data
 from uncertainty_est.archs.arch_factory import get_arch
 from uncertainty_est.models.JEM.model import EBM, ConditionalEBM
 from uncertainty_est.models.priornet.dpn_losses import dirichlet_kl_divergence
+from uncertainty_est.models.ood_detection_model import OODDetectionModel
 from uncertainty_est.models.priornet.uncertainties import (
     dirichlet_prior_network_uncertainty,
 )
@@ -47,8 +48,9 @@ class JEMPriorNet(pl.LightningModule):
         concentration,
         entropy_reg=0.0,
         sgld_steps=20,
+        test_ood_dataloaders=[],
     ):
-        super().__init__()
+        super().__init__(test_ood_dataloaders)
         self.__dict__.update(locals())
         self.save_hyperparameters()
 
@@ -155,7 +157,7 @@ class JEMPriorNet(pl.LightningModule):
         self.log("val_acc", acc)
 
     def test_step(self, batch, batch_idx):
-        (x_lab, y), (_, _) = batch
+        x_lab, y = batch
         y_hat = self(x_lab)
 
         acc = (y == y_hat.argmax(1)).float().mean(0).item()

@@ -46,6 +46,7 @@ class VERAPosteriorNet(VERA):
         entropy_reg=0.0,
         is_toy_dataset=False,
         alpha_0_control=0.0,
+        **kwargs,
     ):
         super().__init__(
             arch_name,
@@ -79,6 +80,7 @@ class VERAPosteriorNet(VERA):
             lr_decay_epochs,
             is_toy_dataset,
             vis_every,
+            **kwargs,
         )
         self.__dict__.update(locals())
         self.save_hyperparameters()

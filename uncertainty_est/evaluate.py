@@ -38,19 +38,6 @@ stdout_handler = logging.StreamHandler(sys.stdout)
 logger.addHandler(stdout_handler)
 
 
-def plot_score_hist(real_scores, fake_scores, title=None, ax=None):
-    if ax is None:
-        _, ax = plt.subplots()
-
-    if title is not None:
-        ax.set_title(title)
-
-    ax.hist(real_scores, bins=100, alpha=0.5, density=True, stacked=True)
-    ax.hist(fake_scores, bins=100, alpha=0.5, density=True, stacked=True)
-    ax.legend(labels=("Real", "Fake"))
-    return ax
-
-
 if __name__ == "__main__":
     args = parser.parse_args()
     checkpoint_path = Path(args.checkpoint)
@@ -106,14 +93,6 @@ if __name__ == "__main__":
 
         for score_name, id_scores in id_scores_dict.items():
             ood_scores = ood_scores_dict[score_name]
-
-            ax = plot_score_hist(
-                id_scores,
-                ood_scores,
-                title="",  # f"{ood_ds}, {score_name.replace('_', ' ').title()}",
-            )
-            ax.figure.savefig(str(output_folder / f"{ood_ds}_{score_name}.png"))
-            plt.close()
 
             labels = np.concatenate(
                 [np.zeros_like(ood_scores), np.ones_like(id_scores)]

@@ -81,6 +81,7 @@ class VERAPriorNet(VERA):
             lr_decay_epochs,
             is_toy_dataset,
             vis_every,
+            **kwargs,
         )
         self.__dict__.update(locals())
         self.save_hyperparameters()

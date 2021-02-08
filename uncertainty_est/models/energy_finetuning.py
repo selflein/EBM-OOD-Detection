@@ -5,7 +5,6 @@ import numpy as np
 from tqdm import tqdm
 import pytorch_lightning as pl
 import torch.nn.functional as F
-from pytorch_lightning.core.decorators import auto_move_data
 
 from uncertainty_est.archs.arch_factory import get_arch
 from uncertainty_est.models.ce_baseline import CEBaseline
@@ -24,8 +23,16 @@ class EnergyFinetune(CEBaseline):
         m_out,
         checkpoint,
         max_steps,
+        test_ood_dataloaders=[],
     ):
-        super().__init__(arch_name, arch_config, learning_rate, momentum, weight_decay)
+        super().__init__(
+            arch_name,
+            arch_config,
+            learning_rate,
+            momentum,
+            weight_decay,
+            test_ood_dataloaders,
+        )
         self.__dict__.update(locals())
         self.save_hyperparameters()
         self.load_state_dict(torch.load(checkpoint)["state_dict"])

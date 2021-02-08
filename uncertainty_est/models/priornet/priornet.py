@@ -83,7 +83,7 @@ class PriorNet(pl.LightningModule):
         self.log("val_loss", loss)
 
     def test_step(self, batch, batch_idx):
-        (x, y), (_, _) = batch
+        x, y = batch
 
         y_hat = self(x)
         acc = (y == y_hat.argmax(1)).float().mean(0).item()

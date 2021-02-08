@@ -54,11 +54,27 @@ def run(
     output_folder=None,
     log_dir="logs",
     num_workers=4,
+    test_ood_datasets=[],
 ):
     torch.set_default_tensor_type(torch.FloatTensor)
     pl.seed_everything(seed)
 
-    model = MODELS[model_name](**model_config)
+    test_ood_dataloaders = []
+    for test_ood_dataset in test_ood_datasets:
+        loader = get_dataloader(
+            test_ood_dataset,
+            "test",
+            batch_size,
+            data_shape=data_shape,
+            sigma=sigma,
+            ood_dataset=None,
+            num_workers=num_workers,
+        )
+        test_ood_dataloaders.append((test_ood_dataset, loader))
+
+    model = MODELS[model_name](
+        **model_config, test_ood_dataloaders=test_ood_dataloaders
+    )
 
     train_loader = get_dataloader(
         dataset,
@@ -84,7 +100,7 @@ def run(
         batch_size,
         data_shape=data_shape,
         sigma=sigma,
-        ood_dataset=ood_dataset,
+        ood_dataset=None,
         num_workers=num_workers,
     )
 
@@ -119,7 +135,7 @@ def run(
     except:
         result = trainer.test(test_dataloaders=test_loader, ckpt_path=None)
 
-    model.logger.log_hyperparams(dict(model.hparams), result[0])
+    logger.log_hyperparams(model.hparams, result[0])
 
     return result[0]
 
