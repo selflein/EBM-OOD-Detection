@@ -1,12 +1,12 @@
 trainer_config:
   max_steps: 100_000
-  gpus: "0"
   max_epochs: 100_000
-  limit_val_batches: 1
+  gpus: 1
+  limit_val_batches: 0
+  benchmark: True
 
 checkpoint_config:
-  monitor: train_loss
-  mode: min
+  monitor:
   save_last: True
 
 earlystop_config:
@@ -16,7 +16,7 @@ dataset: Gaussian2D
 ood_dataset: Gaussian2D
 seed: 1
 batch_size: 512
-data_shape: [2]
+data_shape: &data_shape [2]
 
 model_name: JEM
 model_config:
@@ -41,7 +41,7 @@ model_config:
   pxysgld: 0.0
   buffer_size: 9999
   reinit_freq: 0.05
-  data_shape: [2]
+  data_shape: *data_shape
   uncond: True
   sgld_batch_size: 512
   class_cond_p_x_sample: False

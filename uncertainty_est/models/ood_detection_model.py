@@ -59,7 +59,6 @@ class OODDetectionModel(pl.LightningModule):
 
     def optimizer_step(
         self,
-        *args,
         epoch: int = None,
         batch_idx: int = None,
         optimizer=None,
@@ -72,7 +71,8 @@ class OODDetectionModel(pl.LightningModule):
     ):
         # learning rate warm-up
         if (
-            hasattr(self, "warmup_steps")
+            optimizer is not None
+            and hasattr(self, "warmup_steps")
             and self.trainer.global_step < self.warmup_steps
         ):
             lr_scale = min(

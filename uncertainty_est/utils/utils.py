@@ -1,5 +1,5 @@
 import torch
-
+from tqdm import tqdm
 from scipy.integrate import trapz
 
 
@@ -13,7 +13,7 @@ def estimate_normalizing_constant(
     num_samples=1000,
     device="cpu",
     dimensions=2,
-    batch_size=1024,
+    batch_size=100_000,
 ):
     """
     Numerically integrate a funtion in the specified interval.
@@ -23,7 +23,7 @@ def estimate_normalizing_constant(
     grid = torch.stack([coords.reshape(-1) for coords in grid_coords], 1)
 
     p_x = []
-    for samples in torch.split(grid, batch_size):
+    for samples in tqdm(torch.split(grid, batch_size)):
         p_x.append(density_func(samples.to(device)))
     p_x = torch.cat(p_x)
 

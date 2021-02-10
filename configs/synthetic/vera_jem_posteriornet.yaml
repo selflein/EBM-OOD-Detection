@@ -1,7 +1,7 @@
 trainer_config:
   max_steps: &steps 10_000
   max_epochs: *steps
-  gpus: "0"
+  gpus: 1
   check_val_every_n_epoch: 10
 
 checkpoint_config:

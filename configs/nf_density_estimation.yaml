@@ -1,0 +1,67 @@
+seml:
+  executable: uncertainty_est/train.py
+  name: nf_density_estimation_swiss_roll
+  output_dir: slurm
+  project_root_dir: ..
+
+slurm:
+  experiments_per_job: 3
+  sbatch_options:
+    gres: gpu:1       # num GPUs
+    mem: 8G          # memory
+    cpus-per-task: 3  # num cores
+    time: 0-08:00     # max time, D-HH:MM
+
+###### BEGIN PARAMETER CONFIGURATION ######
+
+fixed:
+  trainer_config:
+    max_steps: 100_000
+    max_epochs: 100_000
+    gpus: 1
+    check_val_every_n_epoch: 100
+
+  checkpoint_config:
+    monitor: val_loss
+    mode: min
+    save_last: True
+
+  earlystop_config:
+    monitor: val_loss
+    mode: min
+    patience: 10
+
+  log_dir: grid_search/nf_density_estimation_swiss_roll
+  dataset: SwissRoll
+  ood_dataset:
+  seed: 1
+  batch_size: 512
+  data_shape: [3]
+  num_workers: 1
+
+  model_name: NormalizingFlow
+  model_config:
+    # density_type: radial_flow
+    latent_dim: 3
+    n_density: 20
+    learning_rate: 0.001
+    momentum: 0.9
+    weight_decay: 0.0
+    vis_every: -1
+
+
+grid:
+  model_config:
+    type: parameter_collection
+    params:
+      density_type:
+        type: choice
+        options:
+          - radial_flow
+          - planar_flow
+          - iaf_flow
+      learning_rate:
+        type: loguniform
+        min: 1e-4
+        max: 1e-2
+        num: 4

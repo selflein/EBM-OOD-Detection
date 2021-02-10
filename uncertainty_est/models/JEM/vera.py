@@ -58,6 +58,7 @@ class VERA(OODDetectionModel):
         lr_decay,
         lr_decay_epochs,
         is_toy_dataset=False,
+        toy_dataset_dim=2,
         vis_every=-1,
         test_ood_dataloaders=[],
     ):
@@ -133,6 +134,7 @@ class VERA(OODDetectionModel):
             unsup_ent = distributions.Categorical(logits=unsup_logits).entropy()
         elif self.ebm_type == "jem":
             ld, ld_logits = self.model(x_l, return_logits=True)
+            self.log("train/acc", (ld_logits.argmax(1) == y_l).float().mean(0))
         elif self.ebm_type == "p_x":
             ld, ld_logits = self.model(x_l).squeeze(), torch.tensor(0.0).to(self.device)
         else:
@@ -158,8 +160,6 @@ class VERA(OODDetectionModel):
             clf_loss = self.clf_weight * self.classifier_loss(ld_logits, y_l)
             self.log("train/clf_loss", clf_loss)
             e_loss += clf_loss
-
-        self.log("train/acc", (ld_logits.argmax(1) == y_l).float().mean(0))
 
         return e_loss
 
@@ -230,7 +230,9 @@ class VERA(OODDetectionModel):
             # Estimate normalizing constant Z by numerical integration
             log_Z = torch.log(
                 estimate_normalizing_constant(
-                    lambda x: self(x).exp().sum(1), device=self.device
+                    lambda x: self(x).exp().sum(1),
+                    device=self.device,
+                    dimensions=self.toy_dataset_dim,
                 )
             )
 

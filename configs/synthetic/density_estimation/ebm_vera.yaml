@@ -1,11 +1,12 @@
 trainer_config:
   max_steps: 100_000
   max_epochs: 100_000
-  gpus: "0"
+  gpus: 1
+  limit_val_batches: 0
+  benchmark: True
 
 checkpoint_config:
-  monitor: "train/ebm_loss"
-  mode: min
+  monitor:
   save_last: True
 
 earlystop_config:

@@ -46,6 +46,7 @@ class JEM(OODDetectionModel):
         warmup_steps=0,
         vis_every=-1,
         is_toy_dataset=False,
+        toy_dataset_dim=2,
         lr_step_size=50,
         test_ood_dataloaders=[],
     ):
@@ -152,19 +153,19 @@ class JEM(OODDetectionModel):
         x, y = batch
         y_hat = self(x)
 
-        # Toy datasets
-        if self.is_toy_dataset:
-            return y_hat
-
         acc = (y == y_hat.argmax(1)).float().mean(0).item()
         self.log("test_acc", acc)
+
+        return y_hat
 
     def test_epoch_end(self, logits):
         if self.is_toy_dataset:
             # Estimate normalizing constant Z by numerical integration
             log_Z = torch.log(
                 estimate_normalizing_constant(
-                    lambda x: self(x).exp().sum(1), device=self.device
+                    lambda x: self(x).exp().sum(1),
+                    device=self.device,
+                    dimensions=self.toy_dataset_dim,
                 )
             )
 

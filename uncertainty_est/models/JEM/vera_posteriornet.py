@@ -89,7 +89,7 @@ class VERAPosteriorNet(VERA):
         train_loader = self.train_dataloader()
 
         class_counts = torch.zeros(self.n_classes)
-        for (_, y), (_, _) in train_loader.dataset:
+        for (_, y), (_, _) in tqdm(train_loader, desc="Computing class counts"):
             class_counts[y] += 1
 
         self.class_counts = class_counts
