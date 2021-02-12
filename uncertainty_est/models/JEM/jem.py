@@ -160,14 +160,17 @@ class JEM(OODDetectionModel):
 
     def test_epoch_end(self, logits):
         if self.is_toy_dataset:
+            self.model.to(torch.double)
             # Estimate normalizing constant Z by numerical integration
             log_Z = torch.log(
                 estimate_normalizing_constant(
                     lambda x: self(x).exp().sum(1),
                     device=self.device,
                     dimensions=self.toy_dataset_dim,
+                    dtype=torch.double,
                 )
-            )
+            ).float()
+            self.model.to(torch.float32)
 
             log_px = torch.cat(logits).logsumexp(1) - log_Z
             self.log("log_likelihood", log_px.mean())

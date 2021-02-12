@@ -8,9 +8,10 @@ import torch.nn.functional as F
 
 from uncertainty_est.utils.utils import to_np
 from uncertainty_est.models.normalizing_flow.flows import NormalizingFlowDensity
+from uncertainty_est.models.ood_detection_model import OODDetectionModel
 
 
-class NormalizingFlow(pl.LightningModule):
+class NormalizingFlow(OODDetectionModel):
     def __init__(
         self,
         density_type,
@@ -20,8 +21,9 @@ class NormalizingFlow(pl.LightningModule):
         momentum,
         weight_decay,
         vis_every=-1,
+        test_ood_dataloaders=[],
     ):
-        super().__init__()
+        super().__init__(test_ood_dataloaders)
         self.__dict__.update(locals())
         self.save_hyperparameters()
 

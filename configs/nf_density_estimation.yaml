@@ -44,7 +44,7 @@ fixed:
     # density_type: radial_flow
     latent_dim: 3
     n_density: 20
-    learning_rate: 0.001
+    # learning_rate: 0.001
     momentum: 0.9
     weight_decay: 0.0
     vis_every: -1
