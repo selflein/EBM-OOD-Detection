@@ -9,6 +9,7 @@ from uncertainty_est.models.JEM.vera import VERA
 from uncertainty_est.models.JEM.vera_priornet import VERAPriorNet
 from uncertainty_est.models.JEM.vera_posteriornet import VERAPosteriorNet
 from uncertainty_est.models.normalizing_flow.norm_flow import NormalizingFlow
+from uncertainty_est.models.normalizing_flow.approx_flow import ApproxNormalizingFlow
 from uncertainty_est.models.regularized_ebm import RegularizedEBM
 
 MODELS = {
@@ -23,5 +24,6 @@ MODELS = {
     "VERAPriorNet": VERAPriorNet,
     "VERAPosteriorNet": VERAPosteriorNet,
     "NormalizingFlow": NormalizingFlow,
+    "ApproxNormalizingFlow": ApproxNormalizingFlow,
     "RegularizedEBM": RegularizedEBM,
 }

@@ -1,7 +1,7 @@
 trainer_config:
   max_steps: 100_000
   max_epochs: 100_000
-  gpus: "0"
+  gpus: 1
 
 checkpoint_config:
   monitor: val/loss
@@ -18,12 +18,13 @@ seed: 1
 batch_size: 1024
 data_shape: [2]
 
-model_name: NormalizingFlow
+model_name: ApproxNormalizingFlow
 model_config:
-  density_type: radial_flow
+  density_type: orthogonal_flow
   latent_dim: 2
-  n_density: 20
-  learning_rate: 0.001
+  n_density: 3
+  learning_rate: 0.01
   momentum: 0.9
   weight_decay: 0.0
-  vis_every: 1000
+  vis_every: 1
+  weight_penalty_weight: 0.001

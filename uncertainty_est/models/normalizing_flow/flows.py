@@ -7,8 +7,30 @@ from pyro.distributions.transforms.affine_autoregressive import (
     AffineAutoregressive,
     affine_autoregressive,
 )
+from pyro.distributions import TransformModule
 from torch import nn
 import torch.distributions as tdist
+
+
+class OrthogonalTransform(nn.Module):
+    def __init__(self, dim):
+        super().__init__()
+        self.dim = dim
+        self.transform = nn.Linear(dim, dim, bias=False)
+
+    def forward(self, x):
+        return self.transform(x)
+
+    @staticmethod
+    def log_abs_det_jacobian(z, z_next):
+        return 1.0
+
+    def compute_weight_penalty(self):
+        sq_weight = torch.mm(self.transform.weight.T, self.transform.weight)
+        identity = torch.eye(self.dim).to(sq_weight)
+        penalty = torch.linalg.norm(identity - sq_weight, ord="fro")
+
+        return penalty
 
 
 class NormalizingFlowDensity(nn.Module):
@@ -32,6 +54,10 @@ class NormalizingFlowDensity(nn.Module):
             )
         elif self.flow_type == "planar_flow":
             self.transforms = nn.ModuleList([Planar(dim) for _ in range(flow_length)])
+        elif self.flow_type == "orthogonal_flow":
+            self.transforms = nn.ModuleList(
+                [OrthogonalTransform(dim) for _ in range(flow_length)]
+            )
         else:
             raise NotImplementedError
 

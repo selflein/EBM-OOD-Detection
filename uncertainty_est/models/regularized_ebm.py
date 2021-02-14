@@ -126,20 +126,18 @@ class RegularizedEBM(OODDetectionModel):
 
         acc = (y == y_hat.argmax(1)).float().mean(0).item()
         self.log("test/accuracy", acc)
+        return y_hat
 
     def test_epoch_end(self, logits):
         if self.is_toy_dataset:
-            self.backone.to(torch.double)
             # Estimate normalizing constant Z by numerical integration
             log_Z = torch.log(
                 estimate_normalizing_constant(
                     lambda x: self(x).exp().sum(1),
                     device=self.device,
                     dimensions=self.toy_dataset_dim,
-                    dtype=torch.double,
                 )
             ).float()
-            self.backbone.to(torch.float32)
 
             logits = torch.cat(logits, 0)
             log_px = logits.logsumexp(1) - log_Z

@@ -40,7 +40,7 @@ def estimate_normalizing_constant(
     Numerically integrate a funtion in the specified interval.
     """
     with torch.no_grad():
-        p_x = eval_func_on_grid(
+        _, p_x = eval_func_on_grid(
             density_func, interval, num_samples, device, dimensions, batch_size, device
         )
 
