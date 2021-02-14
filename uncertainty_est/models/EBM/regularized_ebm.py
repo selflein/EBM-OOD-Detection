@@ -5,7 +5,6 @@ from tqdm import tqdm
 import pytorch_lightning as pl
 import torch.nn.functional as F
 import matplotlib.pyplot as plt
-from pytorch_lightning.core.decorators import auto_move_data
 
 from uncertainty_est.utils.utils import (
     to_np,
@@ -47,7 +46,7 @@ class RegularizedEBM(OODDetectionModel):
 
     def training_step(self, batch, batch_idx):
         x, y = batch
-        x_noisy = x + (torch.randn_like(x) * 1)
+        x_noisy = x + (torch.randn_like(x) * self.noise_sigma)
 
         x_noisy.requires_grad_()
 

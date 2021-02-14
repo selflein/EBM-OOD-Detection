@@ -4,7 +4,6 @@ import torch
 from tqdm import tqdm
 import pytorch_lightning as pl
 import torch.nn.functional as F
-from pytorch_lightning.core.decorators import auto_move_data
 
 from uncertainty_est.archs.arch_factory import get_arch
 from uncertainty_est.models.ood_detection_model import OODDetectionModel
