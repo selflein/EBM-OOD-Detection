@@ -7,14 +7,19 @@ import torch.nn.functional as F
 import matplotlib.pyplot as plt
 from pytorch_lightning.core.decorators import auto_move_data
 
-from uncertainty_est.utils.utils import to_np
+from uncertainty_est.utils.utils import (
+    to_np,
+    eval_func_on_grid,
+    estimate_normalizing_constant,
+)
 from uncertainty_est.archs.arch_factory import get_arch
+from uncertainty_est.models.ood_detection_model import OODDetectionModel
 from uncertainty_est.models.priornet.uncertainties import (
     dirichlet_prior_network_uncertainty,
 )
 
 
-class RegularizedEBM(pl.LightningModule):
+class RegularizedEBM(OODDetectionModel):
     def __init__(
         self,
         arch_name,
@@ -22,9 +27,16 @@ class RegularizedEBM(pl.LightningModule):
         learning_rate,
         momentum,
         weight_decay,
+        noise_sigma=1,
+        clf_weight=0.0,
+        grad_weight=1.0,
+        noisy_regularizer=1.0,
         vis_every=-1,
+        is_toy_dataset=False,
+        toy_dataset_dim=2,
+        test_ood_dataloaders=[],
     ):
-        super().__init__()
+        super().__init__(test_ood_dataloaders)
         self.__dict__.update(locals())
         self.save_hyperparameters()
 
@@ -35,7 +47,7 @@ class RegularizedEBM(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         x, y = batch
-        x_noisy = x + (torch.randn_like(x) * 5)
+        x_noisy = x + (torch.randn_like(x) * 1)
 
         x_noisy.requires_grad_()
 
@@ -46,23 +58,27 @@ class RegularizedEBM(pl.LightningModule):
 
         # Maximize at position of data
         loss = -p_x[: len(x)].mean(0)
-        self.log("train/px", loss.item())
+        self.log("train/px_loss", loss.item())
 
-        p_x_noise = p_x[len(x) :].mean(0)
+        # Minimize at noisy positions
+        p_x_noise = self.noisy_regularizer * p_x[len(x) :].mean(0)
+        self.log("train/px_noisy_loss", p_x_noise.item())
         loss += p_x_noise
-        self.log("train/px_noise", p_x_noise.item())
 
         # Maximize gradient at positions around data
         grad_ld = (
-            torch.autograd.grad(p_x.mean(), x_noisy, create_graph=True)[0]
-            .flatten(start_dim=1)
-            .norm(2, 1)
-        ).mean()
+            self.grad_weight
+            * -(
+                torch.autograd.grad(p_x.mean(), x_noisy, create_graph=True)[0]
+                .flatten(start_dim=1)
+                .norm(2, 1)
+            ).mean()
+        )
         self.log("train/grad_ld", grad_ld)
-        loss -= 10 * grad_ld
+        loss += grad_ld
 
-        if y_hat.shape[1] > 1:
-            clf_loss = 10 * F.cross_entropy(y_hat, y)
+        if y_hat.shape[1] > 1 and self.clf_weight > 0:
+            clf_loss = self.clf_weight * F.cross_entropy(y_hat, y)
             loss += clf_loss
             self.log("train/clf_loss", clf_loss)
         return loss
@@ -79,10 +95,13 @@ class RegularizedEBM(pl.LightningModule):
 
     def validation_epoch_end(self, outputs):
         if self.vis_every > 0 and self.current_epoch % self.vis_every == 0:
-            interp = torch.linspace(-4, 4, 500)
-            x, y = torch.meshgrid(interp, interp)
-            data = torch.stack((x.reshape(-1), y.reshape(-1)), 1)
-            p_xy = torch.exp(self(data.to(self.device)))
+            (x, y), p_xy = eval_func_on_grid(
+                lambda x: torch.exp(self(x)),
+                interval=(-4, 4),
+                num_samples=500,
+                device=self.device,
+                dimensions=2,
+            )
             px = to_np(p_xy.sum(1))
 
             x, y = to_np(x), to_np(y)
@@ -106,7 +125,27 @@ class RegularizedEBM(pl.LightningModule):
         y_hat = self.backbone(x)
 
         acc = (y == y_hat.argmax(1)).float().mean(0).item()
-        self.log("test_acc", acc)
+        self.log("test/accuracy", acc)
+
+    def test_epoch_end(self, logits):
+        if self.is_toy_dataset:
+            self.backone.to(torch.double)
+            # Estimate normalizing constant Z by numerical integration
+            log_Z = torch.log(
+                estimate_normalizing_constant(
+                    lambda x: self(x).exp().sum(1),
+                    device=self.device,
+                    dimensions=self.toy_dataset_dim,
+                    dtype=torch.double,
+                )
+            ).float()
+            self.backbone.to(torch.float32)
+
+            logits = torch.cat(logits, 0)
+            log_px = logits.logsumexp(1) - log_Z
+            self.log("test/log_likelihood", log_px.mean())
+
+        super().test_epoch_end()
 
     def configure_optimizers(self):
         optim = torch.optim.AdamW(

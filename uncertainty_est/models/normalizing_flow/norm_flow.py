@@ -39,7 +39,7 @@ class NormalizingFlow(OODDetectionModel):
         log_p = self.density_estimation.log_prob(x)
 
         loss = -log_p.mean()
-        self.log("train_loss", loss)
+        self.log("train/loss", loss)
         return loss
 
     def validation_step(self, batch, batch_idx):
@@ -47,7 +47,7 @@ class NormalizingFlow(OODDetectionModel):
         log_p = self.density_estimation.log_prob(x)
 
         loss = -log_p.mean()
-        self.log("val_loss", loss)
+        self.log("val/loss", loss)
 
     def validation_epoch_end(self, training_step_outputs):
         if self.vis_every > 0 and self.current_epoch % self.vis_every == 0:
