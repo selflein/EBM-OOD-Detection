@@ -19,15 +19,14 @@ fixed:
     max_steps: 100_000
     max_epochs: 100_000
     gpus: 1
-    check_val_every_n_epoch: 100
 
   checkpoint_config:
-    monitor: val_loss
+    monitor: val/loss
     mode: min
     save_last: True
 
   earlystop_config:
-    monitor: val_loss
+    monitor: val/loss
     mode: min
     patience: 10
 
