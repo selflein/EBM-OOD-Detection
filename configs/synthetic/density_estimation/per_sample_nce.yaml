@@ -1,0 +1,36 @@
+trainer_config:
+  max_steps: 100_000
+  max_epochs: 100_000
+  gpus:
+  benchmark: True
+  check_val_every_n_epoch: 10
+
+checkpoint_config:
+  monitor:
+  save_last: True
+
+earlystop_config:
+
+dataset: Gaussian2D
+# Use second dataset
+ood_dataset:
+seed: 1
+batch_size: 512
+data_shape: &data_shape [2]
+
+model_name: PerSampleNCE
+model_config:
+  arch_name: fc
+  arch_config:
+    inp_dim: 2
+    num_classes: 1
+    hidden_dims: [100, 100]
+    batch_norm: False
+    bias: True
+    slope: 0.2
+
+  learning_rate: 0.01
+  momentum: 0.9
+  weight_decay: 0.0
+  is_toy_dataset: True
+  toy_dataset_dim: 2

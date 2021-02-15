@@ -11,6 +11,7 @@ from uncertainty_est.models.JEM.vera_posteriornet import VERAPosteriorNet
 from uncertainty_est.models.normalizing_flow.norm_flow import NormalizingFlow
 from uncertainty_est.models.normalizing_flow.approx_flow import ApproxNormalizingFlow
 from uncertainty_est.models.EBM.regularized_ebm import RegularizedEBM
+from uncertainty_est.models.EBM.per_sample_nce import PerSampleNCE
 
 MODELS = {
     "HDGE": HDGEModel,
@@ -26,4 +27,5 @@ MODELS = {
     "NormalizingFlow": NormalizingFlow,
     "ApproxNormalizingFlow": ApproxNormalizingFlow,
     "RegularizedEBM": RegularizedEBM,
+    "PerSampleNCE": PerSampleNCE,
 }
