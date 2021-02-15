@@ -29,7 +29,9 @@ class PerSampleNCE(OODDetectionModel):
     def setup(self, phase):
         if phase != "fit":
             return
-        self.len_ds = len(self.train_dataloader.dataset)
+        self.len_ds = torch.tensor(
+            len(self.train_dataloader.dataset), requires_grad=False
+        )
 
     def forward(self, x):
         return self.model(x)
@@ -41,8 +43,8 @@ class PerSampleNCE(OODDetectionModel):
         noise = noise_dist.sample(x.size())
         log_p_noise = torch.cat(
             (
-                noise_dist.log_prob(torch.zeros(len(x))) - self.len_ds,
-                noise_dist.log_prob(noise) - self.len_ds,
+                noise_dist.log_prob(torch.zeros(len(x))) - torch.log(self.len_ds),
+                noise_dist.log_prob(noise) - torch.log(self.len_ds),
             )
         )
 
