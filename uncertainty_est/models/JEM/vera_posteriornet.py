@@ -45,6 +45,7 @@ class VERAPosteriorNet(VERA):
         alpha_fix=True,
         entropy_reg=0.0,
         is_toy_dataset=False,
+        toy_dataset_dim=2,
         alpha_0_control=0.0,
         **kwargs,
     ):
@@ -96,23 +97,23 @@ class VERAPosteriorNet(VERA):
         self.p_y = class_counts / len(train_loader.dataset)
 
     def classifier_loss(self, ld_logits, y_l):
-        p_x_given_y = torch.exp(ld_logits) / self.p_y.unsqueeze(0).to(self.device)
-        alpha = self.class_counts.unsqueeze(0).to(self.device) * p_x_given_y
+        alpha = torch.exp(ld_logits)  # / self.p_y.unsqueeze(0).to(self.device)
+        # Multiply by class counts for Bayesian update
+        # alpha = self.class_counts.unsqueeze(0).to(self.device) * alpha
 
         if self.alpha_fix:
             alpha = alpha + 1
 
         alpha_0 = alpha.sum(1)
-        UCE_loss = self.clf_weight * torch.mean(
+        UCE_loss = torch.mean(
             torch.digamma(alpha_0) - torch.digamma(alpha[torch.arange(len(y_l)), y_l])
         )
         self.log("train/uce_loss", UCE_loss)
 
         entropy_reg = self.entropy_reg * -Dirichlet(alpha).entropy().mean()
-        self.log("train/entropy_reg", UCE_loss)
+        self.log("train/entropy_reg", entropy_reg)
 
-        alpha_reg = self.alpha_0_control * alpha_0.mean()
-        return UCE_loss + entropy_reg + alpha_reg
+        return UCE_loss + entropy_reg
 
     def validation_epoch_end(self, outputs):
         super().validation_epoch_end(outputs)

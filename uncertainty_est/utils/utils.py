@@ -41,7 +41,7 @@ def estimate_normalizing_constant(
     """
     with torch.no_grad():
         _, p_x = eval_func_on_grid(
-            density_func, interval, num_samples, device, dimensions, batch_size, device
+            density_func, interval, num_samples, device, dimensions, batch_size, dtype
         )
 
         dx = (abs(interval[0]) + abs(interval[1])) / num_samples

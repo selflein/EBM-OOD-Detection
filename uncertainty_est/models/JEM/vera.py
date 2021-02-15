@@ -227,7 +227,7 @@ class VERA(OODDetectionModel):
 
     def test_epoch_end(self, logits):
         if self.is_toy_dataset:
-            self.model.to(torch.double)
+            self.to(torch.double)
             # Estimate normalizing constant Z by numerical integration
             log_Z = torch.log(
                 estimate_normalizing_constant(
@@ -237,7 +237,7 @@ class VERA(OODDetectionModel):
                     dtype=torch.double,
                 )
             ).float()
-            self.model.to(torch.float32)
+            self.to(torch.float32)
 
             logits = torch.cat(logits, 0)
             log_px = logits.logsumexp(1) - log_Z

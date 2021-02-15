@@ -47,6 +47,7 @@ class VERAPriorNet(VERA):
         entropy_reg=0.0,
         reverse_kl=True,
         is_toy_dataset=False,
+        toy_dataset_dim=2,
         **kwargs,
     ):
         super().__init__(
