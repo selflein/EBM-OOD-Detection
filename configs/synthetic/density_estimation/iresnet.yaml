@@ -21,13 +21,13 @@ data_shape: [2]
 model_name: IResNet
 model_config:
   dim: 2
-  n_blocks: 5
-  block_h_dims: [64, 64]
+  n_blocks: 3
+  block_h_dims: [8]
   coeff: 0.9
   n_trace_samples: 1
   n_series_terms: 5
   act_norm: True
-  exact: True
+  exact: False
   learning_rate: 0.01
   momentum: 0.9
   weight_decay: 0.0

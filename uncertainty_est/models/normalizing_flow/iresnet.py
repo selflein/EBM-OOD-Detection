@@ -61,6 +61,13 @@ class IResNetFlow(OODDetectionModel):
             x.requires_grad_()
             log_p = self.model.log_prob(x)
 
+            sigmas = []
+            for k, v in self.model.state_dict().items():
+                if "_sigma" in k:
+                    sigmas.append(v.item())
+            sigmas = torch.tensor(sigmas)
+            self.log("val/sigma_mean", sigmas.mean().item())
+
         loss = -log_p.mean()
         self.log("val/loss", loss)
 
@@ -72,7 +79,7 @@ class IResNetFlow(OODDetectionModel):
 
             with torch.enable_grad():
                 x.requires_grad_()
-                px = torch.exp(self.model.log_prob(data.to(self.device)))
+                px = torch.exp(self.model.log_prob(data.to(self.device))).detach()
 
             fig, ax = plt.subplots()
             mesh = ax.pcolormesh(to_np(x), to_np(y), to_np(px).reshape(*x.shape))
