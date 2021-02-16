@@ -16,6 +16,8 @@ def make_mlp(
                 layers.append(nn.ReLU())
             elif activation == "leaky_relu":
                 layers.append(nn.LeakyReLU(slope, inplace=True))
+            elif activation == "elu":
+                layers.append(nn.ELU(inplace=True))
             else:
                 raise NotImplementedError(f"Activation '{activation}' not implemented!")
 

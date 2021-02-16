@@ -12,6 +12,7 @@ from uncertainty_est.models.normalizing_flow.norm_flow import NormalizingFlow
 from uncertainty_est.models.normalizing_flow.approx_flow import ApproxNormalizingFlow
 from uncertainty_est.models.EBM.regularized_ebm import RegularizedEBM
 from uncertainty_est.models.EBM.per_sample_nce import PerSampleNCE
+from uncertainty_est.models.normalizing_flow.iresnet import IResNetFlow
 
 MODELS = {
     "HDGE": HDGEModel,
@@ -28,4 +29,5 @@ MODELS = {
     "ApproxNormalizingFlow": ApproxNormalizingFlow,
     "RegularizedEBM": RegularizedEBM,
     "PerSampleNCE": PerSampleNCE,
+    "IResNet": IResNetFlow,
 }

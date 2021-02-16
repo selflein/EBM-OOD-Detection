@@ -1,0 +1,34 @@
+trainer_config:
+  max_steps: 100_000
+  max_epochs: 100_000
+  gpus: "0"
+
+checkpoint_config:
+  monitor: val/loss
+  mode: min
+
+earlystop_config:
+  monitor: val/loss
+  mode: min
+  patience: 10
+
+dataset: Gaussian2D
+ood_dataset:
+seed: 1
+batch_size: 32
+data_shape: [2]
+
+model_name: IResNet
+model_config:
+  dim: 2
+  n_blocks: 5
+  block_h_dims: [64, 64]
+  coeff: 0.9
+  n_trace_samples: 1
+  n_series_terms: 5
+  act_norm: True
+  exact: True
+  learning_rate: 0.01
+  momentum: 0.9
+  weight_decay: 0.0
+  vis_every: 10
