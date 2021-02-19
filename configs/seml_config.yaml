@@ -1,0 +1,103 @@
+seml:
+  executable: uncertainty_est/train.py
+  name: vera_postnet_mnist_reg
+  output_dir: slurm
+  project_root_dir: ..
+
+slurm:
+  experiments_per_job: 1
+  sbatch_options:
+    gres: gpu:1       # num GPUs
+    mem: 8G          # memory
+    cpus-per-task: 2  # num cores
+    time: 0-10:00     # max time, D-HH:MM
+
+###### BEGIN PARAMETER CONFIGURATION ######
+
+fixed:
+  trainer_config:
+    max_epochs: 20
+    gpus: 1
+    terminate_on_nan: True
+
+  checkpoint_config:
+    monitor: val/acc
+    mode: max
+    save_last: True
+
+  earlystop_config:
+
+  log_dir: grid_search/vera_postnet_mnist_reg
+  dataset: mnist
+  # Use second dataset
+  ood_dataset: mnist
+  seed: 1
+  batch_size: 32
+  data_shape: [32, 32, 1]
+
+  model_name: VERAPosteriorNet
+  model_config:
+    arch_name: wrn
+    arch_config:
+      depth: 28
+      num_classes: 10
+      widen_factor: 10
+      input_channels: 1
+      dropout: 0.3
+      norm: batch
+
+    learning_rate: 0.00003
+    beta1: 0.0
+    beta2: 0.9
+    weight_decay: 0.0
+    n_classes: 10
+    uncond: False
+    gen_learning_rate: 0.00006
+    ebm_iters: 1
+    generator_iters: 1
+    entropy_weight: 0.003
+
+    generator_type: vera
+    generator_arch_name: resnetgenerator
+    generator_arch_config:
+      unit_interval: False
+      feats: 256
+      out_channels: 1
+
+    generator_config:
+      noise_dim: 128
+      post_lr: 0.00003
+      init_post_logsigma: 0.01
+
+    min_sigma: 0.01
+    max_sigma: 0.3
+    # p_control: 0.01
+    n_control:
+    pg_control: 0.1
+    clf_ent_weight: 0.0
+    ebm_type: jem
+    clf_weight: 1.0
+    warmup_steps: 2500
+    no_g_batch_norm: False
+    batch_size: 32
+    lr_decay: 0.3
+    lr_decay_epochs: [15, 17]
+    vis_every: -1
+    alpha_fix: True
+    # entropy_reg: 0.01
+
+grid:
+  model_config:
+    type: parameter_collection
+    params:
+      entropy_reg:
+        type: loguniform
+        min: 1e-6
+        max: 1e-3
+        num: 4
+
+      p_control:
+        type: loguniform
+        min: 1e-3
+        max: 1.0
+        num: 4
