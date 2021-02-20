@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import roc_auc_score, average_precision_score
 from uncertainty_eval.metrics.brier import brier_score, brier_decomposition
 from uncertainty_eval.metrics.calibration_error import classification_calibration
-from uncertainty_eval.vis import draw_reliability_graph
+from uncertainty_eval.vis import draw_reliability_graph, plot_score_hist
 
 from uncertainty_est.utils.utils import to_np
 from uncertainty_est.utils.dirichlet import dirichlet_prior_network_uncertainty
@@ -49,8 +49,11 @@ if __name__ == "__main__":
 
     logger.addHandler(logging.FileHandler(output_folder / "out.log", mode="w"))
 
-    id_test_loader = get_dataloader(args.dataset, "test", 128, data_shape=(32, 32, 1))
+    id_test_loader = get_dataloader(args.dataset, "train", 128, data_shape=(32, 32, 1))
 
+    import pdb
+
+    pdb.set_trace()
     y, logits = model.get_gt_preds(id_test_loader)
 
     # Compute accuracy
@@ -98,6 +101,15 @@ if __name__ == "__main__":
                 [np.zeros_like(ood_scores), np.ones_like(id_scores)]
             )
             preds = np.concatenate([ood_scores, id_scores])
+
+            ax = plot_score_hist(
+                id_scores,
+                ood_scores,
+                title="",
+            )
+            ax.figure.savefig(output_folder / f"{ood_ds}_{score_name}.png")
+
+            plt.close()
 
             auroc = roc_auc_score(labels, preds)
             aupr = average_precision_score(labels, preds)

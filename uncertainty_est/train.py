@@ -10,6 +10,7 @@ sys.path.insert(0, os.getcwd())
 from pathlib import Path
 from datetime import datetime
 
+import yaml
 import torch
 import seml
 from sacred import Experiment
@@ -50,13 +51,14 @@ def run(
     earlystop_config,
     checkpoint_config,
     data_shape,
+    _run,
     sigma=0.0,
     output_folder=None,
     log_dir="logs",
     num_workers=4,
     test_ood_datasets=[],
+    **kwargs,
 ):
-    torch.set_default_tensor_type(torch.FloatTensor)
     pl.seed_everything(seed)
 
     test_ood_dataloaders = []
@@ -111,6 +113,9 @@ def run(
     )
     out_path = Path(log_dir) / model_name / dataset / f"{output_folder}_{uuid4()}"
     out_path.mkdir(exist_ok=False, parents=True)
+
+    with (out_path / "config.yaml").open("w") as f:
+        f.write(yaml.dump(_run.config))
 
     callbacks = []
     callbacks.append(

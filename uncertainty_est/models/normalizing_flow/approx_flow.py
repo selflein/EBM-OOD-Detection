@@ -6,7 +6,7 @@ import pytorch_lightning as pl
 import matplotlib.pyplot as plt
 import torch.nn.functional as F
 
-from uncertainty_est.utils.utils import to_np
+from uncertainty_est.utils.utils import to_np, estimate_normalizing_constant
 from uncertainty_est.models.normalizing_flow.norm_flow import NormalizingFlow
 
 
@@ -20,6 +20,8 @@ class ApproxNormalizingFlow(NormalizingFlow):
         momentum,
         weight_decay,
         vis_every=-1,
+        is_toy_dataset=True,
+        toy_dataset_dim=2,
         test_ood_dataloaders=[],
         weight_penalty_weight=1.0,
     ):
@@ -42,13 +44,25 @@ class ApproxNormalizingFlow(NormalizingFlow):
         log_p = self.density_estimation.log_prob(x)
 
         loss = -log_p.mean()
-        self.log("train/ml_loss", loss)
+        self.log("train/ml_loss", loss, on_epoch=True)
 
         weight_penalty = 0.0
         transforms = self.density_estimation.transforms
         for t in transforms:
             weight_penalty += self.weight_penalty_weight * t.compute_weight_penalty()
-        self.log("train/weight_penalty", weight_penalty)
+        self.log("train/weight_penalty", weight_penalty, on_epoch=True)
         loss -= weight_penalty
 
         return loss
+
+    def validation_epoch_end(self, outputs):
+        if self.is_toy_dataset:
+            log_Z = estimate_normalizing_constant(
+                lambda x: self.density_estimation.log_prob(x),
+                device=self.device,
+                dimensions=self.toy_dataset_dim,
+                dtype=torch.float32,
+            )
+            self.log("val/log_norm_constant", log_Z)
+
+        super().validation_epoch_end(outputs)

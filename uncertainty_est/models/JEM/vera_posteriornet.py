@@ -48,6 +48,9 @@ class VERAPosteriorNet(VERA):
         alpha_0_control=0.0,
         **kwargs,
     ):
+        if n_control is None:
+            n_control = p_control
+
         super().__init__(
             arch_name,
             arch_config,

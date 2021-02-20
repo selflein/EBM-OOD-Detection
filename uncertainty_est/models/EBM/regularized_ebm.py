@@ -30,6 +30,7 @@ class RegularizedEBM(OODDetectionModel):
         clf_weight=0.0,
         grad_weight=1.0,
         noisy_regularizer=1.0,
+        p_control=1.0,
         vis_every=-1,
         is_toy_dataset=False,
         toy_dataset_dim=2,
@@ -58,6 +59,10 @@ class RegularizedEBM(OODDetectionModel):
         # Maximize at position of data
         loss = -p_x[: len(x)].mean(0)
         self.log("train/px_loss", loss.item())
+
+        p_control_loss = self.p_control * p_x.mean()
+        self.log("train/p_control", p_control_loss)
+        loss += p_control_loss
 
         # Minimize at noisy positions
         p_x_noise = self.noisy_regularizer * p_x[len(x) :].mean(0)
