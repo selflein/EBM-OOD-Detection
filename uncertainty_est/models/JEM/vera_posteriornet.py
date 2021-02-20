@@ -19,7 +19,6 @@ class VERAPosteriorNet(VERA):
         beta2,
         weight_decay,
         n_classes,
-        uncond,
         gen_learning_rate,
         ebm_iters,
         generator_iters,
@@ -57,7 +56,6 @@ class VERAPosteriorNet(VERA):
             beta2,
             weight_decay,
             n_classes,
-            uncond,
             gen_learning_rate,
             ebm_iters,
             generator_iters,
@@ -80,6 +78,7 @@ class VERAPosteriorNet(VERA):
             lr_decay,
             lr_decay_epochs,
             is_toy_dataset,
+            toy_dataset_dim,
             vis_every,
             **kwargs,
         )

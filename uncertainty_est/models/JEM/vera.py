@@ -35,7 +35,6 @@ class VERA(OODDetectionModel):
         beta2,
         weight_decay,
         n_classes,
-        uncond,
         gen_learning_rate,
         ebm_iters,
         generator_iters,
@@ -61,6 +60,7 @@ class VERA(OODDetectionModel):
         toy_dataset_dim=2,
         vis_every=-1,
         test_ood_dataloaders=[],
+        **kwargs,
     ):
         super().__init__(test_ood_dataloaders)
         self.__dict__.update(locals())
@@ -69,7 +69,9 @@ class VERA(OODDetectionModel):
 
         arch = get_arch(arch_name, arch_config)
         self.model = (
-            EBM(arch, n_classes) if self.uncond else ConditionalEBM(arch, n_classes)
+            EBM(arch, n_classes)
+            if self.ebm_type == "p_x"
+            else ConditionalEBM(arch, n_classes)
         )
 
         g = get_arch(generator_arch_name, generator_arch_config)
