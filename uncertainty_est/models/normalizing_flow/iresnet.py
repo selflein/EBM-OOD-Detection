@@ -7,41 +7,28 @@ import matplotlib.pyplot as plt
 import torch.nn.functional as F
 
 from uncertainty_est.utils.utils import to_np
+from uncertainty_est.archs.arch_factory import get_arch
 from uncertainty_est.models.ood_detection_model import OODDetectionModel
-from uncertainty_est.archs.invertible_residual_nets.net import IResNet
 
 
 class IResNetFlow(OODDetectionModel):
     def __init__(
         self,
-        n_blocks,
-        dim,
-        block_h_dims,
-        coeff,
-        n_trace_samples,
-        n_series_terms,
-        act_norm,
+        arch_name,
+        arch_config,
         learning_rate,
         momentum,
         weight_decay,
-        exact=False,
+        warmup_steps=0,
         vis_every=-1,
         test_ood_dataloaders=[],
     ):
         super().__init__(test_ood_dataloaders)
         self.__dict__.update(locals())
         self.save_hyperparameters()
+        assert arch_name in ("iresnet_fc", "iresnet_conv")
 
-        self.model = IResNet(
-            n_blocks,
-            dim,
-            block_h_dims,
-            coeff,
-            n_trace_samples,
-            n_series_terms,
-            act_norm,
-            exact,
-        )
+        self.model = get_arch(arch_name, arch_config)
 
     def forward(self, x):
         return self.model(x)
@@ -112,5 +99,5 @@ class IResNetFlow(OODDetectionModel):
         log_p = torch.cat(log_p)
 
         dir_uncert = {}
-        dir_uncert["p(x)"] = log_p.exp().cpu().numpy()
+        dir_uncert["p(x)"] = log_p.cpu.numpy()
         return dir_uncert

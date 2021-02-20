@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import torch.nn.functional as F
 
 from uncertainty_est.utils.utils import to_np
-from uncertainty_est.models.normalizing_flow.flows import NormalizingFlowDensity
+from uncertainty_est.archs.flows import NormalizingFlowDensity
 from uncertainty_est.models.ood_detection_model import OODDetectionModel
 
 

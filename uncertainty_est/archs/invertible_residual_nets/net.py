@@ -66,7 +66,7 @@ class IResNetBlock(nn.Module):
         raise NotImplementedError
 
 
-class IResNet(nn.Module):
+class iResNetFC(nn.Module):
     def __init__(
         self,
         n_blocks,
