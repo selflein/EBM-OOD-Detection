@@ -11,6 +11,7 @@ slurm:
     mem: 8G          # memory
     cpus-per-task: 2  # num cores
     time: 0-10:00     # max time, D-HH:MM
+    mail-type: FAIL
 
 ###### BEGIN PARAMETER CONFIGURATION ######
 
@@ -26,6 +27,12 @@ fixed:
     save_last: True
 
   earlystop_config:
+
+  test_ood_datasets:
+    - uniform_noise
+    - gaussian_noise
+    - fashionmnist
+    - kmnist
 
   log_dir: grid_search/vera_postnet_mnist_reg
   dataset: mnist

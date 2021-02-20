@@ -22,9 +22,9 @@ model_name: ApproxNormalizingFlow
 model_config:
   density_type: orthogonal_flow
   latent_dim: 2
-  n_density: 20
+  n_density: 2
   learning_rate: 0.01
   momentum: 0.9
   weight_decay: 0.0
   vis_every: 1
-  weight_penalty_weight: 0.001
+  weight_penalty_weight: 1.0

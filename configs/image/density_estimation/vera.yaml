@@ -3,8 +3,7 @@ trainer_config:
   gpus: 1
 
 checkpoint_config:
-  monitor: val/acc
-  mode: max
+  monitor:
   save_last: True
 
 earlystop_config:
@@ -17,6 +16,7 @@ test_ood_datasets:
   - uniform_noise
 
 dataset: &dataset cifar10
+# Use second dataset
 ood_dataset: *dataset
 seed: 1
 batch_size: &batch_size 32
@@ -28,6 +28,7 @@ data_shape:
 model_name: VERA
 model_config:
   n_classes: &n_classes 10
+
   arch_name: wrn
   arch_config:
     depth: 28
@@ -58,8 +59,8 @@ model_config:
   n_control: 0.0
   pg_control: 0.1
   clf_ent_weight: 0.0
-  ebm_type: jem
-  clf_weight: 100.0
+  ebm_type: p_x
+  clf_weight: 0.0
   warmup_steps: 2500
   no_g_batch_norm: False
   batch_size: *batch_size

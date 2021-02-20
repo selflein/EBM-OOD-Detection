@@ -1,7 +1,7 @@
 trainer_config:
   max_epochs: 500
   gpus: "0"
-  check_val_every_n_epoch: 10
+  check_val_every_n_epoch: 1
   terminate_on_nan: True
 
 checkpoint_config:
@@ -12,7 +12,7 @@ earlystop_config:
 dataset: Gaussian2D
 ood_dataset:
 seed: 1
-batch_size: 128
+batch_size: 1024
 data_shape: [2]
 
 model_name: RegularizedEBM
@@ -25,9 +25,10 @@ model_config:
   momentum: 0.9
   weight_decay: 0.0
   vis_every: 1
-  noise_sigma: 3
+  noise_sigma: 1.0
   clf_weight: 0.0
-  grad_weight: 1.0
+  grad_weight: 10.0
   noisy_regularizer: 1.0
+  p_control: 0.0
   is_toy_dataset: True
   toy_dataset_dim: 2
