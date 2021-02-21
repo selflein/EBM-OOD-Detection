@@ -6,6 +6,14 @@ trainer_config:
 checkpoint_config:
   monitor: val/loss
   mode: min
+  save_last: True
+
+test_ood_datasets:
+  - kmnist
+  - fashionmnist
+  - kmnist_unscaled
+  - gaussian_noise
+  - uniform_noise
 
 earlystop_config:
   monitor: val/loss
@@ -35,10 +43,10 @@ model_config:
     n_power_iter: 5
     actnorm: True
     learn_prior: False
-    nonlin: relu
+    nonlin: elu
 
   warmup_steps: 2500
-  learning_rate: 0.003
+  learning_rate: 0.0001
   momentum: 0.9
   weight_decay: 0.0
   vis_every: -1
