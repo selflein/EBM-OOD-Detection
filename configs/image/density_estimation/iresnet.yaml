@@ -1,7 +1,6 @@
 trainer_config:
-  max_steps: 100_000
-  max_epochs: 100_000
-  gpus: "0"
+  max_epochs: 100
+  gpus: 1
 
 checkpoint_config:
   monitor: val/loss
@@ -9,9 +8,9 @@ checkpoint_config:
   save_last: True
 
 test_ood_datasets:
-  - kmnist
-  - fashionmnist
-  - kmnist_unscaled
+  - lsun
+  - svhn
+  - svhn_unscaled
   - gaussian_noise
   - uniform_noise
 
@@ -20,17 +19,17 @@ earlystop_config:
   mode: min
   patience: 10
 
-dataset: mnist
+dataset: cifar10
 ood_dataset:
 seed: 1
 batch_size: 128
-data_shape: &data_shape [32, 32, 1]
+data_shape: &data_shape [32, 32, 3]
 
 model_name: IResNet
 model_config:
   arch_name: iresnet_conv
   arch_config:
-    in_shape: [1, 32, 32]
+    in_shape: [3, 32, 32]
     n_blocks: [4, 4, 4]
     n_strides: [1, 2, 2]
     n_channels: [16, 64, 256]
