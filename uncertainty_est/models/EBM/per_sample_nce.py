@@ -20,6 +20,7 @@ class PerSampleNCE(OODDetectionModel):
         learning_rate,
         momentum,
         weight_decay,
+        noise_sigma=0.01,
         is_toy_dataset=False,
         toy_dataset_dim=2,
         test_ood_dataloaders=[],
@@ -41,38 +42,32 @@ class PerSampleNCE(OODDetectionModel):
     def training_step(self, batch, batch_idx):
         x, _ = batch
 
+        sample_shape = x.shape[1:]
+        sample_dim = sample_shape.numel()
         noise_dist = distributions.multivariate_normal.MultivariateNormal(
-            torch.zeros(x.size(1)).to(self.device),
-            torch.eye(x.size(1)).to(self.device) * 5,
+            torch.zeros(sample_dim).to(self.device),
+            torch.eye(sample_dim).to(self.device) * self.noise_sigma,
         )
         noise = noise_dist.sample(x.size()[:1])
-        log_normalizer = torch.log(self.len_ds).to(self.device)
-        log_p_noise = torch.cat(
-            (
-                noise_dist.log_prob(torch.zeros_like(x).to(self.device))
-                - log_normalizer,
-                noise_dist.log_prob(noise) - log_normalizer,
-            )
-        )
 
-        x_noisy = x + noise
+        # Implements Eq. 9 in "Conditional Noise-Contrastive Estimation of Unnormalised Models"
+        # Uses symmetry of noise distribution meaning p(u1|u2) = p(u2|u1) to simplify
+        # Sets k = 1
+        x_noisy = x + noise.reshape_as(x)
         log_p_model = self.model(torch.cat((x, x_noisy))).squeeze()
+        log_p_x = log_p_model[: len(x)]
+        log_p_x_noisy = log_p_model[len(x) :]
 
-        posterior_prob = log_p_model.exp() / (log_p_noise.exp() + log_p_model.exp())
+        loss = torch.log(1 + (-(log_p_x - log_p_x_noisy)).exp()).mean()
 
-        labels = torch.cat((torch.ones(x.size(0)), torch.zeros(x_noisy.size(0)))).to(
-            self.device
-        )
-        loss = F.binary_cross_entropy(posterior_prob, labels)
-
-        self.log("train_loss", loss)
+        self.log("train/loss", loss)
         return loss
 
     def validation_step(self, batch, batch_idx):
         return
 
     def validation_epoch_end(self, outputs):
-        if self.is_toy_dataset:
+        if self.is_toy_dataset and self.toy_dataset_dim == 2:
             interp = torch.linspace(-4, 4, 500)
             x, y = torch.meshgrid(interp, interp)
             data = torch.stack((x.reshape(-1), y.reshape(-1)), 1)
@@ -153,6 +148,5 @@ class PerSampleNCE(OODDetectionModel):
             scores.append(score)
 
         uncert = {}
-        uncert["log p(x)"] = torch.cat(scores).cpu().numpy()
-        uncert["p(x)"] = torch.cat(scores).exp().cpu().numpy()
+        uncert["p(x)"] = torch.cat(scores).cpu().numpy()
         return uncert

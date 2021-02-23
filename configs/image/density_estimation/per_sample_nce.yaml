@@ -1,0 +1,48 @@
+trainer_config:
+  max_steps: 100_000
+  max_epochs: 100_000
+  gpus: 1
+  benchmark: True
+  limit_val_batches: 1
+
+checkpoint_config:
+  monitor: "train/loss"
+  mode: min
+  save_last: True
+
+earlystop_config:
+  monitor: "train/loss"
+  mode: min
+  patience: 10
+
+test_ood_datasets:
+  - kmnist
+  - fashionmnist
+  - gaussian_noise
+  - uniform_noise
+
+dataset: mnist
+# Use second dataset
+ood_dataset:
+seed: 1
+batch_size: 32
+data_shape:
+  - 32
+  - 32
+  - &n_channels 1
+
+model_name: PerSampleNCE
+model_config:
+  arch_name: wrn
+  arch_config:
+    depth: 28
+    num_classes: 1
+    widen_factor: 10
+    input_channels: *n_channels
+
+  learning_rate: 0.0001
+  momentum: 0.9
+  weight_decay: 0.0
+  noise_sigma: 0.0001
+  is_toy_dataset: false
+  toy_dataset_dim: 2
