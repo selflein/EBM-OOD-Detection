@@ -35,7 +35,7 @@ class ApproxNormalizingFlow(NormalizingFlow):
             vis_every,
             test_ood_dataloaders,
         )
-        assert density_type in ("orthogonal_flow")
+        assert density_type in ("orthogonal_flow", "reparameterized_flow")
         self.__dict__.update(locals())
         self.save_hyperparameters()
 

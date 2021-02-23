@@ -55,9 +55,12 @@ class OODDetectionModel(pl.LightningModule):
                 )
                 preds = np.concatenate([ood_scores, id_scores])
 
-                self.log(f"{dataset_name}: AUROC", roc_auc_score(labels, preds))
                 self.log(
-                    f"{dataset_name}: AUPR", average_precision_score(labels, preds)
+                    f"{dataset_name}, {score_name}: AUROC", roc_auc_score(labels, preds)
+                )
+                self.log(
+                    f"{dataset_name}, {score_name}: AUPR",
+                    average_precision_score(labels, preds),
                 )
 
     def optimizer_step(
