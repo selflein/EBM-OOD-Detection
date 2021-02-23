@@ -49,9 +49,9 @@ class ApproxNormalizingFlow(NormalizingFlow):
         weight_penalty = 0.0
         transforms = self.density_estimation.transforms
         for t in transforms:
-            weight_penalty += self.weight_penalty_weight * t.compute_weight_penalty()
+            weight_penalty += t.compute_weight_penalty()
         self.log("train/weight_penalty", weight_penalty, on_epoch=True)
-        loss -= weight_penalty
+        loss += self.weight_penalty_weight * weight_penalty
 
         return loss
 
