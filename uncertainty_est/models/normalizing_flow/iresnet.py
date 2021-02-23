@@ -95,9 +95,13 @@ class IResNetFlow(OODDetectionModel):
             log_p = []
             for x, _ in loader:
                 x = x.to(self.device)
-                log_p.append(self.model.log_prob(x))
+                with torch.enable_grad():
+                    x.requires_grad_()
+                    out = self.model.log_prob(x).detach().cpu()
+                    log_p.append(out)
+                    del out
         log_p = torch.cat(log_p)
 
         dir_uncert = {}
-        dir_uncert["p(x)"] = log_p.cpu.numpy()
+        dir_uncert["p(x)"] = log_p.cpu().numpy()
         return dir_uncert
