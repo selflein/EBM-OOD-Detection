@@ -1,5 +1,5 @@
 trainer_config:
-  max_epochs: 20
+  max_epochs: 40
   gpus: 1
 
 checkpoint_config:
@@ -10,20 +10,19 @@ checkpoint_config:
 earlystop_config:
 
 test_ood_datasets:
-  - lsun
-  - svhn
-  - svhn_unscaled
+  - kmnist
+  - fashionmnist
   - gaussian_noise
   - uniform_noise
 
-dataset: &dataset cifar10
+dataset: &dataset mnist
 ood_dataset: *dataset
 seed: 1
 batch_size: &batch_size 32
 data_shape:
   - 32
   - 32
-  - &n_channels 3
+  - &n_channels 1
 
 model_name: VERA
 model_config:
@@ -64,4 +63,4 @@ model_config:
   no_g_batch_norm: False
   batch_size: *batch_size
   lr_decay: 0.3
-  lr_decay_epochs: [15, 17]
+  lr_decay_epochs: [30, 35]

@@ -1,6 +1,6 @@
 seml:
   executable: uncertainty_est/train.py
-  name: vera_postnet_mnist_reg
+  name: vera_postnet_cifar10_reg
   output_dir: slurm
   project_root_dir: ..
 
@@ -10,14 +10,14 @@ slurm:
     gres: gpu:1       # num GPUs
     mem: 8G          # memory
     cpus-per-task: 2  # num cores
-    time: 0-10:00     # max time, D-HH:MM
+    time: 0-20:00     # max time, D-HH:MM
     mail-type: FAIL
 
 ###### BEGIN PARAMETER CONFIGURATION ######
 
 fixed:
   trainer_config:
-    max_epochs: 20
+    max_epochs: 40
     gpus: 1
     terminate_on_nan: True
 
@@ -31,16 +31,20 @@ fixed:
   test_ood_datasets:
     - uniform_noise
     - gaussian_noise
-    - fashionmnist
-    - kmnist
+    - svhn
+    - lsun
+    - svhn_unscaled
 
-  log_dir: grid_search/vera_postnet_mnist_reg
-  dataset: mnist
+  log_dir: grid_search/vera_postnet_cifar10_reg
+  dataset: cifar10
   # Use second dataset
-  ood_dataset: mnist
+  ood_dataset: cifar10
   seed: 1
-  batch_size: 32
-  data_shape: [32, 32, 1]
+  batch_size: &batch_size 32
+  data_shape:
+    - 32
+    - 32
+    - &n_channels 3
 
   model_name: VERAPosteriorNet
   model_config:
@@ -49,7 +53,7 @@ fixed:
       depth: 28
       num_classes: 10
       widen_factor: 10
-      input_channels: 1
+      input_channels: *n_channels
       dropout: 0.3
       norm: batch
 
@@ -69,7 +73,7 @@ fixed:
     generator_arch_config:
       unit_interval: False
       feats: 256
-      out_channels: 1
+      out_channels: *n_channels
 
     generator_config:
       noise_dim: 128
@@ -86,9 +90,9 @@ fixed:
     clf_weight: 1.0
     warmup_steps: 2500
     no_g_batch_norm: False
-    batch_size: 32
+    batch_size: *batch_size
     lr_decay: 0.3
-    lr_decay_epochs: [15, 17]
+    lr_decay_epochs: [30, 35]
     vis_every: -1
     alpha_fix: True
     # entropy_reg: 0.01

@@ -9,9 +9,8 @@ checkpoint_config:
 earlystop_config:
 
 test_ood_datasets:
-  - lsun
-  - svhn
-  - svhn_unscaled
+  - kmnist
+  - fashionmnist
   - gaussian_noise
   - uniform_noise
 

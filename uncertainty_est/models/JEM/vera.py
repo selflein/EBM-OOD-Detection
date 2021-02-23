@@ -289,6 +289,5 @@ class VERA(OODDetectionModel):
             scores.append(score)
 
         uncert = {}
-        uncert["log p(x)"] = torch.cat(scores).cpu().numpy()
-        uncert["p(x)"] = torch.cat(scores).exp().cpu().numpy()
+        uncert["p(x)"] = torch.cat(scores).cpu().numpy()
         return uncert
