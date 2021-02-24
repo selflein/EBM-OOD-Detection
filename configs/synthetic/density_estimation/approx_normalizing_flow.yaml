@@ -27,4 +27,4 @@ model_config:
   momentum: 0.9
   weight_decay: 0.0
   vis_every: 1
-  weight_penalty_weight: 1.0
+  weight_penalty_weight: 0.01
