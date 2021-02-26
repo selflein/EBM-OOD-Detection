@@ -125,6 +125,7 @@ class WideResNet(nn.Module):
         norm=None,
         leak=0.2,
         dropout=0.0,
+        strides=(1, 2, 2),
     ):
         super(WideResNet, self).__init__()
         self.leak = leak
@@ -142,10 +143,14 @@ class WideResNet(nn.Module):
 
         self.conv1 = conv3x3(input_channels, nStages[0])
         self.layer1 = self._wide_layer(
-            wide_basic, nStages[1], n, dropout, stride=1, first=True
+            wide_basic, nStages[1], n, dropout, stride=strides[0], first=True
         )
-        self.layer2 = self._wide_layer(wide_basic, nStages[2], n, dropout, stride=2)
-        self.layer3 = self._wide_layer(wide_basic, nStages[3], n, dropout, stride=2)
+        self.layer2 = self._wide_layer(
+            wide_basic, nStages[2], n, dropout, stride=strides[1]
+        )
+        self.layer3 = self._wide_layer(
+            wide_basic, nStages[3], n, dropout, stride=strides[2]
+        )
         self.bn1 = get_norm(nStages[3], self.norm)
         self.last_dim = nStages[3]
         self.linear = nn.Linear(nStages[3], num_classes)
@@ -188,6 +193,15 @@ class WideResNet(nn.Module):
         if self.sum_pool:
             out = out.view(out.size(0), out.size(1), -1).sum(2)
         else:
-            out = F.avg_pool2d(out, 8)
+            out = F.avg_pool2d(out, out.shape[2:])
         out = out.view(out.size(0), -1)
         return self.linear(out)
+
+
+if __name__ == "__main__":
+    import torch
+
+    for strides in [(1, 2, 2), (1, 1, 2), (1, 1, 1)]:
+        wrn = WideResNet(28, 10, strides=strides)
+        out = wrn(torch.zeros(1, 3, 32, 32))
+        print(strides, out.shape)

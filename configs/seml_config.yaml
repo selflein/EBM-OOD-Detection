@@ -1,6 +1,6 @@
 seml:
   executable: uncertainty_est/train.py
-  name: vera_postnet_cifar10_reg
+  name: vera_dim_reduction
   output_dir: slurm
   project_root_dir: ..
 
@@ -10,7 +10,7 @@ slurm:
     gres: gpu:1       # num GPUs
     mem: 8G          # memory
     cpus-per-task: 2  # num cores
-    time: 0-20:00     # max time, D-HH:MM
+    time: 0-40:00     # max time, D-HH:MM
     mail-type: FAIL
 
 ###### BEGIN PARAMETER CONFIGURATION ######
@@ -19,96 +19,85 @@ fixed:
   trainer_config:
     max_epochs: 40
     gpus: 1
-    terminate_on_nan: True
+    benchmark: True
+    limit_val_batches: 0
 
   checkpoint_config:
-    monitor: val/acc
-    mode: max
+    monitor:
     save_last: True
 
   earlystop_config:
 
   test_ood_datasets:
-    - uniform_noise
+    - fashionmnist
+    - kmnist
     - gaussian_noise
-    - svhn
-    - lsun
-    - svhn_unscaled
+    - uniform_noise
 
-  log_dir: grid_search/vera_postnet_cifar10_reg
-  dataset: cifar10
+  log_dir: grid_search/vera_dim_reduction
+  dataset: &dataset mnist
   # Use second dataset
-  ood_dataset: cifar10
+  ood_dataset: *dataset
   seed: 1
   batch_size: &batch_size 32
   data_shape:
     - 32
     - 32
-    - &n_channels 3
+    - &n_channels 1
 
-  model_name: VERAPosteriorNet
+  model_name: VERA
   model_config:
+    n_classes: &n_classes 1
+
     arch_name: wrn
     arch_config:
       depth: 28
-      num_classes: 10
+      num_classes: *n_classes
       widen_factor: 10
       input_channels: *n_channels
-      dropout: 0.3
-      norm: batch
-
+      # strides: [1, 2, 2]
     learning_rate: 0.00003
     beta1: 0.0
     beta2: 0.9
     weight_decay: 0.0
-    n_classes: 10
-    uncond: False
     gen_learning_rate: 0.00006
     ebm_iters: 1
     generator_iters: 1
-    entropy_weight: 0.003
-
+    entropy_weight: 0.0001
     generator_type: vera
     generator_arch_name: resnetgenerator
     generator_arch_config:
       unit_interval: False
-      feats: 256
+      feats: 128
       out_channels: *n_channels
-
     generator_config:
       noise_dim: 128
       post_lr: 0.00003
-      init_post_logsigma: 0.01
-
+      init_post_logsigma: 0.1
     min_sigma: 0.01
     max_sigma: 0.3
-    # p_control: 0.01
-    n_control:
+    p_control: 0.0
+    n_control: 0.0
     pg_control: 0.1
     clf_ent_weight: 0.0
-    ebm_type: jem
-    clf_weight: 1.0
+    ebm_type: p_x
+    clf_weight: 0.0
     warmup_steps: 2500
     no_g_batch_norm: False
     batch_size: *batch_size
     lr_decay: 0.3
-    lr_decay_epochs: [30, 35]
-    vis_every: -1
-    alpha_fix: True
-    # entropy_reg: 0.01
+    lr_decay_epochs: [20, 30]
 
 grid:
   model_config:
     type: parameter_collection
     params:
-      entropy_reg:
-        type: loguniform
-        min: 1e-6
-        max: 1e-3
-        num: 4
-
-      p_control:
-        type: loguniform
-        min: 1e-3
-        max: 1.0
-        num: 4
+      arch_config:
+        type: parameter_collection
+        params:
+          strides:
+            type: choice
+            options:
+              - [1, 2, 2]
+              - [1, 1, 2]
+              - [1, 1, 1]

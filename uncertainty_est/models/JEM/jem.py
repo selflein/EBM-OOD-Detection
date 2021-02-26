@@ -213,8 +213,7 @@ class JEM(OODDetectionModel):
             scores.append(score)
 
         uncert = {}
-        uncert["log p(x)"] = torch.cat(scores).cpu().numpy()
-        uncert["p(x)"] = torch.cat(scores).exp().cpu().numpy()
+        uncert["p(x)"] = torch.cat(scores).cpu().numpy()
         return uncert
 
     def sample_p_0(self, replay_buffer, bs, y=None):

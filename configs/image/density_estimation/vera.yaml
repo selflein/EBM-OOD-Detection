@@ -1,6 +1,8 @@
 trainer_config:
   max_epochs: 40
   gpus: 1
+  benchmark: True
+  limit_val_batches: 0
 
 checkpoint_config:
   monitor:
@@ -27,7 +29,7 @@ data_shape:
 
 model_name: VERA
 model_config:
-  n_classes: &n_classes 10
+  n_classes: &n_classes 1
 
   arch_name: wrn
   arch_config:
@@ -35,6 +37,7 @@ model_config:
     num_classes: *n_classes
     widen_factor: 10
     input_channels: *n_channels
+    strides: [1, 2, 2]
   learning_rate: 0.00003
   beta1: 0.0
   beta2: 0.9

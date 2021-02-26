@@ -21,6 +21,7 @@ class PerSampleNCE(OODDetectionModel):
         momentum,
         weight_decay,
         noise_sigma=0.01,
+        p_control_weight=0.0,
         is_toy_dataset=False,
         toy_dataset_dim=2,
         test_ood_dataloaders=[],
@@ -60,6 +61,11 @@ class PerSampleNCE(OODDetectionModel):
 
         loss = torch.log(1 + (-(log_p_x - log_p_x_noisy)).exp()).mean()
 
+        p_control = log_p_model.abs().mean()
+        loss += self.p_control_weight * p_control
+
+        self.log("train/log_p_magnitude", log_p_x.mean(), prog_bar=True)
+        self.log("train/log_p_noisy_magnitude", log_p_x_noisy.mean(), prog_bar=True)
         self.log("train/loss", loss)
         return loss
 
