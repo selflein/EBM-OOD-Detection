@@ -20,6 +20,7 @@ dataset: &dataset mnist
 # Use second dataset
 ood_dataset: *dataset
 seed: 1
+sigma: 0.03
 batch_size: 32
 data_shape:
   - 32

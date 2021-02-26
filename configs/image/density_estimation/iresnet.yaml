@@ -22,6 +22,7 @@ earlystop_config:
 dataset: cifar10
 ood_dataset:
 seed: 1
+sigma: 0.03
 batch_size: 128
 data_shape: &data_shape [32, 32, 3]
 

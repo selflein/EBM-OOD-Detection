@@ -6,6 +6,7 @@ from uncertainty_est.archs.resnet import ResNetGenerator
 from uncertainty_est.archs.invertible_residual_nets.net import iResNetFC
 from uncertainty_est.archs.invertible_residual_nets.conv_net import iResNetConv
 from uncertainty_est.archs.flows import NormalizingFlowDensity
+from uncertainty_est.archs.real_nvp.real_nvp import RealNVP
 
 
 def get_arch(name, config_dict: dict):
