@@ -69,6 +69,84 @@ class ReparameterizedTransform(nn.Module):
         return penalty
 
 
+@torch.jit.script
+def sequential_mult(V, X):
+    for row in range(V.shape[0] - 1, -1, -1):
+        X = X - 2 * V[row : row + 1, :].t() @ (V[row : row + 1, :] @ X)
+    return X
+
+
+@torch.jit.script
+def sequential_inv_mult(V, X):
+    for row in range(V.shape[0]):
+        X = X - 2 * V[row : row + 1, :].t() @ (V[row : row + 1, :] @ X)
+    return X
+
+
+class Orthogonal(nn.Module):
+    def __init__(self, d, m=28, strategy="sequential"):
+        super(Orthogonal, self).__init__()
+        self.d = d
+        self.strategy = strategy
+        self.U = torch.nn.Parameter(torch.zeros((d, d)).normal_(0, 0.05))
+
+        if strategy == "fast":
+            assert d % m == 0, (
+                "The CUDA implementation assumes m=%i divides d=%i which, for current parameters, is not true.  "
+                % (d, m)
+            )
+            HouseProd.m = m
+
+        if not strategy in ["fast", "sequential"]:
+            raise NotImplementedError(
+                "The only implemented strategies are 'fast' and 'sequential'. "
+            )
+
+    def forward(self, X):
+        if self.strategy == "fast":
+            X = HouseProd.apply(X, self.U)
+        elif self.strategy == "sequential":
+            X = sequential_mult(self.U, X.t()).t()
+        else:
+            raise NotImplementedError(
+                "The only implemented strategies are 'fast' and 'sequential'. "
+            )
+        return X
+
+    def inverse(self, X):
+        if self.strategy == "fast":
+            X = HouseProd.apply(X, torch.flip(self.U, dims=[0]))
+        elif self.strategy == "sequential":
+            X = sequential_mult(torch.flip(self.U, dims=[0]), X.t()).t()
+        else:
+            raise NotImplementedError(
+                "The only implemented strategies are 'fast' and 'sequential'. "
+            )
+        return X
+
+    def lgdet(self, X):
+        return 0
+
+
+class LinearSVD(torch.nn.Module):
+    def __init__(self, d, m=32):
+        super(LinearSVD, self).__init__()
+        self.d = d
+
+        self.U = Orthogonal(d, m)
+        self.D = torch.empty(d).uniform_(0.99, 1.01).cuda()
+        self.V = Orthogonal(d, m)
+
+    def forward(self, X):
+        X = self.U(X)
+        X = X * self.D
+        X = self.V(X)
+        return X
+
+    def log_abs_det_jacobian(self, z, z_next):
+        return torch.sum(self.D)
+
+
 class NormalizingFlowDensity(nn.Module):
     def __init__(self, dim, flow_length, flow_type="planar_flow"):
         super(NormalizingFlowDensity, self).__init__()
@@ -100,6 +178,10 @@ class NormalizingFlowDensity(nn.Module):
                     ReparameterizedTransform(dim, nonlin=(i != (flow_length - 1)))
                     for i in range(flow_length)
                 ]
+            )
+        elif self.flow_type == "svd":
+            self.transforms = nn.ModuleList(
+                [LinearSVD(dim) for i in range(flow_length)]
             )
         else:
             raise NotImplementedError

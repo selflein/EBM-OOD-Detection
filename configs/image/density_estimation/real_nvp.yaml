@@ -1,6 +1,5 @@
 trainer_config:
-  max_steps: 100_000
-  max_epochs: 100_000
+  max_epochs: 40
   gpus: 1
   benchmark: True
 

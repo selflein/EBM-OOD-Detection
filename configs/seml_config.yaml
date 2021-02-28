@@ -10,7 +10,7 @@ slurm:
     gres: gpu:1       # num GPUs
     mem: 8G          # memory
     cpus-per-task: 2  # num cores
-    time: 0-40:00     # max time, D-HH:MM
+    time: 0-20:00     # max time, D-HH:MM
     mail-type: FAIL
 
 ###### BEGIN PARAMETER CONFIGURATION ######
@@ -29,13 +29,14 @@ fixed:
   earlystop_config:
 
   test_ood_datasets:
-    - fashionmnist
-    - kmnist
+    - lsun
+    - svhn
+    - svhn_unscaled
     - gaussian_noise
     - uniform_noise
 
   log_dir: grid_search/vera_dim_reduction
-  dataset: &dataset mnist
+  dataset: &dataset cifar10
   # Use second dataset
   ood_dataset: *dataset
   seed: 1
@@ -43,7 +44,7 @@ fixed:
   data_shape:
     - 32
     - 32
-    - &n_channels 1
+    - &n_channels 3
 
   model_name: VERA
   model_config:
