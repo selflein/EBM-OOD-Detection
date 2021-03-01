@@ -35,9 +35,8 @@ class OrthogonalTransform(nn.Module):
 
 
 class ReparameterizedTransform(nn.Module):
-    def __init__(self, dim, nonlin=True):
+    def __init__(self, dim):
         super().__init__()
-        self.nonlin = nonlin
         self.dim = dim
         self.bias = nn.Parameter(torch.zeros(dim))
 
@@ -50,13 +49,10 @@ class ReparameterizedTransform(nn.Module):
     def forward(self, x):
         weight = self.u_mat @ torch.diag_embed(self.sigma) @ self.v_mat.T
         lin_out = torch.nn.functional.linear(x, weight, self.bias)
-        return lin_out if not self.nonlin else torch.exp(lin_out)
+        return lin_out
 
     def log_abs_det_jacobian(self, z, z_next):
-        if self.nonlin:
-            return torch.sum(self.sigma).abs()
-        else:
-            return torch.log(torch.prod(self.sigma).abs())
+        return torch.log(torch.prod(self.sigma).abs())
 
     def compute_weight_penalty(self):
         return self._weight_penalty(self.u_mat) + self._weight_penalty(self.v_mat)
@@ -144,7 +140,7 @@ class LinearSVD(torch.nn.Module):
         return X
 
     def log_abs_det_jacobian(self, z, z_next):
-        return torch.sum(self.D)
+        return torch.log(torch.prod(self.D).abs())
 
 
 class NormalizingFlowDensity(nn.Module):
@@ -174,10 +170,7 @@ class NormalizingFlowDensity(nn.Module):
             )
         elif self.flow_type == "reparameterized_flow":
             self.transforms = nn.ModuleList(
-                [
-                    ReparameterizedTransform(dim, nonlin=(i != (flow_length - 1)))
-                    for i in range(flow_length)
-                ]
+                [ReparameterizedTransform(dim) for i in range(flow_length)]
             )
         elif self.flow_type == "svd":
             self.transforms = nn.ModuleList(
