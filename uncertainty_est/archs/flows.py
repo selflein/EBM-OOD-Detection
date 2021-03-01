@@ -4,7 +4,7 @@ import math
 import torch
 from pyro.distributions.transforms.planar import Planar
 from pyro.distributions.transforms.radial import Radial
-from pyro.distributions.transforms import ELUTransform
+from pyro.distributions.transforms import ELUTransform, LeakyReLUTransform
 from pyro.distributions.transforms.affine_autoregressive import (
     AffineAutoregressive,
     affine_autoregressive,
@@ -133,14 +133,15 @@ class LinearSVD(torch.nn.Module):
         self.d = d
 
         self.U = Orthogonal(d, m)
-        self.D = torch.empty(d).uniform_(0.99, 1.01).cuda()
+        self.D = nn.Parameter(torch.empty(d).uniform_(0.99, 1.01))
         self.V = Orthogonal(d, m)
+        self.bias = nn.Parameter(torch.zeros(d))
 
     def forward(self, X):
         X = self.U(X)
         X = X * self.D
         X = self.V(X)
-        return X
+        return X + self.bias
 
     def log_abs_det_jacobian(self, z, z_next):
         ladj = torch.sum(torch.log(self.D.abs()))
@@ -150,7 +151,10 @@ class LinearSVD(torch.nn.Module):
 class NonLinearity(nn.Module):
     def __init__(self, type_="elu"):
         super().__init__()
-        nonlins = {"elu": ELUTransform}
+        nonlins = {
+            "elu": ELUTransform,
+            "leaky_relu": LeakyReLUTransform,
+        }
         self.transform = nonlins[type_]()
 
     def forward(self, x):
@@ -159,7 +163,7 @@ class NonLinearity(nn.Module):
     def log_abs_det_jacobian(self, z, z_next):
         return self.transform.log_abs_det_jacobian(z, z_next).sum(1)
 
-    def compute_weight_penalty(*args, **kwargs):
+    def compute_weight_penalty(self, *args, **kwargs):
         return 0.0
 
 
