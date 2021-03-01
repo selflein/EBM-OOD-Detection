@@ -4,6 +4,7 @@ import math
 import torch
 from pyro.distributions.transforms.planar import Planar
 from pyro.distributions.transforms.radial import Radial
+from pyro.distributions.transforms import ELUTransform
 from pyro.distributions.transforms.affine_autoregressive import (
     AffineAutoregressive,
     affine_autoregressive,
@@ -24,7 +25,7 @@ class OrthogonalTransform(nn.Module):
 
     @staticmethod
     def log_abs_det_jacobian(z, z_next):
-        return 0.0
+        return torch.zeros(z.shape[0], device=z.device)
 
     def compute_weight_penalty(self):
         sq_weight = torch.mm(self.transform.weight.T, self.transform.weight)
@@ -52,7 +53,9 @@ class ReparameterizedTransform(nn.Module):
         return lin_out
 
     def log_abs_det_jacobian(self, z, z_next):
-        return torch.log(torch.prod(self.sigma).abs())
+        ladj = torch.sum(torch.log(self.sigma.abs()))
+        ladj = torch.empty(z.size(0), device=z.device).fill_(ladj)
+        return ladj
 
     def compute_weight_penalty(self):
         return self._weight_penalty(self.u_mat) + self._weight_penalty(self.v_mat)
@@ -140,7 +143,24 @@ class LinearSVD(torch.nn.Module):
         return X
 
     def log_abs_det_jacobian(self, z, z_next):
-        return torch.log(torch.prod(self.D).abs())
+        ladj = torch.sum(torch.log(self.D.abs()))
+        return torch.empty(z.size(0), device=z.device).fill_(ladj)
+
+
+class NonLinearity(nn.Module):
+    def __init__(self, type_="elu"):
+        super().__init__()
+        nonlins = {"elu": ELUTransform}
+        self.transform = nonlins[type_]()
+
+    def forward(self, x):
+        return self.transform(x)
+
+    def log_abs_det_jacobian(self, z, z_next):
+        return self.transform.log_abs_det_jacobian(z, z_next).sum(1)
+
+    def compute_weight_penalty(*args, **kwargs):
+        return 0.0
 
 
 class NormalizingFlowDensity(nn.Module):
@@ -169,15 +189,20 @@ class NormalizingFlowDensity(nn.Module):
                 [OrthogonalTransform(dim) for _ in range(flow_length)]
             )
         elif self.flow_type == "reparameterized_flow":
-            self.transforms = nn.ModuleList(
-                [ReparameterizedTransform(dim) for i in range(flow_length)]
-            )
+            self.transforms = nn.ModuleList()
+            for i in range(flow_length):
+                self.transforms.append(ReparameterizedTransform(dim))
+                if i != (flow_length - 1):
+                    self.transforms.append(NonLinearity("elu"))
         elif self.flow_type == "svd":
-            self.transforms = nn.ModuleList(
-                [LinearSVD(dim) for i in range(flow_length)]
-            )
+            self.transforms = nn.ModuleList()
+            for i in range(flow_length):
+                self.transforms.append(LinearSVD(dim))
+                if i != (flow_length - 1):
+                    self.transforms.append(NonLinearity("elu"))
         else:
             raise NotImplementedError
+        print(self)
 
     def forward(self, z):
         sum_log_jacobians = 0
