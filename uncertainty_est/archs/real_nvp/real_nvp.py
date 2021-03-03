@@ -68,7 +68,7 @@ class RealNVP(nn.Module):
             if x.min() < 0:
                 x = (x + 1) / 2.0
             elif x.max() > 1:
-                raise ValueError("Expected x in [0, 1] or [-1, 1]")
+                print("Warning: Input not properly normalized!")
 
             # De-quantize and convert to logits
             x, sldj = self._pre_process(x)

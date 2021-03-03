@@ -32,11 +32,6 @@ class PerSampleNCE(OODDetectionModel):
 
         self.model = get_arch(arch_name, arch_config)
 
-    def setup(self, phase):
-        self.len_ds = torch.tensor(
-            float(len(self.train_dataloader.dataloader.dataset)), requires_grad=False
-        )
-
     def forward(self, x):
         return self.model(x)
 

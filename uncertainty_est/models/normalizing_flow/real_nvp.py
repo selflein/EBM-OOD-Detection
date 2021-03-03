@@ -91,7 +91,7 @@ class RealNVPModel(OODDetectionModel):
     def ood_detect(self, loader):
         with torch.no_grad():
             log_p = []
-            for x, _ in loader:
+            for x, _ in tqdm(loader):
                 x = x.to(self.device)
                 log_p_xy = self(x)
                 log_p_x = torch.logsumexp(log_p_xy, dim=1)
