@@ -14,6 +14,7 @@ from uncertainty_est.models.EBM.regularized_ebm import RegularizedEBM
 from uncertainty_est.models.EBM.per_sample_nce import PerSampleNCE
 from uncertainty_est.models.normalizing_flow.iresnet import IResNetFlow
 from .normalizing_flow.real_nvp import RealNVPModel
+from .vae import VAE
 
 MODELS = {
     "HDGE": HDGEModel,
@@ -32,4 +33,5 @@ MODELS = {
     "PerSampleNCE": PerSampleNCE,
     "IResNet": IResNetFlow,
     "RealNVP": RealNVPModel,
+    "VAE": VAE,
 }
