@@ -43,4 +43,4 @@ model_config:
   learning_rate: 0.0001
   momentum: 0.9
   weight_decay: 0.0005
-  vis_every: -1
+  vis_every: 1

@@ -7,6 +7,7 @@ import pytorch_lightning as pl
 import torch.nn.functional as F
 from torch import distributions
 import matplotlib.pyplot as plt
+from torchvision.utils import make_grid
 
 from uncertainty_est.archs.arch_factory import get_arch
 from uncertainty_est.utils.utils import to_np
@@ -77,26 +78,37 @@ class VAE(OODDetectionModel):
         self.log("val/loss", loss)
 
     def validation_epoch_end(self, training_step_outputs):
+        sample_shape = self(1).shape
         if self.vis_every > 0 and self.current_epoch % self.vis_every == 0:
-            interp = torch.linspace(-4, 4, 500)
-            x, y = torch.meshgrid(interp, interp)
-            data = torch.stack((x.reshape(-1), y.reshape(-1)), 1).to(self.device)
+            if len(sample_shape) == 2:
+                interp = torch.linspace(-4, 4, 500)
+                x, y = torch.meshgrid(interp, interp)
+                data = torch.stack((x.reshape(-1), y.reshape(-1)), 1).to(self.device)
 
-            px = -to_np(self.compute_errors(data)[0])
+                px = -to_np(self.compute_errors(data)[0])
 
-            fig, ax = plt.subplots()
-            mesh = ax.pcolormesh(to_np(x), to_np(y), px.reshape(*x.shape))
-            fig.colorbar(mesh)
-            self.logger.experiment.add_figure("p(x)", fig, self.current_epoch)
-            plt.close()
+                fig, ax = plt.subplots()
+                mesh = ax.pcolormesh(to_np(x), to_np(y), px.reshape(*x.shape))
+                fig.colorbar(mesh)
+                self.logger.experiment.add_figure("p(x)", fig, self.current_epoch)
+                plt.close()
 
-            fig, ax = plt.subplots()
-            ax.set_xlim(-4, 4)
-            ax.set_ylim(-4, 4)
-            samples = to_np(self.forward(100))
-            ax.scatter(samples[:, 0], samples[:, 1])
-            self.logger.experiment.add_figure("samples", fig, self.current_epoch)
-            plt.close()
+                fig, ax = plt.subplots()
+                ax.set_xlim(-4, 4)
+                ax.set_ylim(-4, 4)
+                samples = to_np(self.forward(100))
+                ax.scatter(samples[:, 0], samples[:, 1])
+                self.logger.experiment.add_figure("samples", fig, self.current_epoch)
+                plt.close()
+            else:
+                img_samples = self.forward(num=32)
+                fig, ax = plt.subplots()
+                ax.imshow(
+                    to_np(make_grid(img_samples).permute(1, 2, 0)),
+                    interpolation="nearest",
+                )
+                self.logger.experiment.add_figure("samples", fig, self.current_epoch)
+                plt.close()
 
     def test_step(self, batch, batch_idx):
         loss = sum(self.step(batch))
@@ -121,4 +133,6 @@ class VAE(OODDetectionModel):
             rec_err = self.compute_errors(x)[0]
             errs.append(rec_err)
 
-        return -to_np(torch.cat(errs))
+        ood_metrics = {}
+        ood_metrics["Reconstruction error"] = -to_np(torch.cat(errs))
+        return ood_metrics
