@@ -1,7 +1,7 @@
 trainer_config:
-  max_steps: 100_000
-  max_epochs: 100_000
+  max_epochs: 200
   gpus: 1
+  benchmark: True
 
 checkpoint_config:
   monitor: val/loss
@@ -20,7 +20,7 @@ test_ood_datasets:
 dataset: mnist
 ood_dataset:
 seed: 1
-batch_size: 32
+batch_size: 64
 data_shape:
   - 32
   - 32

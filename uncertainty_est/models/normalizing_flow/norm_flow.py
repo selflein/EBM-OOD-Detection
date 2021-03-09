@@ -88,6 +88,5 @@ class NormalizingFlow(OODDetectionModel):
         log_p = torch.cat(log_p)
 
         dir_uncert = {}
-        dir_uncert["log p(x)"] = log_p.cpu().numpy()
-        dir_uncert["p(x)"] = log_p.exp().cpu().numpy()
+        dir_uncert["p(x)"] = log_p.cpu().numpy()
         return dir_uncert

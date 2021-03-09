@@ -4,13 +4,13 @@ trainer_config:
   gpus: 1
 
 checkpoint_config:
-  monitor: val/loss
+  monitor: train/ml_loss
   mode: min
 
 earlystop_config:
-  monitor: val/loss
+  monitor: train/ml_loss
   mode: min
-  patience: 10
+  patience: 20
 
 dataset: Gaussian2D
 ood_dataset:
@@ -20,11 +20,11 @@ data_shape: [2]
 
 model_name: ApproxNormalizingFlow
 model_config:
-  density_type: orthogonal_flow
+  density_type: reparameterized_flow
   latent_dim: 2
   n_density: 5
-  learning_rate: 0.01
+  learning_rate: 0.1
   momentum: 0.9
   weight_decay: 0.0
-  vis_every: 1
-  weight_penalty_weight: 0.01
+  vis_every: 10
+  weight_penalty_weight: 100

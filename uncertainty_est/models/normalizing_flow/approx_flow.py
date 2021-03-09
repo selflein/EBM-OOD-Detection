@@ -50,6 +50,7 @@ class ApproxNormalizingFlow(NormalizingFlow):
         transforms = self.density_estimation.transforms
         for t in transforms:
             weight_penalty += t.compute_weight_penalty()
+        weight_penalty /= len(transforms)
         self.log("train/weight_penalty", weight_penalty, on_epoch=True)
         loss += self.weight_penalty_weight * weight_penalty
 
@@ -58,11 +59,23 @@ class ApproxNormalizingFlow(NormalizingFlow):
     def validation_epoch_end(self, outputs):
         if self.is_toy_dataset:
             log_Z = estimate_normalizing_constant(
-                lambda x: self.density_estimation.log_prob(x),
+                lambda x: self.density_estimation.log_prob(x).exp(),
+                device=self.device,
+                dimensions=self.toy_dataset_dim,
+                dtype=torch.float32,
+            ).log()
+            self.log("val/log_norm_constant", log_Z)
+
+        super().validation_epoch_end(outputs)
+
+    def test_step(self, batch, batch_idx):
+        if self.is_toy_dataset:
+            Z = estimate_normalizing_constant(
+                lambda x: self.density_estimation.log_prob(x).exp(),
                 device=self.device,
                 dimensions=self.toy_dataset_dim,
                 dtype=torch.float32,
             )
-            self.log("val/log_norm_constant", log_Z)
-
-        super().validation_epoch_end(outputs)
+            x, _ = batch
+            log_p = (self.density_estimation.log_prob(x).exp() / Z).log()
+            self.log("log_likelihood", log_p.mean())
