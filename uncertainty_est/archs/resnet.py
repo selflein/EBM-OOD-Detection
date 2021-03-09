@@ -50,7 +50,7 @@ class ResNetGenerator(nn.Module):
     def __init__(self, unit_interval, feats=128, out_channels=3):
         super().__init__()
 
-        self.input_linear = nn.Linear(128, 4 * 4 * feats)
+        self.input_linear = nn.Linear(feats, 4 * 4 * feats)
         self.block1 = GeneratorBlock(feats, feats, upsample=True)
         self.block2 = GeneratorBlock(feats, feats, upsample=True)
         self.block3 = GeneratorBlock(feats, feats, upsample=True)
@@ -67,10 +67,12 @@ class ResNetGenerator(nn.Module):
                 nninit.xavier_uniform_(module.weight.data, gain=gain)
                 module.bias.data.zero_()
 
-        if unit_interval:
+        if unit_interval == True:
             self.final_act = nn.functional.sigmoid
-        else:
+        elif unit_interval == False:
             self.final_act = torch.tanh
+        else:
+            self.final_act = nn.Identity()
 
         self.last_output = None
 

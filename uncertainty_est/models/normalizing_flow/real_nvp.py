@@ -49,13 +49,12 @@ class RealNVPModel(OODDetectionModel):
         log_p_xy = self(x)
         log_p_x = torch.logsumexp(log_p_xy, dim=1)
 
-        loss = -log_p_x.mean()
-        self.log("train/loss", loss)
-
         if self.num_classes > 1:
-            clf_loss = F.cross_entropy(log_p_xy, y)
-            self.log("train/clf_loss", clf_loss)
-            loss += clf_loss
+            loss = F.cross_entropy(log_p_xy, y)
+            self.log("train/clf_loss", loss)
+        else:
+            loss = -log_p_x.mean()
+            self.log("train/loss", loss)
 
         return loss
 

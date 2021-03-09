@@ -36,6 +36,6 @@ model_config:
   mid_channels: 32
   num_blocks: 4
   num_classes: 10
-  learning_rate: 0.001
+  learning_rate: 0.0001
   momentum: 0.9
   weight_decay: 0.00005
