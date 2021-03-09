@@ -2,6 +2,7 @@ trainer_config:
   max_steps: 100_000
   max_epochs: 100_000
   gpus: 1
+  check_val_every_n_epoch: 10
 
 checkpoint_config:
   monitor: train/ml_loss
@@ -12,19 +13,20 @@ earlystop_config:
   mode: min
   patience: 20
 
-dataset: Gaussian2D
+dataset: SwissRoll
 ood_dataset:
 seed: 1
 batch_size: 1024
-data_shape: [2]
+data_shape: [3]
 
 model_name: ApproxNormalizingFlow
 model_config:
   density_type: reparameterized_flow
-  latent_dim: 2
+  latent_dim: 3
   n_density: 5
   learning_rate: 0.1
   momentum: 0.9
   weight_decay: 0.0
   vis_every: 10
   weight_penalty_weight: 100
+  toy_dataset_dim: 3

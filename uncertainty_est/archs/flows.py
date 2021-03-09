@@ -127,14 +127,51 @@ class Orthogonal(nn.Module):
         return 0
 
 
+class MatExpOrthogonal(nn.Module):
+    def __init__(self, d):
+        super().__init__()
+        self.param = nn.Parameter(torch.randn(d, d))
+        self.cached = False
+        self._cache = None
+
+    @property
+    def w(self):
+        if self.cached:
+            return self._cache
+
+        # Compute skew symetric matrix
+        aux = self.param.triu(diagonal=1)
+        aux = aux - aux.t()
+
+        w = torch.matrix_exp(aux)
+        self.cached = True
+        self._cache = w
+        return w
+
+    def forward(self, x):
+        return x @ self.w
+
+    def backward(*args, **kwargs):
+        self.cached = False
+        return super().backward(*args, **kwargs)
+
+
 class LinearSVD(torch.nn.Module):
-    def __init__(self, d, m=32):
+    def __init__(self, d, orthogonal_param="householder", **kwargs):
         super(LinearSVD, self).__init__()
         self.d = d
 
-        self.U = Orthogonal(d, m)
+        if orthogonal_param == "mat_exp":
+            self.U = MatExpOrthogonal(d, **kwargs)
+            self.V = MatExpOrthogonal(d, **kwargs)
+        elif orthogonal_param == "householder":
+            self.U = Orthogonal(d, **kwargs)
+            self.V = Orthogonal(d, **kwargs)
+        else:
+            raise NotImplementedError(
+                f"Orthogonal parameterization {orthogonal_param} not implemented."
+            )
         self.D = nn.Parameter(torch.empty(d).uniform_(0.99, 1.01))
-        self.V = Orthogonal(d, m)
         self.bias = nn.Parameter(torch.zeros(d))
 
     def forward(self, X):
@@ -144,7 +181,7 @@ class LinearSVD(torch.nn.Module):
         return X + self.bias
 
     def log_abs_det_jacobian(self, z, z_next):
-        ladj = torch.sum(torch.log(self.D.abs()))
+        ladj = torch.log(torch.prod(self.D).abs())
         return torch.empty(z.size(0), device=z.device).fill_(ladj)
 
 
@@ -202,6 +239,12 @@ class NormalizingFlowDensity(nn.Module):
             self.transforms = nn.ModuleList()
             for i in range(flow_length):
                 self.transforms.append(LinearSVD(dim))
+                if i != (flow_length - 1):
+                    self.transforms.append(NonLinearity("elu"))
+        elif self.flow_type == "svd_mat_exp":
+            self.transforms = nn.ModuleList()
+            for i in range(flow_length):
+                self.transforms.append(LinearSVD(dim, orthogonal_param="mat_exp"))
                 if i != (flow_length - 1):
                     self.transforms.append(NonLinearity("elu"))
         else:

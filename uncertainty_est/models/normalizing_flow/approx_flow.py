@@ -66,7 +66,8 @@ class ApproxNormalizingFlow(NormalizingFlow):
             ).log()
             self.log("val/log_norm_constant", log_Z)
 
-        super().validation_epoch_end(outputs)
+        if self.toy_dataset_dim == 2:
+            super().validation_epoch_end(outputs)
 
     def test_step(self, batch, batch_idx):
         if self.is_toy_dataset:
