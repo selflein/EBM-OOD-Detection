@@ -1,8 +1,9 @@
 from collections import defaultdict
 
 import torch
-from tqdm import tqdm
+import numpy as np
 from torch import nn
+from tqdm import tqdm
 import pytorch_lightning as pl
 import torch.nn.functional as F
 from torch import distributions
@@ -128,11 +129,17 @@ class VAE(OODDetectionModel):
         self.eval()
         torch.set_grad_enabled(False)
         errs = []
+        encoder_error = []
         for x, _ in tqdm(loader):
             x = x.to(self.device)
             rec_err = self.compute_errors(x)[0]
             errs.append(rec_err)
 
+            enc = self.encoder(x)
+            mu = self.mu_out(enc)
+            encoder_error.append(to_np(torch.linalg.norm(mu, 2, dim=-1)))
+
         ood_metrics = {}
         ood_metrics["Reconstruction error"] = -to_np(torch.cat(errs))
+        ood_metrics["Encoder errors"] = -np.concatenate(encoder_error)
         return ood_metrics
