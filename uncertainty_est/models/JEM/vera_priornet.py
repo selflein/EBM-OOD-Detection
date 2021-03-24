@@ -128,9 +128,10 @@ class VERAPriorNet(VERA):
     def ood_detect(self, loader):
         self.eval()
         torch.set_grad_enabled(False)
+        self.model.to(torch.float64)
         logits = []
         for x, _ in tqdm(loader):
-            x = x.to(self.device)
+            x = x.to(self.device).double()
             logits.append(self(x).cpu())
         logits = torch.cat(logits)
         scores = logits.exp().sum(1)

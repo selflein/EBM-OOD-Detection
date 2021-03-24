@@ -1,5 +1,5 @@
 trainer_config:
-  max_epochs: 200
+  max_epochs: 20
   gpus: 1
   terminate_on_nan: True
 
@@ -46,7 +46,7 @@ model_config:
   generator_arch_name: resnetgenerator
   generator_arch_config:
     unit_interval: False
-    feats: 256
+    feats: 128
     out_channels: 3
 
   generator_config:
@@ -66,10 +66,10 @@ model_config:
   no_g_batch_norm: False
   batch_size: 32
   lr_decay: 0.3
-  lr_decay_epochs: [150, 175]
+  lr_decay_epochs: [10, 15]
   vis_every: -1
   alpha_fix: True
   concentration: 1.0
   target_concentration:
-  entropy_reg: 0.01
+  entropy_reg: 0.0001
   reverse_kl: True
