@@ -31,6 +31,7 @@ parser.add_argument("--checkpoint", type=str)
 parser.add_argument("--dataset", type=str)
 parser.add_argument("--ood_dataset", type=str, action="append")
 parser.add_argument("--model", type=str)
+parser.add_argument("--no-eval-classification", action="store_true")
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -51,34 +52,32 @@ if __name__ == "__main__":
 
     id_test_loader = get_dataloader(args.dataset, "train", 128, data_shape=(32, 32, 1))
 
-    import pdb
+    if not args.no_eval_classification:
+        y, logits = model.get_gt_preds(id_test_loader)
 
-    pdb.set_trace()
-    y, logits = model.get_gt_preds(id_test_loader)
+        # Compute accuracy
+        probs = torch.softmax(logits, dim=1)
+        acc = accuracy(y, probs)
+        logger.info(f"Accuracy: {acc * 100.:.02f}")
 
-    # Compute accuracy
-    probs = torch.softmax(logits, dim=1)
-    acc = accuracy(y, probs)
-    logger.info(f"Accuracy: {acc * 100.:.02f}")
+        # Compute calibration
+        y_np, probs_np = to_np(y), to_np(probs)
+        ece, mce = classification_calibration(y_np, probs_np)
+        brier_score = brier_score(y_np, probs_np)
+        uncertainty, resolution, reliability = brier_decomposition(y_np, probs_np)
 
-    # Compute calibration
-    y_np, probs_np = to_np(y), to_np(probs)
-    ece, mce = classification_calibration(y_np, probs_np)
-    brier_score = brier_score(y_np, probs_np)
-    uncertainty, resolution, reliability = brier_decomposition(y_np, probs_np)
+        fig, ax = plt.subplots(figsize=(10, 10))
+        draw_reliability_graph(y_np, probs_np, 10, ax=ax)
+        fig.savefig(output_folder / "calibration.png", dpi=200)
 
-    fig, ax = plt.subplots(figsize=(10, 10))
-    draw_reliability_graph(y_np, probs_np, 10, ax=ax)
-    fig.savefig(output_folder / "calibration.png", dpi=200)
-
-    logger.info(f"ECE: {ece * 100:.02f}")
-    logger.info(f"Brier: {brier_score * 100:.02f}")
-    logger.info(f"Brier uncertainty: {uncertainty * 100:.02f}")
-    logger.info(f"Brier resolution: {resolution * 100:.02f}")
-    logger.info(f"Brier reliability: {reliability * 100:.02f}")
-    logger.info(
-        f"Brier (via decomposition): {(reliability - resolution + uncertainty) * 100:.02f}"
-    )
+        logger.info(f"ECE: {ece * 100:.02f}")
+        logger.info(f"Brier: {brier_score * 100:.02f}")
+        logger.info(f"Brier uncertainty: {uncertainty * 100:.02f}")
+        logger.info(f"Brier resolution: {resolution * 100:.02f}")
+        logger.info(f"Brier reliability: {reliability * 100:.02f}")
+        logger.info(
+            f"Brier (via decomposition): {(reliability - resolution + uncertainty) * 100:.02f}"
+        )
 
     # Compute ID OOD scores
     id_scores_dict = model.ood_detect(id_test_loader)

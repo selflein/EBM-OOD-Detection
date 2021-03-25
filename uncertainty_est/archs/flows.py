@@ -116,7 +116,7 @@ class Orthogonal(nn.Module):
         if self.strategy == "fast":
             X = HouseProd.apply(X, torch.flip(self.U, dims=[0]))
         elif self.strategy == "sequential":
-            X = sequential_mult(torch.flip(self.U, dims=[0]), X.t()).t()
+            X = sequential_inv_mult(self.U, X.t()).t()
         else:
             raise NotImplementedError(
                 "The only implemented strategies are 'fast' and 'sequential'. "
