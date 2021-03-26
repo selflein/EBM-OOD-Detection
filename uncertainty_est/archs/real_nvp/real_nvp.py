@@ -61,7 +61,7 @@ class RealNVP(nn.Module):
 
         self.flows = _RealNVP(0, num_scales, in_channels, mid_channels, num_blocks)
 
-    def forward(self, x, reverse=False):
+    def forward(self, x, reverse=False, **kwargs):
         sldj = None
         if not reverse:
             # Expect inputs in [0, 1]
@@ -115,6 +115,9 @@ class RealNVP(nn.Module):
         )
         ll = prior_ll + sldj
         return ll
+
+    def inverse(self, z, **kwargs):
+        return self.forward(z, reverse=True)
 
 
 class _RealNVP(nn.Module):
