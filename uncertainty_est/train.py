@@ -11,7 +11,6 @@ from pathlib import Path
 from datetime import datetime
 
 import yaml
-import torch
 import seml
 from sacred import Experiment
 import pytorch_lightning as pl

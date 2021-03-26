@@ -4,6 +4,8 @@ import torch
 import numpy as np
 from torch import nn
 
+from uncertainty_est.utils.utils import sum_except_batch, split_leading_dim
+
 
 def product(x):
     try:
@@ -13,18 +15,6 @@ def product(x):
         return prod
     except:
         return x
-
-
-def sum_except_batch(x, num_batch_dims=1):
-    """Sums all elements of `x` except for the first `num_batch_dims` dimensions."""
-    reduce_dims = list(range(num_batch_dims, x.ndimension()))
-    return torch.sum(x, dim=reduce_dims)
-
-
-def split_leading_dim(x, shape):
-    """Reshapes the leading dim of `x` to have the given shape."""
-    new_shape = torch.Size(shape) + x.shape[1:]
-    return torch.reshape(x, new_shape)
 
 
 class StandardNormal:

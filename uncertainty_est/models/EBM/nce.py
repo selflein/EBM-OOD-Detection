@@ -9,7 +9,11 @@ import matplotlib.pyplot as plt
 
 from uncertainty_est.archs.arch_factory import get_arch
 from uncertainty_est.models.ood_detection_model import OODDetectionModel
-from uncertainty_est.utils.utils import to_np, estimate_normalizing_constant
+from uncertainty_est.utils.utils import (
+    to_np,
+    estimate_normalizing_constant,
+    sum_except_batch,
+)
 
 
 class NoiseContrastiveEstimation(OODDetectionModel):
@@ -40,7 +44,14 @@ class NoiseContrastiveEstimation(OODDetectionModel):
             raise NotImplementedError(
                 f"Requested noise distribution {noise_distribution} not implemented."
             )
-        self.noise_dist = noise_dist(**noise_distribution_kwargs)
+
+        self.dist_parameters = torch.nn.ParameterDict(
+            {
+                k: torch.nn.Parameter(torch.tensor(v).float(), requires_grad=False)
+                for k, v in noise_distribution_kwargs.items()
+            }
+        )
+        self.noise_dist = noise_dist(**self.dist_parameters)
 
     def forward(self, x):
         return self.model(x)
@@ -48,15 +59,15 @@ class NoiseContrastiveEstimation(OODDetectionModel):
     def training_step(self, batch, batch_idx):
         x, _ = batch
 
-        noise = self.noise_dist.sample(x.shape)
+        noise = self.noise_dist.sample(x.shape).to(self.device)
         inp = torch.cat((x, noise))
 
         log_p_model = self.model(inp).squeeze()
-        log_p_noise = self.noise_dist.log_prob(inp)
+        log_p_noise = sum_except_batch(self.noise_dist.log_prob(inp))
 
         loss = F.binary_cross_entropy_with_logits(
             log_p_model - log_p_noise,
-            torch.cat(torch.ones(len(x)), torch.zeros(len(x))),
+            torch.cat((torch.ones(len(x)), torch.zeros(len(x)))).to(self.device),
         )
 
         self.log("train/loss", loss)
@@ -109,6 +120,7 @@ class NoiseContrastiveEstimation(OODDetectionModel):
                     dtype=torch.float32,
                 )
             )
+            self.log("log_Z", log_Z)
 
             logits = torch.cat(logits, 0)
             log_px = logits.logsumexp(1) - log_Z
