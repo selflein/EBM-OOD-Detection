@@ -1,0 +1,31 @@
+trainer_config:
+  max_epochs: 500
+  gpus: "0"
+
+checkpoint_config:
+  monitor:
+  save_last: True
+
+earlystop_config:
+
+dataset: Gaussian2D
+ood_dataset:
+seed: 1
+batch_size: 128
+data_shape: [2]
+
+model_name: NCEPriorNet
+model_config:
+  arch_name: fc
+  arch_config:
+    inp_dim: 2
+    num_classes: 3
+  learning_rate: 0.0001
+  momentum: 0.9
+  weight_decay: 0.0005
+  noise_distribution: uniform
+  noise_distribution_kwargs:
+    low: -5
+    high: 5
+  is_toy_dataset: True
+  toy_dataset_dim: 2

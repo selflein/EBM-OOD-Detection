@@ -2,7 +2,7 @@ import torch
 from tqdm import tqdm
 
 from uncertainty_est.models.JEM.vera import VERA
-from uncertainty_est.models.priornet.dpn_losses import dirichlet_kl_divergence
+from uncertainty_est.models.priornet.dpn_losses import UnfixedDirichletKLLoss
 from uncertainty_est.models.priornet.uncertainties import (
     dirichlet_prior_network_uncertainty,
 )
@@ -86,39 +86,14 @@ class VERAPriorNet(VERA):
         self.__dict__.update(locals())
         self.save_hyperparameters()
 
-    def classifier_loss(self, ld_logits, y_l):
-        p_xy = torch.exp(ld_logits)
-        p_x = torch.sum(p_xy, 1)
-
-        # Update prior with evidence
-        alphas = self.concentration + p_xy
-
-        if torch.isnan(alphas).any() or not torch.isfinite(alphas).any():
-            raise ValueError()
-
-        if self.target_concentration is None:
-            target_concentration = p_x + self.concentration
-        else:
-            target_concentration = (
-                torch.empty(len(alphas))
-                .fill_(self.target_concentration)
-                .to(self.device)
-            )
-
-        target_alphas = torch.empty_like(alphas).fill_(self.concentration)
-        target_alphas[torch.arange(len(y_l)), y_l] = target_concentration
-
-        if self.reverse_kl:
-            kl_term = dirichlet_kl_divergence(target_alphas, alphas)
-        else:
-            kl_term = dirichlet_kl_divergence(alphas, target_alphas)
-
-        clf_loss = self.clf_weight * kl_term.mean()
-        clf_loss += (
-            self.entropy_reg * -torch.distributions.Dirichlet(alphas).entropy().mean()
+        self.clf_loss = UnfixedDirichletKLLoss(
+            concentration, target_concentration, entropy_reg, reverse_kl, alpha_fix
         )
-        self.log("train/clf_loss", clf_loss)
-        return clf_loss
+
+    def classifier_loss(self, ld_logits, y_l):
+        loss = self.clf_loss(ld_logits, y_l)
+        self.log("train/clf_loss", loss)
+        return loss
 
     def validation_epoch_end(self, outputs):
         super().validation_epoch_end(outputs)

@@ -84,23 +84,7 @@ class DirichletKLLoss:
         self.reverse = reverse
         self.alpha_fix = alpha_fix
 
-    def __call__(self, logits, labels, reduction="mean"):
-        alphas = torch.exp(logits)
-        if self.alpha_fix:
-            alphas = alphas + 1
-        return self.forward(alphas, labels, reduction=reduction)
-
-    def forward(self, alphas, labels, reduction="mean"):
-        loss = self.compute_loss(alphas, labels)
-
-        if reduction == "mean":
-            return torch.mean(loss)
-        elif reduction == "none":
-            return loss
-        else:
-            raise NotImplementedError
-
-    def compute_loss(self, alphas, labels: Optional[torch.tensor] = None):
+    def __call__(self, logits, labels: Optional[torch.tensor] = None, reduction="mean"):
         """
         :param alphas: The alpha parameter outputs from the model
         :param labels: Optional. The target labels indicating the correct
@@ -111,9 +95,10 @@ class DirichletKLLoss:
         class (if provided), which is set to self.target_concentration
         :return: an array of per example loss
         """
-        # TODO: Need to make sure this actually works right...
-        # todo: so that concentration is either fixed, or on a per-example setup
-        # Create array of target (desired) concentration parameters
+        alphas = torch.exp(logits)
+        if self.alpha_fix:
+            alphas = alphas + 1
+
         target_alphas = torch.ones_like(alphas) * self.concentration
         if labels is not None:
             target_alphas += torch.zeros_like(alphas).scatter_(
@@ -126,6 +111,60 @@ class DirichletKLLoss:
             )
         else:
             loss = dirichlet_kl_divergence(alphas=alphas, target_alphas=target_alphas)
+
+        if reduction == "mean":
+            return torch.mean(loss)
+        elif reduction == "none":
+            return loss
+        else:
+            raise NotImplementedError
+
+
+class UnfixedDirichletKLLoss:
+    def __init__(
+        self,
+        concentration,
+        target_concentration=None,
+        entropy_reg=1e-4,
+        reverse_kl=True,
+        alpha_fix=True,
+    ):
+        self.entropy_reg = entropy_reg
+        self.reverse_kl = reverse_kl
+        self.alpha_fix = alpha_fix
+        self.concentration = concentration
+        self.target_concentration = target_concentration
+
+    def __call__(self, logits, label=None, reduction="mean"):
+        alphas = torch.exp(logits)
+
+        if label is not None:
+            target_alphas = torch.empty_like(alphas, requires_grad=False).fill_(
+                self.concentration
+            )
+
+            if self.target_concentration is None:
+                target_concentration = torch.sum(alphas, 1)
+            else:
+                target_concentration = self.target_concentration
+
+            target_alphas[torch.arange(len(label)), label] = target_concentration
+
+        if self.alpha_fix:
+            output_alphas = alphas + 1
+        else:
+            output_alphas = alphas
+
+        if self.reverse_kl:
+            loss = dirichlet_kl_divergence(target_alphas, output_alphas)
+        else:
+            loss = dirichlet_kl_divergence(output_alphas, target_alphas)
+
+        loss += (
+            self.entropy_reg * -torch.distributions.Dirichlet(output_alphas).entropy()
+        )
+        if reduction == "mean":
+            return loss.mean()
         return loss
 
 

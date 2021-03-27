@@ -56,19 +56,25 @@ class NoiseContrastiveEstimation(OODDetectionModel):
     def forward(self, x):
         return self.model(x)
 
-    def training_step(self, batch, batch_idx):
+    def compute_ebm_loss(self, batch, return_outputs=False):
         x, _ = batch
-
         noise = self.noise_dist.sample(x.shape).to(self.device)
         inp = torch.cat((x, noise))
 
-        log_p_model = self.model(inp).squeeze()
+        logits = self.model(inp)
+        log_p_model = logits.logsumexp(-1)
         log_p_noise = sum_except_batch(self.noise_dist.log_prob(inp))
 
         loss = F.binary_cross_entropy_with_logits(
             log_p_model - log_p_noise,
             torch.cat((torch.ones(len(x)), torch.zeros(len(x)))).to(self.device),
         )
+        if return_outputs:
+            return loss, logits[: len(x)]
+        return loss
+
+    def training_step(self, batch, batch_idx):
+        loss = self.compute_ebm_loss(batch)
 
         self.log("train/loss", loss)
         return loss
