@@ -29,3 +29,9 @@ model_config:
     high: 5
   is_toy_dataset: True
   toy_dataset_dim: 2
+  clf_loss_weight: 100
+  concentration: 1
+  target_concentration:
+  entropy_reg: 0.1
+  reverse_kl: True
+  alpha_fix: True

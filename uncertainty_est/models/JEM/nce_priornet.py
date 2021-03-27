@@ -50,7 +50,6 @@ class NCEPriorNet(NoiseContrastiveEstimation):
 
     def training_step(self, batch, batch_idx):
         _, y = batch
-        torch.autograd.set_detect_anomaly(True)
 
         ebm_loss, logits = self.compute_ebm_loss(batch, return_outputs=True)
         classifier_loss = self.clf_loss(logits, y)
@@ -61,7 +60,12 @@ class NCEPriorNet(NoiseContrastiveEstimation):
         return loss
 
     def validation_step(self, batch, batch_idx):
-        return
+        x, y = batch
+        y_hat = self.model(x)
+
+        acc = (y == y_hat.argmax(1)).float().mean(0)
+        self.log("val/acc", acc)
+        return y_hat
 
     def test_step(self, batch, batch_idx):
         self.to(torch.float32)

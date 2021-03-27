@@ -1,0 +1,54 @@
+trainer_config:
+  max_epochs: 100
+  gpus: 1
+  terminate_on_nan: True
+
+checkpoint_config:
+  monitor: val/acc
+  mode: max
+  save_last: True
+
+earlystop_config:
+  monitor: val/acc
+  mode: max
+  patience: 10
+
+test_ood_datasets:
+  - kmnist
+  - fashionmnist
+  - gaussian_noise
+  - uniform_noise
+
+dataset: mnist
+ood_dataset:
+seed: 1
+batch_size: 32
+data_shape:
+  - 32
+  - 32
+  - &n_channels 1
+
+model_name: NCEPriorNet
+model_config:
+  arch_name: wrn
+  arch_config:
+    depth: 28
+    num_classes: 10
+    widen_factor: 10
+    input_channels: *n_channels
+    dropout: 0.
+    norm: batch
+  learning_rate: 0.01
+  momentum: 0.9
+  weight_decay: 0.0005
+  noise_distribution: uniform
+  noise_distribution_kwargs:
+    low: -1.1
+    high: 1.1
+  is_toy_dataset: False
+  clf_loss_weight: 100
+  concentration: 1
+  target_concentration:
+  entropy_reg: 0.001
+  reverse_kl: True
+  alpha_fix: True
