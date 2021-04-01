@@ -2,6 +2,7 @@
 WideResnet architecture adapted from https://github.com/meliketoy/wide-resnet.pytorch
 """
 
+from urllib.parse import non_hierarchical
 import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
@@ -126,6 +127,7 @@ class WideResNet(nn.Module):
         leak=0.2,
         dropout=0.0,
         strides=(1, 2, 2),
+        bottleneck_dim=None,
     ):
         super(WideResNet, self).__init__()
         self.leak = leak
@@ -133,6 +135,7 @@ class WideResNet(nn.Module):
         self.sum_pool = sum_pool
         self.norm = norm
         self.lrelu = nn.LeakyReLU(leak)
+        self.bottleneck_dim = bottleneck_dim
 
         assert (depth - 4) % 6 == 0, "Wide-resnet depth should be 6n+4"
         n = (depth - 4) // 6
@@ -154,6 +157,17 @@ class WideResNet(nn.Module):
         self.bn1 = get_norm(nStages[3], self.norm)
         self.last_dim = nStages[3]
         self.linear = nn.Linear(nStages[3], num_classes)
+
+        if self.bottleneck_dim is not None:
+            self.bottleneck = nn.Sequential(
+                nn.Linear(nStages[3], nStages[3] // 2),
+                nn.ReLU(True),
+                nn.Linear(nStages[3] // 2, self.bottleneck_dim),
+                nn.ReLU(True),
+                nn.Linear(self.bottleneck_dim, nStages[3] // 2),
+                nn.ReLU(True),
+                nn.Linear(nStages[3] // 2, nStages[3]),
+            )
 
         self.apply(conv_init)
 
@@ -181,10 +195,7 @@ class WideResNet(nn.Module):
 
         return nn.Sequential(*layers)
 
-    def forward(self, x, vx=None):
-        """
-        Forward pass. TODO: purpose of vx?
-        """
+    def encode(self, x, vx=None):
         out = self.conv1(x)
         out = self.layer1(out)
         out = self.layer2(out)
@@ -195,6 +206,17 @@ class WideResNet(nn.Module):
         else:
             out = F.avg_pool2d(out, out.shape[2:])
         out = out.view(out.size(0), -1)
+
+        if self.bottleneck_dim is not None:
+            out = self.bottleneck(out)
+        return out
+
+    def forward(self, x, vx=None):
+        """
+        Forward pass. TODO: purpose of vx?
+        """
+        out = self.encode(x, vx)
+
         return self.linear(out)
 
 

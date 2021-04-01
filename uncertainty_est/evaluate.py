@@ -90,6 +90,7 @@ if __name__ == "__main__":
             "test",
             128,
             data_shape=np.array(id_test_loader.dataset[0][0].shape)[[1, 2, 0]].tolist(),
+            num_workers=4,
         )
         ood_scores_dict = model.ood_detect(ood_loader)
 
@@ -101,14 +102,16 @@ if __name__ == "__main__":
             )
             preds = np.concatenate([ood_scores, id_scores])
 
-            ax = plot_score_hist(
-                id_scores,
-                ood_scores,
-                title="",
-            )
-            ax.figure.savefig(output_folder / f"{ood_ds}_{score_name}.png")
-
-            plt.close()
+            try:
+                ax = plot_score_hist(
+                    id_scores,
+                    ood_scores,
+                    title="",
+                )
+                ax.figure.savefig(output_folder / f"{ood_ds}_{score_name}.png")
+                plt.close()
+            except:
+                pass
 
             auroc = roc_auc_score(labels, preds)
             aupr = average_precision_score(labels, preds)

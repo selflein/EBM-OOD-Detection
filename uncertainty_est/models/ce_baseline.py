@@ -33,7 +33,7 @@ class CEBaseline(OODDetectionModel):
 
     def training_step(self, batch, batch_idx):
         x, y = batch
-        y_hat = self.backbone(x)
+        y_hat = self(x)
 
         loss = F.cross_entropy(y_hat, y)
         self.log("train_loss", loss)
@@ -41,7 +41,7 @@ class CEBaseline(OODDetectionModel):
 
     def validation_step(self, batch, batch_idx):
         x, y = batch
-        y_hat = self.backbone(x)
+        y_hat = self(x)
 
         loss = F.cross_entropy(y_hat, y)
         self.log("val_loss", loss)
@@ -51,7 +51,7 @@ class CEBaseline(OODDetectionModel):
 
     def test_step(self, batch, batch_idx):
         x, y = batch
-        y_hat = self.backbone(x)
+        y_hat = self(x)
 
         acc = (y == y_hat.argmax(1)).float().mean(0).item()
         self.log("test_acc", acc)
@@ -84,4 +84,5 @@ class CEBaseline(OODDetectionModel):
             logits.cpu().numpy(),
         )
         dir_uncert["p(x)"] = logits.logsumexp(1).numpy()
+        dir_uncert["max p(y|x)"] = logits.softmax(1).max(1)[0].numpy()
         return dir_uncert

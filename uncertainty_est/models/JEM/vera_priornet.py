@@ -103,18 +103,16 @@ class VERAPriorNet(VERA):
     def ood_detect(self, loader):
         self.eval()
         torch.set_grad_enabled(False)
-        self.model.to(torch.float64)
         logits = []
         for x, _ in tqdm(loader):
-            x = x.to(self.device).double()
+            x = x.to(self.device)
             logits.append(self(x).cpu())
         logits = torch.cat(logits)
-        scores = logits.exp().sum(1)
+        scores = logits.logsumexp(1)
 
         uncert = {}
         # exp(-E(x)) ~ p(x)
-        uncert["p(x)-epistemic_uncert"] = scores.numpy()
-        uncert["log p(x)"] = scores.log().numpy()
+        uncert["p(x)"] = scores.numpy()
         dirichlet_uncerts = dirichlet_prior_network_uncertainty(
             logits.numpy(), alpha_correction=self.alpha_fix
         )

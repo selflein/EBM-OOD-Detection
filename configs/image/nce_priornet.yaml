@@ -38,7 +38,7 @@ model_config:
     input_channels: *n_channels
     dropout: 0.
     norm: batch
-  learning_rate: 0.01
+  learning_rate: 0.001
   momentum: 0.9
   weight_decay: 0.0005
   noise_distribution: uniform
