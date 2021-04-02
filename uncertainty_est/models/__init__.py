@@ -16,7 +16,7 @@ from uncertainty_est.models.normalizing_flow.iresnet import IResNetFlow
 from .normalizing_flow.real_nvp import RealNVPModel
 from .vae import VAE
 from .EBM.nce import NoiseContrastiveEstimation
-from .EBM.flow_contrastive_nce import FlowContrastiveEstimation
+from .EBM.flow_contrastive_estimation import FlowContrastiveEstimation
 from .JEM.nce_priornet import NCEPriorNet
 
 

@@ -249,7 +249,6 @@ class NormalizingFlowDensity(nn.Module):
                     self.transforms.append(NonLinearity("elu"))
         else:
             raise NotImplementedError
-        print(self)
 
     def forward(self, z):
         sum_log_jacobians = 0
@@ -267,3 +266,8 @@ class NormalizingFlowDensity(nn.Module):
         log_prob_z = tdist.MultivariateNormal(self.mean, self.cov).log_prob(z)
         log_prob_x = log_prob_z + sum_log_jacobians  # [batch_size]
         return log_prob_x
+
+    def sample(self, num):
+        z = tdist.MultivariateNormal(self.mean, self.cov).sample([num])
+        samples, _ = self.forward(z)
+        return samples

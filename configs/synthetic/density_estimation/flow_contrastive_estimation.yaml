@@ -15,7 +15,7 @@ seed: 1
 batch_size: 1024
 data_shape: [2]
 
-model_name: NormalizingFlow
+model_name: FlowCE
 model_config:
   arch_name: fc
   arch_config:
@@ -26,14 +26,13 @@ model_config:
     bias: True
     slope: 0.2
 
-  flow_arch_name: NormalizingFlow
+  flow_arch_name: normalizing_flow
   flow_arch_config:
-    density_type: radial_flow
-    latent_dim: 2
-    n_density: 20
+    flow_type: radial_flow
+    dim: 2
+    flow_length: 20
 
   flow_learning_rate: 0.001
   learning_rate: 0.001
   momentum: 0.9
   weight_decay: 0.0
-  vis_every: 1000

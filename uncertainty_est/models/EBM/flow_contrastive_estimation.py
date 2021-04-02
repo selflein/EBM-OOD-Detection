@@ -47,7 +47,7 @@ class FlowContrastiveEstimation(OODDetectionModel):
 
     def compute_ebm_loss(self, batch, return_outputs=False):
         x, _ = batch
-        noise = self.noise_dist.sample(x.shape).to(self.device)
+        noise = self.noise_dist.sample(len(x)).to(self.device)
         inp = torch.cat((x, noise))
 
         logits = self.model(inp)
@@ -62,7 +62,7 @@ class FlowContrastiveEstimation(OODDetectionModel):
             return loss, logits[: len(x)]
         return loss
 
-    def training_step(self, batch, batch_idx):
+    def training_step(self, batch, batch_idx, optimizer_idx):
         optim_ebm, optim_flow = self.optimizers()
         x, _ = batch
 
