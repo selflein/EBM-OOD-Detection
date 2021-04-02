@@ -16,18 +16,19 @@ from uncertainty_est.utils.utils import (
 )
 
 
-class NoiseContrastiveEstimation(OODDetectionModel):
+class FlowContrastiveEstimation(OODDetectionModel):
     """Implementation of Noise Contrastive Estimation http://proceedings.mlr.press/v9/gutmann10a.html"""
 
     def __init__(
         self,
         arch_name,
         arch_config,
+        flow_arch_name,
+        flow_arch_config,
         learning_rate,
         momentum,
         weight_decay,
-        noise_distribution="uniform",
-        noise_distribution_kwargs={"low": 0, "high": 1},
+        flow_learning_rate,
         is_toy_dataset=False,
         toy_dataset_dim=2,
         test_ood_dataloaders=[],
@@ -37,21 +38,9 @@ class NoiseContrastiveEstimation(OODDetectionModel):
         self.save_hyperparameters()
 
         self.model = get_arch(arch_name, arch_config)
+        self.noise_dist = get_arch(flow_arch_name, flow_arch_config)
 
-        if noise_distribution == "uniform":
-            noise_dist = distributions.Uniform
-        else:
-            raise NotImplementedError(
-                f"Requested noise distribution {noise_distribution} not implemented."
-            )
-
-        self.dist_parameters = torch.nn.ParameterDict(
-            {
-                k: torch.nn.Parameter(torch.tensor(v).float(), requires_grad=False)
-                for k, v in noise_distribution_kwargs.items()
-            }
-        )
-        self.noise_dist = noise_dist(**self.dist_parameters)
+        self.automatic_optimization = False
 
     def forward(self, x):
         return self.model(x)
@@ -74,10 +63,21 @@ class NoiseContrastiveEstimation(OODDetectionModel):
         return loss
 
     def training_step(self, batch, batch_idx):
-        loss = self.compute_ebm_loss(batch)
+        optim_ebm, optim_flow = self.optimizers()
+        x, _ = batch
 
-        self.log("train/loss", loss)
-        return loss
+        optim_ebm.zero_grad()
+        loss = self.compute_ebm_loss(batch)
+        self.manual_backward(loss)
+        optim_ebm.step()
+
+        optim_flow.zero_grad()
+        flow_log_prob = self.noise_dist.log_prob(x)
+        flow_loss = -flow_log_prob.mean()
+        self.manual_backward(flow_loss)
+        optim_flow.step()
+
+        self.log_dict({"train/loss": loss, "train/flow_loss": flow_loss})
 
     def validation_step(self, batch, batch_idx):
         return
@@ -136,13 +136,22 @@ class NoiseContrastiveEstimation(OODDetectionModel):
 
     def configure_optimizers(self):
         optim = torch.optim.AdamW(
-            self.parameters(),
+            self.model.parameters(),
             betas=(self.momentum, 0.999),
             lr=self.learning_rate,
             weight_decay=self.weight_decay,
         )
         scheduler = torch.optim.lr_scheduler.StepLR(optim, step_size=30, gamma=0.5)
-        return [optim], [scheduler]
+
+        optim_flow = torch.optim.AdamW(
+            self.noise_dist.parameters(),
+            betas=(self.momentum, 0.999),
+            lr=self.flow_learning_rate,
+            weight_decay=self.weight_decay,
+        )
+        scheduler_flow = torch.optim.lr_scheduler.StepLR(optim, step_size=30, gamma=0.5)
+
+        return [optim, optim_flow], [scheduler, scheduler_flow]
 
     def ood_detect(self, loader):
         self.eval()

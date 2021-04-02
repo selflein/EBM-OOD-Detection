@@ -2,7 +2,6 @@
 WideResnet architecture adapted from https://github.com/meliketoy/wide-resnet.pytorch
 """
 
-from urllib.parse import non_hierarchical
 import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
