@@ -55,6 +55,8 @@ def estimate_normalizing_constant(
 
 def sum_except_batch(x, num_batch_dims=1):
     """Sums all elements of `x` except for the first `num_batch_dims` dimensions."""
+    if x.ndimension() == 1:
+        return x
     reduce_dims = list(range(num_batch_dims, x.ndimension()))
     return torch.sum(x, dim=reduce_dims)
 

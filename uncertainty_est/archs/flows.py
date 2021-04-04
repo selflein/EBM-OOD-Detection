@@ -2,16 +2,15 @@
 import math
 
 import torch
-from pyro.distributions.transforms.planar import Planar
-from pyro.distributions.transforms.radial import Radial
-from pyro.distributions.transforms import ELUTransform, LeakyReLUTransform
-from pyro.distributions.transforms.affine_autoregressive import (
-    AffineAutoregressive,
-    affine_autoregressive,
-)
-from pyro.distributions import TransformModule
 from torch import nn
 import torch.distributions as tdist
+from pyro.distributions.transforms import (
+    Planar,
+    Radial,
+    affine_autoregressive,
+    affine_coupling,
+)
+from pyro.distributions.transforms import ELUTransform, LeakyReLUTransform
 
 
 class OrthogonalTransform(nn.Module):
@@ -205,7 +204,7 @@ class NonLinearity(nn.Module):
 
 
 class NormalizingFlowDensity(nn.Module):
-    def __init__(self, dim, flow_length, flow_type="planar_flow"):
+    def __init__(self, dim, flow_length, flow_type="planar_flow", **kwargs):
         super(NormalizingFlowDensity, self).__init__()
         self.dim = dim
         self.flow_length = flow_length
@@ -219,12 +218,19 @@ class NormalizingFlowDensity(nn.Module):
         elif self.flow_type == "iaf_flow":
             self.transforms = nn.ModuleList(
                 [
-                    affine_autoregressive(dim, hidden_dims=[128, 128])
+                    affine_autoregressive(dim, hidden_dims=[128, 128], **kwargs)
                     for _ in range(flow_length)
                 ]
             )
         elif self.flow_type == "planar_flow":
             self.transforms = nn.ModuleList([Planar(dim) for _ in range(flow_length)])
+        elif self.flow_type == "affine_coupling":
+            self.transforms = nn.ModuleList(
+                [
+                    affine_coupling(dim, hidden_dims=[128, 128], **kwargs)
+                    for _ in range(flow_length)
+                ]
+            )
         elif self.flow_type == "orthogonal_flow":
             self.transforms = nn.ModuleList(
                 [OrthogonalTransform(dim) for _ in range(flow_length)]
@@ -268,6 +274,13 @@ class NormalizingFlowDensity(nn.Module):
         return log_prob_x
 
     def sample(self, num):
-        z = tdist.MultivariateNormal(self.mean, self.cov).sample([num])
-        samples, _ = self.forward(z)
-        return samples
+        dist = tdist.MultivariateNormal(self.mean, self.cov)
+        z = dist.sample([num])
+        sum_log_jacobians = dist.log_prob(z)
+        for transform in self.transforms[::-1]:
+            z_next = transform.inv(z)
+            sum_log_jacobians = sum_log_jacobians + transform.log_abs_det_jacobian(
+                z_next, z
+            )
+            z = z_next
+        return z, sum_log_jacobians

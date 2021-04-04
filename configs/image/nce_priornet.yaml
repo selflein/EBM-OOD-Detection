@@ -46,7 +46,7 @@ model_config:
     low: -1.1
     high: 1.1
   is_toy_dataset: False
-  clf_loss_weight: 100
+  clf_loss_weight: 1
   concentration: 1
   target_concentration:
   entropy_reg: 0.001

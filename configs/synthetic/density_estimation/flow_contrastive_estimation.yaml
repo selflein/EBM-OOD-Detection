@@ -21,19 +21,19 @@ model_config:
   arch_config:
     inp_dim: 2
     num_classes: 1
-    hidden_dims: [100, 100]
+    hidden_dims: [100, 100, 100, 100, 100]
     batch_norm: False
     bias: True
     slope: 0.2
 
   flow_arch_name: normalizing_flow
   flow_arch_config:
-    flow_type: radial_flow
+    flow_type: affine_coupling
     dim: 2
     flow_length: 20
 
-  flow_learning_rate: 0.001
-  learning_rate: 0.001
+  flow_learning_rate: 0.0001
+  learning_rate: 0.0001
   momentum: 0.9
   weight_decay: 0.0
   is_toy_dataset: True

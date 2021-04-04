@@ -87,7 +87,7 @@ class NoiseContrastiveEstimation(OODDetectionModel):
             interp = torch.linspace(-4, 4, 500)
             x, y = torch.meshgrid(interp, interp)
             data = torch.stack((x.reshape(-1), y.reshape(-1)), 1)
-            p_xy = torch.exp(self(data.to(self.device)))
+            p_xy = torch.exp(self.noise_dist.log_prob(data.to(self.device)))
             px = to_np(p_xy.sum(1))
 
             x, y = to_np(x), to_np(y)

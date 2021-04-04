@@ -34,25 +34,28 @@ class FlowContrastiveEstimation(OODDetectionModel):
         test_ood_dataloaders=[],
     ):
         super().__init__(test_ood_dataloaders)
+        self.automatic_optimization = False
         self.__dict__.update(locals())
         self.save_hyperparameters()
 
         self.model = get_arch(arch_name, arch_config)
         self.noise_dist = get_arch(flow_arch_name, flow_arch_config)
 
-        self.automatic_optimization = False
-
     def forward(self, x):
         return self.model(x)
 
     def compute_ebm_loss(self, batch, return_outputs=False):
         x, _ = batch
-        noise = self.noise_dist.sample(len(x)).to(self.device)
+
+        with torch.no_grad():
+            noise, log_p_samples = self.noise_dist.sample(len(x))
+            log_p_noise = sum_except_batch(self.noise_dist.log_prob(x))
+            log_p_noise = torch.cat((log_p_noise, log_p_samples))
+
         inp = torch.cat((x, noise))
 
         logits = self.model(inp)
         log_p_model = logits.logsumexp(-1)
-        log_p_noise = sum_except_batch(self.noise_dist.log_prob(inp))
 
         loss = F.binary_cross_entropy_with_logits(
             log_p_model - log_p_noise,
@@ -66,18 +69,32 @@ class FlowContrastiveEstimation(OODDetectionModel):
         optim_ebm, optim_flow = self.optimizers()
         x, _ = batch
 
+        # Update EBM
         optim_ebm.zero_grad()
         loss = self.compute_ebm_loss(batch)
         self.manual_backward(loss)
         optim_ebm.step()
 
+        # Update Flow
         optim_flow.zero_grad()
-        flow_log_prob = self.noise_dist.log_prob(x)
-        flow_loss = -flow_log_prob.mean()
-        self.manual_backward(flow_loss)
+        noise, log_p_samples = self.noise_dist.sample(len(x))
+        log_p_noise = sum_except_batch(self.noise_dist.log_prob(x))
+        log_p_noise = torch.cat((log_p_noise, log_p_samples))
+
+        inp = torch.cat((x, noise))
+
+        with torch.no_grad():
+            logits = self.model(inp)
+            log_p_model = logits.logsumexp(-1)
+
+        loss_flow = -F.binary_cross_entropy_with_logits(
+            log_p_model - log_p_noise,
+            torch.cat((torch.ones(len(x)), torch.zeros(len(x)))).to(self.device),
+        )
+        self.manual_backward(loss_flow)
         optim_flow.step()
 
-        self.log_dict({"train/loss": loss, "train/flow_loss": flow_loss})
+        self.log_dict({"train/loss": loss, "train/flow_loss": loss_flow}, prog_bar=True)
 
     def validation_step(self, batch, batch_idx):
         return
