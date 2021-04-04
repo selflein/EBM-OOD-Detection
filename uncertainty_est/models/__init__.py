@@ -1,3 +1,6 @@
+import yaml
+from pathlib import Path
+
 from uncertainty_est.models.JEM.hdge import HDGEModel
 from uncertainty_est.models.JEM.jem import JEM
 from uncertainty_est.models.JEM.jem_priornet import JEMPriorNet
@@ -42,3 +45,18 @@ MODELS = {
     "NCEPriorNet": NCEPriorNet,
     "FlowCE": FlowContrastiveEstimation,
 }
+
+
+def load_model(model_folder: Path, last=False, *args, **kwargs):
+    with (model_folder / "config.yaml").open("r") as f:
+        config = yaml.load(f, Loader=yaml.FullLoader)
+
+    ckpts = [file for file in model_folder.iterdir() if file.suffix == ".ckpt"]
+    ckpts = [ckpt for ckpt in ckpts if not "last" in ckpt.stem == last]
+    assert len(ckpts) > 0
+
+    checkpoint_path = sorted(ckpts)[-1]
+    model = MODELS[config["model_name"]].load_from_checkpoint(
+        checkpoint_path, *args, **kwargs
+    )
+    return model, config

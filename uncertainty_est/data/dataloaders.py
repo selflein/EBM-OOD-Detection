@@ -43,6 +43,8 @@ def get_dataloader(
     ood_dataset=None,
     sigma=0.0,
     num_workers=0,
+    drop_last=None,
+    shuffle=None,
 ):
     train_transform = []
     test_transform = []
@@ -114,7 +116,7 @@ def get_dataloader(
         batch_size=batch_size,
         pin_memory=True,
         num_workers=num_workers,
-        shuffle=split == "train",
-        drop_last=split == "train",
+        shuffle=split == "train" if shuffle is None else shuffle,
+        drop_last=split == "train" if drop_last is None else drop_last,
     )
     return dataloader

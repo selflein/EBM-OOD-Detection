@@ -36,3 +36,5 @@ model_config:
   learning_rate: 0.001
   momentum: 0.9
   weight_decay: 0.0
+  is_toy_dataset: True
+  toy_dataset_dim: 2
