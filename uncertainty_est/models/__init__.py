@@ -48,14 +48,18 @@ MODELS = {
 
 
 def load_model(model_folder: Path, last=False, *args, **kwargs):
-    with (model_folder / "config.yaml").open("r") as f:
-        config = yaml.load(f, Loader=yaml.FullLoader)
-
     ckpts = [file for file in model_folder.iterdir() if file.suffix == ".ckpt"]
     ckpts = [ckpt for ckpt in ckpts if not "last" in ckpt.stem == last]
     assert len(ckpts) > 0
 
     checkpoint_path = sorted(ckpts)[-1]
+    return load_checkpoint(checkpoint_path, *args, **kwargs)
+
+
+def load_checkpoint(checkpoint_path: Path, *args, **kwargs):
+    with (checkpoint_path.parent / "config.yaml").open("r") as f:
+        config = yaml.load(f, Loader=yaml.FullLoader)
+
     model = MODELS[config["model_name"]].load_from_checkpoint(
         checkpoint_path, *args, **kwargs
     )

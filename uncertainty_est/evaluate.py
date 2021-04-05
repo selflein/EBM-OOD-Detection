@@ -5,14 +5,12 @@ sys.path.insert(0, os.getcwd())
 
 import logging
 from pathlib import Path
-from collections import defaultdict
 from argparse import ArgumentParser
 
 import torch
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
-import pytorch_lightning as pl
 import matplotlib.pyplot as plt
 from sklearn.metrics import roc_auc_score, average_precision_score
 from uncertainty_eval.metrics.brier import brier_score, brier_decomposition
@@ -20,39 +18,37 @@ from uncertainty_eval.metrics.calibration_error import classification_calibratio
 from uncertainty_eval.vis import draw_reliability_graph, plot_score_hist
 
 from uncertainty_est.utils.utils import to_np
-from uncertainty_est.utils.dirichlet import dirichlet_prior_network_uncertainty
 from uncertainty_est.data.dataloaders import get_dataloader
 from uncertainty_est.utils.metrics import accuracy
-from uncertainty_est.models import MODELS
+from uncertainty_est.models import load_checkpoint
 
 
 parser = ArgumentParser()
-parser.add_argument("--checkpoint", type=str)
+parser.add_argument("--checkpoint", type=str, action="append")
 parser.add_argument("--dataset", type=str)
 parser.add_argument("--ood_dataset", type=str, action="append")
-parser.add_argument("--model", type=str)
-parser.add_argument("--no-eval-classification", action="store_true")
-
-logger = logging.getLogger()
-logger.setLevel(logging.INFO)
-stdout_handler = logging.StreamHandler(sys.stdout)
-logger.addHandler(stdout_handler)
+parser.add_argument("--eval-classification", action="store_true")
+parser.add_argument("--output_csv", type=str)
 
 
-if __name__ == "__main__":
-    args = parser.parse_args()
-    checkpoint_path = Path(args.checkpoint)
+def eval_model(checkpoint, dataset, ood_datasets, eval_classification=False):
+    checkpoint_path = Path(checkpoint)
     output_folder = checkpoint_path.parent
+    model_name = output_folder.stem
 
-    model = MODELS[args.model].load_from_checkpoint(checkpoint_path)
+    model, config = load_checkpoint(checkpoint_path)
     model.eval()
     model.cuda()
 
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+    stdout_handler = logging.StreamHandler(sys.stdout)
+    logger.addHandler(stdout_handler)
     logger.addHandler(logging.FileHandler(output_folder / "out.log", mode="w"))
 
-    id_test_loader = get_dataloader(args.dataset, "train", 128, data_shape=(32, 32, 1))
+    id_test_loader = get_dataloader(dataset, "test", batch_size=128)
 
-    if not args.no_eval_classification:
+    if eval_classification:
         y, logits = model.get_gt_preds(id_test_loader)
 
         # Compute accuracy
@@ -82,14 +78,15 @@ if __name__ == "__main__":
     # Compute ID OOD scores
     id_scores_dict = model.ood_detect(id_test_loader)
 
+    accum = []
     # Compute OOD detection metrics
-    for ood_ds in args.ood_dataset:
+    for ood_ds in ood_datasets:
         logger.info(f"\n\n{ood_ds}")
         ood_loader = get_dataloader(
             ood_ds,
             "test",
-            128,
-            data_shape=np.array(id_test_loader.dataset[0][0].shape)[[1, 2, 0]].tolist(),
+            data_shape=id_test_loader.dataset.data_shape,
+            batch_size=128,
             num_workers=4,
         )
         ood_scores_dict = model.ood_detect(ood_loader)
@@ -119,3 +116,45 @@ if __name__ == "__main__":
             logger.info(score_name)
             logger.info(f"AUROC: {auroc * 100:.02f}")
             logger.info(f"AUPR: {aupr * 100:.02f}")
+
+            accum.append(
+                (
+                    model_name,
+                    config["model_name"],
+                    dataset,
+                    ood_ds,
+                    score_name,
+                    auroc,
+                    aupr,
+                )
+            )
+
+    return accum
+
+
+if __name__ == "__main__":
+    args = parser.parse_args()
+
+    rows = []
+    for checkpoint in args.checkpoint:
+        rows.extend(
+            eval_model(
+                checkpoint, args.dataset, args.ood_dataset, args.eval_classification
+            )
+        )
+
+    if args.output_csv:
+        ood_df = pd.DataFrame(rows)
+        ood_df.to_csv(
+            args.output_csv,
+            index=False,
+            columns=[
+                "model",
+                "model_type",
+                "id_dataset",
+                "ood_dataset",
+                "score",
+                "AUROC",
+                "AUPR",
+            ],
+        )

@@ -13,9 +13,13 @@ from uncertainty_est.data.datasets import ConcatDataset
 DATA_ROOT = Path("../data")
 
 
-def get_dataset(dataset, data_shape, length=10_000):
+def get_dataset(dataset, data_shape=None, length=10_000):
     try:
         ds_class = DATASETS[dataset]
+
+        if data_shape is None:
+            data_shape = ds_class.data_shape
+
         if dataset == "gaussian_noise":
             m = 127.5 if len(data_shape) == 3 else 0.0
             s = 60.0 if len(data_shape) == 3 else 1.0
@@ -32,14 +36,14 @@ def get_dataset(dataset, data_shape, length=10_000):
             ds = ds_class(DATA_ROOT)
     except KeyError as e:
         raise ValueError(f'Dataset "{dataset}" not supported') from e
-    return ds
+    return ds, data_shape
 
 
 def get_dataloader(
     dataset,
     split,
     batch_size=32,
-    data_shape=(32, 32, 3),
+    data_shape=None,
     ood_dataset=None,
     sigma=0.0,
     num_workers=0,
@@ -53,6 +57,8 @@ def get_dataloader(
     if "_unscaled" in dataset:
         dataset = dataset.replace("_unscaled", "")
         unscaled = True
+
+    ds, data_shape = get_dataset(dataset, data_shape)
 
     if len(data_shape) == 3:
         img_size = data_shape[1]
@@ -96,14 +102,14 @@ def get_dataloader(
     train_transform = tvt.Compose(train_transform)
     test_transform = tvt.Compose(test_transform)
 
-    ds = get_dataset(dataset, data_shape)
-
     if split == "train":
         ds = ds.train(train_transform)
     elif split == "val":
         ds = ds.val(test_transform)
     else:
         ds = ds.test(test_transform)
+
+    setattr(ds, "data_shape", data_shape)
 
     if ood_dataset is not None:
         ood_ds = get_dataset(ood_dataset, data_shape, length=len(ds))
