@@ -31,6 +31,10 @@ parser.add_argument("--eval-classification", action="store_true")
 parser.add_argument("--output_csv", type=str)
 
 
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+
+
 def eval_model(checkpoint, dataset, ood_datasets, eval_classification=False):
     checkpoint_path = Path(checkpoint)
     output_folder = checkpoint_path.parent
@@ -40,8 +44,8 @@ def eval_model(checkpoint, dataset, ood_datasets, eval_classification=False):
     model.eval()
     model.cuda()
 
-    logger = logging.getLogger()
-    logger.setLevel(logging.INFO)
+    # Reset logger handlers
+    logger.handlers = []
     stdout_handler = logging.StreamHandler(sys.stdout)
     logger.addHandler(stdout_handler)
     logger.addHandler(logging.FileHandler(output_folder / "out.log", mode="w"))
@@ -110,12 +114,12 @@ def eval_model(checkpoint, dataset, ood_datasets, eval_classification=False):
             except:
                 pass
 
-            auroc = roc_auc_score(labels, preds)
-            aupr = average_precision_score(labels, preds)
+            auroc = roc_auc_score(labels, preds) * 100.0
+            aupr = average_precision_score(labels, preds) * 100.0
 
             logger.info(score_name)
-            logger.info(f"AUROC: {auroc * 100:.02f}")
-            logger.info(f"AUPR: {aupr * 100:.02f}")
+            logger.info(f"AUROC: {auroc:.02f}")
+            logger.info(f"AUPR: {aupr:.02f}")
 
             accum.append(
                 (
@@ -144,11 +148,9 @@ if __name__ == "__main__":
         )
 
     if args.output_csv:
-        ood_df = pd.DataFrame(rows)
-        ood_df.to_csv(
-            args.output_csv,
-            index=False,
-            columns=[
+        ood_df = pd.DataFrame(
+            rows,
+            columns=(
                 "model",
                 "model_type",
                 "id_dataset",
@@ -156,5 +158,6 @@ if __name__ == "__main__":
                 "score",
                 "AUROC",
                 "AUPR",
-            ],
+            ),
         )
+        ood_df.to_csv(args.output_csv, index=False)
