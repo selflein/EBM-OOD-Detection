@@ -5,16 +5,16 @@ import numpy as np
 from PIL import Image
 from torch.utils.data import DataLoader
 from torchvision import transforms as tvt
-from uncertainty_eval.datasets import DATASETS
+from uncertainty_eval.datasets import get_dataset as ue_get_dataset
 
-from uncertainty_est.data.datasets import ConcatDataset
+from uncertainty_est.data.datasets import ConcatDataset, ConcatIterableDataset
 
 DATA_ROOT = Path("../data")
 
 
 def get_dataset(dataset, data_shape=None, length=10_000):
     try:
-        ds_class = DATASETS[dataset]
+        ds_class = ue_get_dataset(dataset)
 
         if data_shape is None:
             data_shape = ds_class.data_shape
@@ -110,18 +110,27 @@ def get_dataloader(
 
     setattr(ds, "data_shape", data_shape)
 
-    if ood_dataset is not None:
-        ood_ds = get_dataset(ood_dataset, data_shape, length=len(ds))
+    if isinstance(ds, torch.utils.data.IterableDataset):
+        shuffle = False
+    else:
+        shuffle = split == "train" if shuffle is None else shuffle
 
-        ood_train = ood_ds.train(train_transform)
-        ds = ConcatDataset(ds, ood_train)
+    if ood_dataset is not None:
+        if isinstance(ds, torch.utils.data.IterableDataset):
+            ood_ds, _ = get_dataset(ood_dataset, data_shape)
+            ds = ConcatIterableDataset(ds, ood_ds.train(train_transform))
+        else:
+            ood_ds, _ = get_dataset(ood_dataset, data_shape, length=len(ds))
+
+            ood_train = ood_ds.train(train_transform)
+            ds = ConcatDataset(ds, ood_train)
 
     dataloader = DataLoader(
         ds,
         batch_size=batch_size,
         pin_memory=True,
         num_workers=num_workers,
-        shuffle=split == "train" if shuffle is None else shuffle,
+        shuffle=shuffle,
         drop_last=split == "train" if drop_last is None else drop_last,
     )
     return dataloader

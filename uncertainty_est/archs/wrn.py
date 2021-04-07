@@ -127,6 +127,7 @@ class WideResNet(nn.Module):
         dropout=0.0,
         strides=(1, 2, 2),
         bottleneck_dim=None,
+        bottleneck_channels_factor=None,
     ):
         super(WideResNet, self).__init__()
         self.leak = leak
@@ -135,6 +136,7 @@ class WideResNet(nn.Module):
         self.norm = norm
         self.lrelu = nn.LeakyReLU(leak)
         self.bottleneck_dim = bottleneck_dim
+        self.bottleneck_channels_factor = bottleneck_channels_factor
 
         assert (depth - 4) % 6 == 0, "Wide-resnet depth should be 6n+4"
         n = (depth - 4) // 6
@@ -192,6 +194,15 @@ class WideResNet(nn.Module):
                 )
             self.in_planes = planes
 
+        if self.bottleneck_channels_factor is not None:
+            bottleneck_channels = int(self.in_planes * self.bottleneck_channels_factor)
+            layers.extend(
+                [
+                    nn.Conv2d(self.in_planes, bottleneck_channels, kernel_size=1),
+                    nn.Conv2d(bottleneck_channels, self.in_planes, kernel_size=1),
+                ]
+            )
+
         return nn.Sequential(*layers)
 
     def encode(self, x, vx=None):
@@ -223,6 +234,7 @@ if __name__ == "__main__":
     import torch
 
     for strides in [(1, 2, 2), (1, 1, 2), (1, 1, 1)]:
-        wrn = WideResNet(28, 10, strides=strides)
+        wrn = WideResNet(28, 10, strides=strides, bottleneck_channels_factor=0.1)
+        print(wrn)
         out = wrn(torch.zeros(1, 3, 32, 32))
         print(strides, out.shape)

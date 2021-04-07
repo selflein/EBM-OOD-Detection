@@ -1,6 +1,6 @@
 trainer_config:
   max_epochs: 500
-  gpus: "0"
+  gpus: 1
 
 checkpoint_config:
   monitor: val_loss

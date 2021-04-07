@@ -1,4 +1,5 @@
 from collections import defaultdict
+from uncertainty_est.archs.arch_factory import get_arch
 
 import torch
 from tqdm import tqdm
@@ -7,16 +8,14 @@ import matplotlib.pyplot as plt
 import torch.nn.functional as F
 
 from uncertainty_est.utils.utils import to_np
-from uncertainty_est.archs.flows import NormalizingFlowDensity
 from uncertainty_est.models.ood_detection_model import OODDetectionModel
 
 
 class NormalizingFlow(OODDetectionModel):
     def __init__(
         self,
-        density_type,
-        latent_dim,
-        n_density,
+        arch_name,
+        arch_config,
         learning_rate,
         momentum,
         weight_decay,
@@ -27,9 +26,7 @@ class NormalizingFlow(OODDetectionModel):
         self.__dict__.update(locals())
         self.save_hyperparameters()
 
-        self.density_estimation = NormalizingFlowDensity(
-            dim=self.latent_dim, flow_length=n_density, flow_type=self.density_type
-        )
+        self.density_estimation = get_arch(arch_name, arch_config)
 
     def forward(self, x):
         return self.density_estimation(x)
