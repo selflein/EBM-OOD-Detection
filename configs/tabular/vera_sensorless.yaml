@@ -11,21 +11,15 @@ checkpoint_config:
 earlystop_config:
 
 test_ood_datasets:
-  - lsun_embedded
-  - celeb-a_embedded
-  - textures_embedded
-  - svhn_embedded
-  - svhn_unscaled_embedded
-  - gaussian_noise_embedded
-  - uniform_noise_embedded
+  - sensorless-ood
 
-dataset: &dataset cifar10_embedded
+dataset: &dataset sensorless
 # Use second dataset
 ood_dataset: *dataset
 seed: 1
 batch_size: 512
 data_shape:
-  - &data_dim 640
+  - &data_dim 48
 
 model_name: VERA
 model_config:
@@ -52,7 +46,7 @@ model_config:
   generator_type: vera
   generator_arch_name: fc
   generator_config:
-    noise_dim: &noise_dim 32
+    noise_dim: &noise_dim 8
     post_lr: 0.001
     init_post_logsigma: 0.0001
   generator_arch_config:
