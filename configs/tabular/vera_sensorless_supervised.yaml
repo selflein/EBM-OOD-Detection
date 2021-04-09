@@ -11,15 +11,15 @@ checkpoint_config:
 earlystop_config:
 
 test_ood_datasets:
-  - segment-ood
+  - sensorless-ood
 
-dataset: &dataset segment
+dataset: &dataset sensorless
 # Use second dataset
 ood_dataset: *dataset
 seed: 1
 batch_size: 512
 data_shape:
-  - &data_dim 18
+  - &data_dim 48
 
 model_name: VERA
 model_config:
@@ -63,8 +63,8 @@ model_config:
   n_control: 0.0
   pg_control: 0.1
   clf_ent_weight: 0.0
-  ebm_type: p_x
-  clf_weight: 0.0
+  ebm_type: jem
+  clf_weight: 1.0
   warmup_steps: 2500
   no_g_batch_norm: False
   batch_size: 128

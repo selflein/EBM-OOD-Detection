@@ -32,13 +32,13 @@ model_config:
     bias: True
     slope: 0.2
 
-  learning_rate: 0.00001
+  learning_rate: 0.0001
   beta1: 0.0
   beta2: 0.9
   weight_decay: 0.0
   n_classes: 1
   uncond: False
-  gen_learning_rate: 0.000001
+  gen_learning_rate: 0.00001
   ebm_iters: 1
   generator_iters: 1
   entropy_weight: 0.0001

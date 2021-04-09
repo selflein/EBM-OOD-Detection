@@ -63,8 +63,8 @@ model_config:
   n_control: 0.0
   pg_control: 0.1
   clf_ent_weight: 0.0
-  ebm_type: p_x
-  clf_weight: 0.0
+  ebm_type: jem
+  clf_weight: 1.0
   warmup_steps: 2500
   no_g_batch_norm: False
   batch_size: 128
