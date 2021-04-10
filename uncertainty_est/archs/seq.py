@@ -53,6 +53,6 @@ class SequenceGenerativeModel(nn.Module):
     def log_prob(self, x):
         logits = self.forward(x)
         log_prob = torch.gather(
-            F.log_softmax(logits, dim=-1)[:, :-1], 0, x[:, 1:].long().unsqueeze(-1)
+            F.log_softmax(logits, dim=-1)[:, :-1], -1, x[:, 1:].long().unsqueeze(-1)
         ).sum((1, 2))
         return log_prob
