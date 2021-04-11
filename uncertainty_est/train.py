@@ -56,6 +56,7 @@ def run(
     log_dir="logs",
     num_workers=4,
     test_ood_datasets=[],
+    mutation_rate=0.0,
     **kwargs,
 ):
     pl.seed_everything(seed)
@@ -85,6 +86,7 @@ def run(
         ood_dataset=ood_dataset,
         sigma=sigma,
         num_workers=num_workers,
+        mutation_rate=mutation_rate,
     )
     val_loader = get_dataloader(
         dataset,

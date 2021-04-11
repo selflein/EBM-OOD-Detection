@@ -35,20 +35,21 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 
-def eval_model(checkpoint, dataset, ood_datasets, eval_classification=False):
-    checkpoint_path = Path(checkpoint)
-    output_folder = checkpoint_path.parent
-    model_name = output_folder.stem
-
-    model, config = load_checkpoint(checkpoint_path)
-    model.eval()
-    model.cuda()
-
+def eval_model(
+    model,
+    dataset,
+    ood_datasets,
+    eval_classification=False,
+    output_folder=None,
+    model_name="",
+):
     # Reset logger handlers
     logger.handlers = []
     stdout_handler = logging.StreamHandler(sys.stdout)
     logger.addHandler(stdout_handler)
-    logger.addHandler(logging.FileHandler(output_folder / "out.log", mode="w"))
+
+    if output_folder is not None:
+        logger.addHandler(logging.FileHandler(output_folder / "out.log", mode="w"))
 
     id_test_loader = get_dataloader(dataset, "test", batch_size=128)
 
@@ -63,7 +64,7 @@ def eval_model(checkpoint, dataset, ood_datasets, eval_classification=False):
         # Compute calibration
         y_np, probs_np = to_np(y), to_np(probs)
         ece, mce = classification_calibration(y_np, probs_np)
-        brier_score = brier_score(y_np, probs_np)
+        brier = brier_score(y_np, probs_np)
         uncertainty, resolution, reliability = brier_decomposition(y_np, probs_np)
 
         fig, ax = plt.subplots(figsize=(10, 10))
@@ -71,7 +72,7 @@ def eval_model(checkpoint, dataset, ood_datasets, eval_classification=False):
         fig.savefig(output_folder / "calibration.png", dpi=200)
 
         logger.info(f"ECE: {ece * 100:.02f}")
-        logger.info(f"Brier: {brier_score * 100:.02f}")
+        logger.info(f"Brier: {brier * 100:.02f}")
         logger.info(f"Brier uncertainty: {uncertainty * 100:.02f}")
         logger.info(f"Brier resolution: {resolution * 100:.02f}")
         logger.info(f"Brier reliability: {reliability * 100:.02f}")
@@ -103,16 +104,17 @@ def eval_model(checkpoint, dataset, ood_datasets, eval_classification=False):
             )
             preds = np.concatenate([ood_scores, id_scores])
 
-            try:
-                ax = plot_score_hist(
-                    id_scores,
-                    ood_scores,
-                    title="",
-                )
-                ax.figure.savefig(output_folder / f"{ood_ds}_{score_name}.png")
-                plt.close()
-            except:
-                pass
+            if output_folder is not None:
+                try:
+                    ax = plot_score_hist(
+                        id_scores,
+                        ood_scores,
+                        title="",
+                    )
+                    ax.figure.savefig(output_folder / f"{ood_ds}_{score_name}.png")
+                    plt.close()
+                except:
+                    pass
 
             auroc = roc_auc_score(labels, preds) * 100.0
             aupr = average_precision_score(labels, preds) * 100.0
@@ -124,7 +126,7 @@ def eval_model(checkpoint, dataset, ood_datasets, eval_classification=False):
             accum.append(
                 (
                     model_name,
-                    config["model_name"],
+                    type(model),
                     dataset,
                     ood_ds,
                     score_name,
@@ -141,9 +143,22 @@ if __name__ == "__main__":
 
     rows = []
     for checkpoint in args.checkpoint:
+        checkpoint_path = Path(checkpoint)
+        output_folder = checkpoint_path.parent
+        model_name = output_folder.stem
+
+        model, config = load_checkpoint(checkpoint_path)
+        model.eval()
+        model.cuda()
+
         rows.extend(
             eval_model(
-                checkpoint, args.dataset, args.ood_dataset, args.eval_classification
+                model,
+                args.dataset,
+                args.ood_dataset,
+                args.eval_classification,
+                output_folder=output_folder,
+                model_name=model_name,
             )
         )
 

@@ -14,15 +14,9 @@ from uncertainty_est.models.priornet.uncertainties import (
 
 class CEBaseline(OODDetectionModel):
     def __init__(
-        self,
-        arch_name,
-        arch_config,
-        learning_rate,
-        momentum,
-        weight_decay,
-        test_ood_dataloaders=[],
+        self, arch_name, arch_config, learning_rate, momentum, weight_decay, **kwargs
     ):
-        super().__init__()
+        super().__init__(**kwargs)
         self.__dict__.update(locals())
         self.save_hyperparameters()
 

@@ -5,6 +5,7 @@ From https://github.com/wgrathwohl/VERA
 import torch
 import torch.nn as nn
 import torch.distributions as distributions
+import torch.nn.functional as F
 import numpy as np
 
 
@@ -558,3 +559,94 @@ class VERAGenerator(VERAHMCGenerator):
             return g_error_entropy, mgn, c
         else:
             return g_error_entropy, mgn
+
+
+class VERADiscreteGenerator(nn.Module):
+    def __init__(self, g, noise_dim, post_lr=0.001, init_post_logsigma=0.1):
+        super().__init__()
+        self.g = g
+        self.noise_dim = noise_dim
+        self.post_logsigma = nn.Parameter(
+            (
+                torch.ones(
+                    noise_dim,
+                )
+                * init_post_logsigma
+            ).log()
+        )
+        self.post_optimizer = torch.optim.Adam([self.post_logsigma], lr=post_lr)
+
+    def sample(self, n, requires_grad=False):
+        """ sample x, h ~ q(x, h) """
+        h = torch.randn((n, self.noise_dim)).to(next(self.parameters()).device)
+        if requires_grad:
+            h.requires_grad_()
+        x = self.g.sample(h)
+        return x, h
+
+    def logq_joint(self, x, h, return_mu=False):
+        """
+        Join distribution of data and latent.
+        """
+        logph = distributions.Normal(0, 1).log_prob(h).sum(1)
+        logits = self.g(h)
+        px_given_h = distributions.Categorical(logits=logits)
+        logpx_given_h = px_given_h.log_prob(x).sum(-1)
+
+        if return_mu:
+            return logpx_given_h + logph, logits
+        else:
+            return logpx_given_h + logph
+
+    def entropy_obj(
+        self, x, h, num_samples_posterior=20, return_score=False, learn_post_sigma=True
+    ):
+        """
+        Entropy objective using variational approximation with importance sampling.
+        """
+        inf_dist = distributions.Normal(h, self.post_logsigma.detach().exp())
+        h_given_x = inf_dist.sample((num_samples_posterior,))
+        inf_logprob = inf_dist.log_prob(h_given_x).sum(2)
+
+        xr = x[None].repeat(num_samples_posterior, 1, 1)
+        xr = xr.view(x.size(0) * num_samples_posterior, x.size(1))
+
+        logq, logits = self.logq_joint(
+            xr, h_given_x.view(-1, h.size(1)), return_mu=True
+        )
+        logits = logits.view(num_samples_posterior, x.size(0), x.size(1))
+        logq = logq.view(num_samples_posterior, x.size(0))
+
+        w = (logq - inf_logprob).softmax(dim=0)
+
+        q_x_given_h = distributions.Categorical(logits=logits)
+        fvals = q_x_given_h.log_prob(x[None])
+        weighted_fvals = (fvals * w[:, :, None]).sum(0).detach()
+        c = weighted_fvals
+
+        mgn = c.norm(2, 1).mean()
+        g_error_entropy = torch.mul(c, x).mean(0).sum()
+
+        post = distributions.Normal(h.detach(), self.post_logsigma.exp())
+        h_g_post = post.rsample()
+        joint = self.logq_joint(x.detach(), h_g_post)
+        post_ent = post.entropy().sum(1)
+
+        elbo = joint + post_ent
+        post_loss = -elbo.mean()
+
+        if learn_post_sigma:
+            self.post_optimizer.zero_grad()
+            post_loss.backward()
+            self.post_optimizer.step()
+
+        if return_score:
+            return g_error_entropy, mgn, c
+        else:
+            return g_error_entropy, mgn
+
+    def clamp_sigma(self, sigma, sigma_min=0.01):
+        """
+        Sigma clamping used for entropy estimator.
+        """
+        pass

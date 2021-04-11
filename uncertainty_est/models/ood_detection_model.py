@@ -1,11 +1,13 @@
 import abc
+import copy
 import inspect
 from os import path
-from typing import Dict
-import copy
+from typing import Any, Dict
+from collections import defaultdict
 
 import torch
 import numpy as np
+from tqdm import tqdm
 import pytorch_lightning as pl
 import matplotlib.pyplot as plt
 from sklearn.metrics import roc_auc_score, average_precision_score
@@ -18,10 +20,6 @@ class OODDetectionModel(pl.LightningModule):
     def __init__(self, test_ood_dataloaders=[]):
         super().__init__()
         self.test_ood_dataloaders = test_ood_dataloaders
-
-    @abc.abstractmethod
-    def ood_detect(self, loader) -> Dict[str, np.array]:
-        pass
 
     def test_epoch_end(self, *args, **kwargs):
         if len(self.test_ood_dataloaders) < 1:
@@ -88,6 +86,22 @@ class OODDetectionModel(pl.LightningModule):
                 pg["lr"] = lr_scale * self.hparams.learning_rate
 
         optimizer.step(closure=optimizer_closure)
+
+    def ood_detect(self, loader):
+        self.eval()
+        torch.set_grad_enabled(False)
+
+        scores = defaultdict(list)
+        for x, _ in tqdm(loader):
+            out = self.get_ood_scores(x)
+            for k, v in out.items():
+                scores[k].append(v)
+
+        scores = {k: np.concatenate(v) for k, v in scores.items()}
+        return scores
+
+    def get_ood_scores(self, x) -> Dict[str, np.array]:
+        raise NotImplementedError
 
     # TODO: Remove when https://github.com/PyTorchLightning/pytorch-lightning/pull/6056 is merged
     def save_hyperparameters(

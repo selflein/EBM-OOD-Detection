@@ -1,5 +1,3 @@
-from collections import defaultdict
-
 import torch
 from tqdm import tqdm
 import pytorch_lightning as pl
@@ -16,12 +14,6 @@ from uncertainty_est.models.JEM.vera_utils import (
     VERAHMCGenerator,
     set_bn_to_eval,
     set_bn_to_train,
-)
-from uncertainty_est.models.JEM.jem import JEM
-from uncertainty_est.models.JEM.utils import (
-    KHotCrossEntropyLoss,
-    smooth_one_hot,
-    init_random,
 )
 
 

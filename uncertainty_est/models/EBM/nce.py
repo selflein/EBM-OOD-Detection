@@ -40,6 +40,8 @@ class NoiseContrastiveEstimation(OODDetectionModel):
 
         if noise_distribution == "uniform":
             noise_dist = distributions.Uniform
+        if noise_distribution == "gaussian":
+            noise_dist = distributions.Normal
         else:
             raise NotImplementedError(
                 f"Requested noise distribution {noise_distribution} not implemented."

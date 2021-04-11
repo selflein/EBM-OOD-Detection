@@ -48,6 +48,7 @@ def get_dataloader(
     num_workers=0,
     drop_last=None,
     shuffle=None,
+    mutation_rate=0.0,
 ):
     train_transform = []
     test_transform = []
@@ -97,6 +98,21 @@ def get_dataloader(
         noise_transform = lambda x: x + sigma * torch.randn_like(x)
         train_transform.append(noise_transform)
         test_transform.append(noise_transform)
+
+    if mutation_rate > 0.0:
+        if len(data_shape) == 3:
+            mutation_data_shape = (data_shape[2], data_shape[0], data_shape[1])
+        else:
+            mutation_data_shape = data_shape
+
+        def mutation_transform(x):
+            mask = torch.bernoulli(
+                torch.empty(mutation_data_shape).fill_(mutation_rate)
+            )
+            replace = torch.empty(mutation_data_shape).uniform_(-1, 1) * mask
+            return x * mask + replace
+
+        train_transform.append(mutation_transform)
 
     train_transform = tvt.Compose(train_transform)
     test_transform = tvt.Compose(test_transform)
