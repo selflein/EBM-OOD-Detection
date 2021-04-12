@@ -1,8 +1,7 @@
-from collections import defaultdict
+from typing import Dict
 
 import torch
 from tqdm import tqdm
-import pytorch_lightning as pl
 import torch.nn.functional as F
 
 from uncertainty_est.archs.arch_factory import get_arch
@@ -71,11 +70,10 @@ class CEBaseline(OODDetectionModel):
             preds.append(y_hat)
         return torch.cat(gt), torch.cat(preds)
 
-    def ood_detect(self, loader):
-        _, logits = self.get_gt_preds(loader)
-
+    def get_ood_scores(self, x):
+        logits = self(x).cpu()
         dir_uncert = dirichlet_prior_network_uncertainty(
-            logits.cpu().numpy(),
+            logits.numpy(),
         )
         dir_uncert["p(x)"] = logits.logsumexp(1).numpy()
         dir_uncert["max p(y|x)"] = logits.softmax(1).max(1)[0].numpy()

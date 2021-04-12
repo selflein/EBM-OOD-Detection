@@ -1,7 +1,7 @@
 trainer_config:
   max_steps: 100_000
   max_epochs: 100_000
-  gpus: "0"
+  gpus: 1
 
 checkpoint_config:
   monitor: val/loss
@@ -22,10 +22,10 @@ model_name: NormalizingFlow
 model_config:
   arch_name: normalizing_flow
   arch_config:
-    density_type: radial_flow
-    latent_dim: 2
-    n_density: 20
+    flow_type: radial_flow
+    dim: 2
+    flow_length: 20
   learning_rate: 0.001
   momentum: 0.9
   weight_decay: 0.0
-  vis_every: 1000
+  vis_every: 10

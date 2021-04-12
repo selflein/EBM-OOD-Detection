@@ -93,6 +93,7 @@ class OODDetectionModel(pl.LightningModule):
 
         scores = defaultdict(list)
         for x, _ in tqdm(loader):
+            x = x.to(self.device)
             out = self.get_ood_scores(x)
             for k, v in out.items():
                 scores[k].append(v)
