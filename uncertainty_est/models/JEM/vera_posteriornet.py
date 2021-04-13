@@ -88,32 +88,17 @@ class VERAPosteriorNet(VERA):
         self.__dict__.update(locals())
         self.save_hyperparameters()
 
-    def setup(self, stage):
-        train_loader = self.train_dataloader()
-
-        class_counts = torch.zeros(self.n_classes)
-        for (_, y), (_, _) in tqdm(train_loader, desc="Computing class counts"):
-            class_counts[y] += 1
-
-        self.class_counts = class_counts
-        self.p_y = class_counts / len(train_loader.dataset)
-
     def classifier_loss(self, ld_logits, y_l):
         alpha = torch.exp(ld_logits)  # / self.p_y.unsqueeze(0).to(self.device)
         # Multiply by class counts for Bayesian update
         # alpha = self.class_counts.unsqueeze(0).to(self.device) * alpha
 
-        if self.alpha_fix:
-            alpha = alpha + 1
-
         alpha_0 = alpha.sum(1)
         UCE_loss = torch.mean(
             torch.digamma(alpha_0) - torch.digamma(alpha[torch.arange(len(y_l)), y_l])
         )
-        self.log("train/uce_loss", UCE_loss)
 
         entropy_reg = self.entropy_reg * -Dirichlet(alpha).entropy().mean()
-        self.log("train/entropy_reg", entropy_reg)
 
         return UCE_loss + entropy_reg
 

@@ -173,18 +173,17 @@ class VERA(OODDetectionModel):
 
     def validation_step(self, batch, batch_idx):
         (x_l, y_l), (x_d, _) = batch
-        logits = self(x_l)
+        ld, ld_logits = self.model(x_l, return_logits=True)
 
-        log_px = self.model(x_l).mean()
-        self.log("val/loss", -log_px)
+        self.log("val/loss", -ld)
 
         # Performing density estimation only
-        if logits.shape[1] < 2:
+        if ld_logits.shape[1] < 2:
             return
 
-        acc = (y_l == logits.argmax(1)).float().mean(0).item()
+        acc = (y_l == ld_logits.argmax(1)).float().mean(0).item()
         self.log("val/acc", acc)
-        return logits
+        return ld_logits
 
     def validation_epoch_end(self, outputs):
         if self.vis_every > 0 and self.current_epoch % self.vis_every == 0:

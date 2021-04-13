@@ -29,7 +29,7 @@ parser.add_argument("--dataset", type=str)
 parser.add_argument("--ood_dataset", type=str, action="append")
 parser.add_argument("--eval-classification", action="store_true")
 parser.add_argument("--output_csv", type=str)
-parser.add_argument("--max-eval", type=int, default=None)
+parser.add_argument("--max-eval", type=int, default=-1)
 
 
 logger = logging.getLogger()

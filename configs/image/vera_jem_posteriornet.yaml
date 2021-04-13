@@ -1,33 +1,42 @@
 trainer_config:
-  max_epochs: 200
-  gpus: "0"
+  max_epochs: 40
+  gpus: 1
   terminate_on_nan: True
 
 checkpoint_config:
-  monitor: val_acc
+  monitor: val/acc
   mode: max
   save_last: True
 
 earlystop_config:
-  monitor: val_acc
+  monitor: val/acc
   mode: max
   patience: 10
 
-dataset: cifar10
+test_ood_datasets:
+  - fashionmnist
+  - kmnist
+  - gaussian_noise
+  - uniform_noise
+
+dataset: mnist
 # Use second dataset
-ood_dataset: cifar10
+ood_dataset: mnist
 seed: 1
 batch_size: 32
-data_shape: [32, 32, 3]
+data_shape:
+  - 32
+  - 32
+  - &num_channels 1
 
 model_name: VERAPosteriorNet
 model_config:
   arch_name: wrn
   arch_config:
-    depth: 28
+    depth: 4
     num_classes: 10
     widen_factor: 10
-    input_channels: 3
+    input_channels: *num_channels
     dropout: 0.3
     norm: batch
 
@@ -46,27 +55,27 @@ model_config:
   generator_arch_name: resnetgenerator
   generator_arch_config:
     unit_interval: False
-    feats: 256
-    out_channels: 3
+    feats: 128
+    out_channels: *num_channels
 
   generator_config:
     noise_dim: 128
-    post_lr: 0.01
-    init_post_logsigma: 0.01
+    post_lr: 0.00003
+    init_post_logsigma: 0.1
 
   min_sigma: 0.01
   max_sigma: 0.3
   p_control: 0.0
   n_control: 0.0
-  pg_control: 1.0
+  pg_control: 0.1
   clf_ent_weight: 0.0
   ebm_type: jem
-  clf_weight: 1.0
+  clf_weight: 100.0
   warmup_steps: 2500
   no_g_batch_norm: False
   batch_size: 32
   lr_decay: 0.3
-  lr_decay_epochs: [150, 175]
+  lr_decay_epochs: [30, 35]
   vis_every: -1
   alpha_fix: True
-  entropy_reg: 0.1
+  entropy_reg: 0.0001

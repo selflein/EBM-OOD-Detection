@@ -54,11 +54,15 @@ def get_dataloader(
     test_transform = []
 
     unscaled = False
-    if "_unscaled" in dataset:
-        dataset = dataset.replace("_unscaled", "")
-        unscaled = True
-
-    ds, data_shape = get_dataset(dataset, data_shape)
+    try:
+        ds, data_shape = get_dataset(dataset, data_shape)
+    except ValueError as e:
+        if "_unscaled" in dataset:
+            dataset = dataset.replace("_unscaled", "")
+            unscaled = True
+            ds, data_shape = get_dataset(dataset, data_shape)
+        else:
+            raise e
 
     if len(data_shape) == 3:
         img_size = data_shape[1]

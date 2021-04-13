@@ -50,15 +50,15 @@ model_config:
     bias: False
   generator_config:
     noise_dim: 2
-    post_lr: 0.001
-    init_post_logsigma: 0.001
+    post_lr: 0.00003
+    init_post_logsigma: 0.1
 
   min_sigma: 0.01
   max_sigma: 0.3
-  p_control: 0.01
-  n_control: 0.01
+  p_control: 0.0
+  n_control: 0.0
   pg_control: 1.0
-  clf_ent_weight: 0.0
+  clf_ent_weight: 0.1
   ebm_type: jem
   clf_weight: 1.0
   warmup_steps: 2500

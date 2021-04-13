@@ -59,8 +59,8 @@ model_config:
   generator_arch_name: fc
   generator_config:
     noise_dim: &noise_dim 32
-    post_lr: 0.001
-    init_post_logsigma: 0.0001
+    post_lr: 0.00003
+    init_post_logsigma: 0.1
   generator_arch_config:
     inp_dim: *noise_dim
     num_classes: *data_dim

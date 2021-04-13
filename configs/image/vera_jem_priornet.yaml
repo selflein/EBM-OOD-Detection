@@ -51,8 +51,8 @@ model_config:
 
   generator_config:
     noise_dim: 128
-    post_lr: 0.01
-    init_post_logsigma: 0.01
+    post_lr: 0.00003
+    init_post_logsigma: 0.1
 
   min_sigma: 0.01
   max_sigma: 0.3

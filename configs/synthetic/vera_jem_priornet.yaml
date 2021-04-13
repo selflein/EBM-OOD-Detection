@@ -49,8 +49,8 @@ model_config:
     bias: False
   generator_config:
     noise_dim: 2
-    post_lr: 0.001
-    init_post_logsigma: 0.001
+    post_lr: 0.00003
+    init_post_logsigma: 0.1
 
   min_sigma: 0.01
   max_sigma: 0.3
