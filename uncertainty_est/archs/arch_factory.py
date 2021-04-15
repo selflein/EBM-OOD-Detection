@@ -7,7 +7,11 @@ from uncertainty_est.archs.invertible_residual_nets.net import iResNetFC
 from uncertainty_est.archs.invertible_residual_nets.conv_net import iResNetConv
 from uncertainty_est.archs.flows import NormalizingFlowDensity
 from uncertainty_est.archs.real_nvp.real_nvp import RealNVP
-from uncertainty_est.archs.seq import SequenceClassifier, SequenceGenerativeModel
+from uncertainty_est.archs.seq import (
+    SequenceClassifier,
+    SequenceGenerativeModel,
+    SequenceGenerator,
+)
 
 
 def get_arch(name, config_dict: dict):
@@ -27,7 +31,9 @@ def get_arch(name, config_dict: dict):
         return NormalizingFlowDensity(**config_dict)
     elif name == "seq_classifier":
         return SequenceClassifier(**config_dict)
-    elif name == "seq_generator":
+    elif name == "seq_generative_model":
         return SequenceGenerativeModel(**config_dict)
+    elif name == "seq_generator":
+        return SequenceGenerator(**config_dict)
     else:
         raise ValueError(f'Architecture "{name}" not implemented!')

@@ -1,7 +1,6 @@
 import torch
 from tqdm import tqdm
-import pytorch_lightning as pl
-import torch.nn.functional as tf
+import torch.nn.functional as F
 from torch import distributions
 import matplotlib.pyplot as plt
 
@@ -10,6 +9,7 @@ from uncertainty_est.models.JEM.model import EBM, ConditionalEBM
 from uncertainty_est.models.ood_detection_model import OODDetectionModel
 from uncertainty_est.utils.utils import to_np, estimate_normalizing_constant
 from uncertainty_est.models.JEM.vera_utils import (
+    VERADiscreteGenerator,
     VERAGenerator,
     VERAHMCGenerator,
     set_bn_to_eval,
@@ -71,6 +71,8 @@ class VERA(OODDetectionModel):
             self.generator = VERAHMCGenerator(g, **generator_config)
         elif generator_type == "vera":
             self.generator = VERAGenerator(g, **generator_config)
+        elif generator_type == "vera_discrete":
+            self.generator = VERADiscreteGenerator(g, **generator_config)
         else:
             raise NotImplementedError(f"Generator '{generator_type}' not implemented!")
 
@@ -134,20 +136,22 @@ class VERA(OODDetectionModel):
         else:
             raise NotImplementedError(f"EBM type '{self.ebm_type}' not implemented!")
 
-        grad_ld = (
-            torch.autograd.grad(ld.mean(), x_l, create_graph=True)[0]
-            .flatten(start_dim=1)
-            .norm(2, 1)
-        )
-
         logp_obj = (ld - lg_detach).mean()
         e_loss = (
             -logp_obj
             + self.p_control * (ld ** 2).mean()
             + self.n_control * (lg_detach ** 2).mean()
-            + self.pg_control * (grad_ld ** 2.0 / 2.0).mean()
             + self.clf_ent_weight * unsup_ent.mean()
         )
+
+        if self.pg_control > 0:
+            grad_ld = (
+                torch.autograd.grad(ld.mean(), x_l, create_graph=True)[0]
+                .flatten(start_dim=1)
+                .norm(2, 1)
+            )
+            e_loss += self.pg_control * (grad_ld ** 2.0 / 2.0).mean()
+
         self.log("train/e_loss", e_loss.item())
 
         if self.clf_weight > 0:

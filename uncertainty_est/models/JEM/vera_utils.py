@@ -562,7 +562,9 @@ class VERAGenerator(VERAHMCGenerator):
 
 
 class VERADiscreteGenerator(nn.Module):
-    def __init__(self, g, noise_dim, post_lr=0.001, init_post_logsigma=0.1):
+    def __init__(
+        self, g, noise_dim, post_lr=0.001, init_post_logsigma=0.1, temp=0.1, eps=1e-4
+    ):
         super().__init__()
         self.g = g
         self.noise_dim = noise_dim
@@ -574,6 +576,8 @@ class VERADiscreteGenerator(nn.Module):
                 * init_post_logsigma
             ).log()
         )
+        self.temp = temp
+        self.eps = eps
         self.post_optimizer = torch.optim.Adam([self.post_logsigma], lr=post_lr)
 
     def sample(self, n, requires_grad=False):
@@ -590,13 +594,15 @@ class VERADiscreteGenerator(nn.Module):
         """
         logph = distributions.Normal(0, 1).log_prob(h).sum(1)
         logits = self.g(h)
-        px_given_h = distributions.Categorical(logits=logits)
-        logpx_given_h = px_given_h.log_prob(x).sum(-1)
+        log_px_given_h = F.log_softmax(logits, -1)
+        log_px_given_h = torch.gather(
+            log_px_given_h, -1, torch.argmax(x, -1).unsqueeze(-1)
+        ).sum((1, 2))
 
         if return_mu:
-            return logpx_given_h + logph, logits
+            return log_px_given_h + logph, logits
         else:
-            return logpx_given_h + logph
+            return log_px_given_h + logph
 
     def entropy_obj(
         self, x, h, num_samples_posterior=20, return_score=False, learn_post_sigma=True
@@ -608,20 +614,24 @@ class VERADiscreteGenerator(nn.Module):
         h_given_x = inf_dist.sample((num_samples_posterior,))
         inf_logprob = inf_dist.log_prob(h_given_x).sum(2)
 
-        xr = x[None].repeat(num_samples_posterior, 1, 1)
-        xr = xr.view(x.size(0) * num_samples_posterior, x.size(1))
+        xr = x[None].repeat(num_samples_posterior, 1, 1, 1)
+        xr = xr.view(x.size(0) * num_samples_posterior, x.size(1), x.size(2))
 
         logq, logits = self.logq_joint(
             xr, h_given_x.view(-1, h.size(1)), return_mu=True
         )
-        logits = logits.view(num_samples_posterior, x.size(0), x.size(1))
+        logits = logits.view(num_samples_posterior, x.size(0), x.size(1), x.size(2))
         logq = logq.view(num_samples_posterior, x.size(0))
 
         w = (logq - inf_logprob).softmax(dim=0)
 
-        q_x_given_h = distributions.Categorical(logits=logits)
-        fvals = q_x_given_h.log_prob(x[None])
-        weighted_fvals = (fvals * w[:, :, None]).sum(0).detach()
+        # Grad_x q(x|z) = Grad_x Cat(x; f(z))
+        # Use Gumbel Softmax Distribution as smooth approximation
+        x_eps = x[None] + self.eps
+        first_term = 1 / (logits.exp() / (x_eps ** self.temp)).sum(-1, keepdim=True)
+        fvals = first_term - logits.exp() / (x_eps ** 2) - (self.temp + 1) / x_eps
+
+        weighted_fvals = (fvals * w[:, :, None, None]).sum(0).detach()
         c = weighted_fvals
 
         mgn = c.norm(2, 1).mean()

@@ -43,7 +43,7 @@ model_config:
   learning_rate: 0.00003
   beta1: 0.0
   beta2: 0.9
-  weight_decay: 0.0
+  weight_decay: 0.01
   n_classes: 10
   uncond: False
   gen_learning_rate: 0.00006
