@@ -2,40 +2,25 @@ import torch
 import torch.nn as nn
 
 
-class EBM(nn.Module):
-    def __init__(self, model, n_classes):
-        super(EBM, self).__init__()
+class JEM(nn.Module):
+    def __init__(self, model):
+        super().__init__()
         self.f = model
-        self.energy_output = nn.Linear(n_classes, 1)
-        self.class_output = nn.Linear(n_classes, n_classes)
 
-    def forward(self, x, y=None):
-        penult_z = self.f(x)
-        return self.energy_output(penult_z)
+    def forward(self, x, return_logits=False):
+        logits = self.classify(x)
+        if return_logits:
+            return logits.logsumexp(1), logits
+        else:
+            return logits.logsumexp(1)
 
     def classify(self, x):
-        penult_z = self.f(x)
-        return self.class_output(penult_z)
+        return self.f(x)
 
 
-class ConditionalEBM(EBM):
-    def __init__(self, model, n_classes):
-        super(ConditionalEBM, self).__init__(model, n_classes)
-
-    def forward(self, x, y=None, return_logits=False):
-        logits = self.classify(x)
-        if y is None:
-            if return_logits:
-                return logits.logsumexp(1), logits
-            else:
-                return logits.logsumexp(1)
-        else:
-            return torch.gather(logits, 1, y[:, None])
-
-
-class HDGE(ConditionalEBM):
+class HDGE(JEM):
     def __init__(self, model, n_classes, contrast_k, contrast_t):
-        super(HDGE, self).__init__(model, n_classes)
+        super(HDGE, self).__init__(model)
 
         self.K = contrast_k
         self.T = contrast_t

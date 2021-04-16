@@ -1,14 +1,9 @@
-from collections import defaultdict
-
 import torch
 from tqdm import tqdm
 import matplotlib.pyplot as plt
-import pytorch_lightning as pl
-import torch.nn.functional as EBM
-from pytorch_lightning.core.decorators import auto_move_data
 
+from uncertainty_est.models.JEM.model import JEM
 from uncertainty_est.archs.arch_factory import get_arch
-from uncertainty_est.models.JEM.model import EBM, ConditionalEBM
 from uncertainty_est.models.ood_detection_model import OODDetectionModel
 from uncertainty_est.utils.utils import to_np, estimate_normalizing_constant
 from uncertainty_est.models.JEM.utils import (
@@ -18,7 +13,7 @@ from uncertainty_est.models.JEM.utils import (
 )
 
 
-class JEM(OODDetectionModel):
+class MCMC(OODDetectionModel):
     def __init__(
         self,
         arch_name,
@@ -55,9 +50,7 @@ class JEM(OODDetectionModel):
         self.save_hyperparameters()
 
         arch = get_arch(arch_name, arch_config)
-        self.model = (
-            EBM(arch, n_classes) if self.uncond else ConditionalEBM(arch, n_classes)
-        )
+        self.model = JEM(arch)
 
         if not self.uncond:
             assert (

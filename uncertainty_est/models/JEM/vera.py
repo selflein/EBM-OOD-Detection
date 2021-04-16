@@ -4,8 +4,8 @@ import torch.nn.functional as F
 from torch import distributions
 import matplotlib.pyplot as plt
 
+from uncertainty_est.models.JEM.model import JEM
 from uncertainty_est.archs.arch_factory import get_arch
-from uncertainty_est.models.JEM.model import EBM, ConditionalEBM
 from uncertainty_est.models.ood_detection_model import OODDetectionModel
 from uncertainty_est.utils.utils import to_np, estimate_normalizing_constant
 from uncertainty_est.models.JEM.vera_utils import (
@@ -60,11 +60,7 @@ class VERA(OODDetectionModel):
         self.automatic_optimization = False
 
         arch = get_arch(arch_name, arch_config)
-        self.model = (
-            EBM(arch, n_classes)
-            if self.ebm_type == "p_x"
-            else ConditionalEBM(arch, n_classes)
-        )
+        self.model = JEM(arch)
 
         g = get_arch(generator_arch_name, generator_arch_config)
         if generator_type == "verahmc":

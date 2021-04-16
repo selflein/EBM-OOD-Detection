@@ -276,11 +276,12 @@ class NormalizingFlowDensity(nn.Module):
     def sample(self, num):
         dist = tdist.MultivariateNormal(self.mean, self.cov)
         z = dist.sample([num])
-        sum_log_jacobians = dist.log_prob(z)
+        base_log_prob = dist.log_prob(z)
+        sum_log_jacobians = 0.0
         for transform in self.transforms[::-1]:
             z_next = transform.inv(z)
-            sum_log_jacobians = sum_log_jacobians + transform.log_abs_det_jacobian(
-                z_next, z
+            sum_log_jacobians = sum_log_jacobians - transform.log_abs_det_jacobian(
+                z, z_next
             )
             z = z_next
-        return z, sum_log_jacobians
+        return z, base_log_prob + sum_log_jacobians

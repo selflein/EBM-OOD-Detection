@@ -1,3 +1,4 @@
+import math
 from collections import defaultdict
 
 import torch
@@ -29,6 +30,7 @@ class FlowContrastiveEstimation(OODDetectionModel):
         momentum,
         weight_decay,
         flow_learning_rate,
+        rho=0.5,
         is_toy_dataset=False,
         toy_dataset_dim=2,
         test_ood_dataloaders=[],
@@ -44,36 +46,44 @@ class FlowContrastiveEstimation(OODDetectionModel):
     def forward(self, x):
         return self.model(x)
 
-    def compute_ebm_loss(self, batch, return_outputs=False):
-        pass
-
     def training_step(self, batch, batch_idx, optimizer_idx):
         optim_ebm, optim_flow = self.optimizers()
         x, _ = batch
 
-        optim_ebm.zero_grad()
-        optim_flow.zero_grad()
+        noise, neg_f_log_p = self.noise_dist.sample(len(x))
+        neg_e_log_p = self.model(noise.detach()).logsumexp(-1)
 
-        noise, flow_log_p_noise = self.noise_dist.sample(len(x))
-        flow_log_p_x = sum_except_batch(self.noise_dist.log_prob(x))
-        flow_log_p = torch.cat((flow_log_p_x, flow_log_p_noise))
+        target = torch.zeros_like(neg_e_log_p).long().to(self.device)
+        neg_pred = torch.stack(
+            (neg_f_log_p + math.log(1 - self.rho), neg_e_log_p + math.log(self.rho)), -1
+        )
+        neg_loss = F.cross_entropy(neg_pred, target)
 
-        inp = torch.cat((x, noise))
-        logits = self.model(inp)
-        log_p_model = logits.logsumexp(-1)
+        pos_f_log_p = self.noise_dist.log_prob(x)
+        pos_e_log_p = self.model(x).logsumexp(-1)
 
-        out = log_p_model - flow_log_p
-        targets = torch.cat((torch.ones(len(x)), torch.zeros(len(x)))).to(self.device)
-        loss = F.binary_cross_entropy_with_logits(out, targets)
+        target = torch.ones_like(pos_e_log_p).long().to(self.device)
+        pos_pred = torch.stack(
+            (pos_f_log_p + math.log(1 - self.rho), pos_e_log_p + math.log(self.rho)), -1
+        )
+        pos_loss = F.cross_entropy(pos_pred, target)
 
-        acc = ((torch.sigmoid(out) > 0.5) == targets).float().mean()
-        self.log("acc", acc, prog_bar=True)
+        loss = self.rho * pos_loss + (1 - self.rho) * neg_loss
 
-        if acc < 0.5:
+        acc = (
+            torch.cat((pos_e_log_p > pos_f_log_p, neg_f_log_p > neg_e_log_p))
+            .float()
+            .mean()
+        )
+        self.log("train/acc", acc, prog_bar=True)
+
+        if acc <= 0.55:
+            optim_ebm.zero_grad()
             self.manual_backward(loss)
             optim_ebm.step()
-            self.log("train/loss", loss)
+            self.log("train/loss", loss, prog_bar=True)
         else:
+            optim_flow.zero_grad()
             self.manual_backward(-loss)
             optim_flow.step()
             self.log("train/flow_loss", -loss, prog_bar=True)
@@ -85,9 +95,10 @@ class FlowContrastiveEstimation(OODDetectionModel):
         if self.is_toy_dataset and self.toy_dataset_dim == 2:
             interp = torch.linspace(-4, 4, 500)
             x, y = torch.meshgrid(interp, interp)
-            data = torch.stack((x.reshape(-1), y.reshape(-1)), 1)
-            p_xy = torch.exp(self(data.to(self.device)))
+            data = torch.stack((x.reshape(-1), y.reshape(-1)), 1).to(self.device)
+            p_xy = torch.exp(self(data))
             px = to_np(p_xy.sum(1))
+            flow_px = to_np(self.noise_dist.log_prob(data).exp())
 
             x, y = to_np(x), to_np(y)
             for i in range(p_xy.shape[1]):
@@ -103,6 +114,12 @@ class FlowContrastiveEstimation(OODDetectionModel):
             mesh = ax.pcolormesh(x, y, px.reshape(*x.shape))
             fig.colorbar(mesh)
             self.logger.experiment.add_figure("dist/p(x)", fig, self.current_epoch)
+            plt.close()
+
+            fig, ax = plt.subplots()
+            mesh = ax.pcolormesh(x, y, flow_px.reshape(*x.shape))
+            fig.colorbar(mesh)
+            self.logger.experiment.add_figure("dist/Flow p(x)", fig, self.current_epoch)
             plt.close()
 
     def test_step(self, batch, batch_idx):
