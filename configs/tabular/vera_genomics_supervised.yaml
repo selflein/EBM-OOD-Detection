@@ -1,7 +1,11 @@
 trainer_config:
-  max_epochs: 40
+  max_steps: 1_000_000
+  max_epochs: 1_000_000
+  val_check_interval: 10_000
+  limit_val_batches: 1000
+  limit_test_batches: 1000
   gpus: 1
-  terminate_on_nan: True
+  benchmark: True
 
 checkpoint_config:
   monitor: val/acc
@@ -9,41 +13,32 @@ checkpoint_config:
   save_last: True
 
 earlystop_config:
-  monitor: val/acc
-  mode: max
-  patience: 10
 
 test_ood_datasets:
-  - fashionmnist
-  - kmnist
-  - gaussian_noise
-  - uniform_noise
+  - genomics-ood
 
-dataset: mnist
+dataset: &dataset genomics
 # Use second dataset
-ood_dataset: mnist
+ood_dataset: *dataset
 seed: 1
 batch_size: 32
 data_shape:
-  - 32
-  - 32
-  - &num_channels 1
+  - &data_dim 250
 
-model_name: VERAPosteriorNet
+model_name: VERA
 model_config:
-  arch_name: wrn
+  arch_name: seq_classifier
   arch_config:
-    depth: 4
+    in_channels: 4
+    num_filters: 128
+    fc_hidden_size: 1000
     num_classes: 10
-    widen_factor: 10
-    input_channels: *num_channels
-    dropout: 0.3
-    norm: batch
+    kernel_size: 20
 
   learning_rate: 0.00003
   beta1: 0.0
   beta2: 0.9
-  weight_decay: 0.01
+  weight_decay: 0.0
   n_classes: 10
   uncond: False
   gen_learning_rate: 0.00006
@@ -51,23 +46,22 @@ model_config:
   generator_iters: 1
   entropy_weight: 0.0001
 
-  generator_type: vera
-  generator_arch_name: resnetgenerator
-  generator_arch_config:
-    unit_interval: False
-    feats: 128
-    out_channels: *num_channels
-
+  generator_type: vera_discrete
+  generator_arch_name: seq_generator
   generator_config:
-    noise_dim: 128
+    noise_dim: &noise_dim 256
     post_lr: 0.00003
     init_post_logsigma: 0.1
+  generator_arch_config:
+    inp_dim: *noise_dim
+    num_classes: 4
+    seq_length: *data_dim
 
   min_sigma: 0.01
   max_sigma: 0.3
   p_control: 0.0
   n_control: 0.0
-  pg_control: 0.1
+  pg_control: 0.0
   clf_ent_weight: 0.0
   ebm_type: jem
   clf_weight: 1.0
@@ -75,7 +69,4 @@ model_config:
   no_g_batch_norm: False
   batch_size: 32
   lr_decay: 0.3
-  lr_decay_epochs: [30, 35]
-  vis_every: -1
-  alpha_fix: True
-  entropy_reg: 0.0001
+  lr_decay_epochs: [150, 180]

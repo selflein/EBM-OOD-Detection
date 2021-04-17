@@ -25,12 +25,16 @@ class SequenceClassifier(nn.Module):
         )
 
     def forward(self, inp):
+        out = self.encode(inp)
+        out = self.fc(out)
+        return out
+
+    def encode(self, inp):
         if len(inp.shape) == 2:
             inp = F.one_hot(inp.long(), self.input_size).float()
 
         out = self.conv(inp.transpose(1, 2))
         out, _ = out.max(dim=-1)
-        out = self.fc(out)
         return out
 
 

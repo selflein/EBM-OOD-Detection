@@ -108,11 +108,11 @@ def run(
     )
 
     output_folder = (
-        datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+        f'{datetime.now().strftime("%Y-%m-%d-%H-%M-%S")}_{uuid4()}'
         if output_folder is None
         else output_folder
     )
-    out_path = Path(log_dir) / model_name / dataset / f"{output_folder}_{uuid4()}"
+    out_path = Path(log_dir) / model_name / dataset / output_folder
     out_path.mkdir(exist_ok=False, parents=True)
 
     with (out_path / "config.yaml").open("w") as f:

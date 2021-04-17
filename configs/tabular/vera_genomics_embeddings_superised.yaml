@@ -1,0 +1,78 @@
+trainer_config:
+  max_epochs: 500
+  gpus: 1
+  check_val_every_n_epoch: 1
+  benchmark: True
+
+checkpoint_config:
+  monitor: val/acc
+  mode: max
+  save_last: True
+
+earlystop_config:
+  monitor: val/acc
+  mode: max
+  patience: 10
+
+test_ood_datasets:
+  - genomics-odd_embedded
+
+output_folder: genomics_embedded_supervised
+
+dataset: &dataset genomics_embedded
+# Use second dataset
+ood_dataset: *dataset
+seed: 1
+batch_size: 512
+data_shape:
+  - &data_dim 128
+
+model_name: VERA
+model_config:
+  arch_name: fc
+  arch_config:
+    inp_dim: *data_dim
+    num_classes: 10
+    hidden_dims: &dims [100, 100, 100, 100, 100]
+    batch_norm: False
+    bias: True
+    slope: 0.2
+
+  learning_rate: 0.001
+  beta1: 0.0
+  beta2: 0.9
+  weight_decay: 0.0
+  n_classes: 10
+  uncond: False
+  gen_learning_rate: 0.001
+  ebm_iters: 1
+  generator_iters: 1
+  entropy_weight: 0.0001
+
+  generator_type: vera
+  generator_arch_name: fc
+  generator_config:
+    noise_dim: &noise_dim 32
+    post_lr: 0.00003
+    init_post_logsigma: 0.1
+  generator_arch_config:
+    inp_dim: *noise_dim
+    num_classes: *data_dim
+    hidden_dims: *dims
+    activation: relu
+    batch_norm: True
+    bias: False
+
+  min_sigma: 0.01
+  max_sigma: 0.3
+  p_control: 0.0
+  n_control: 0.0
+  pg_control: 0.1
+  clf_ent_weight: 0.0
+  ebm_type: jem
+  clf_weight: 100.0
+  warmup_steps: 2500
+  no_g_batch_norm: False
+  batch_size: 128
+  lr_decay: 0.3
+  lr_decay_epochs: [300, 400]

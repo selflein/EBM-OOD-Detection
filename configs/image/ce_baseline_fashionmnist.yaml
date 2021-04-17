@@ -1,0 +1,30 @@
+trainer_config:
+  max_epochs: 50
+  gpus: 1
+
+checkpoint_config:
+  monitor: val_acc
+  mode: max
+
+earlystop_config:
+  monitor: val_acc
+  mode: max
+  patience: 10
+
+dataset: fashionmnist
+ood_dataset:
+seed: 1
+batch_size: 128
+data_shape: [32, 32, 1]
+
+model_name: CEBaseline
+model_config:
+  arch_name: wrn
+  arch_config:
+    depth: 28
+    num_classes: 10
+    widen_factor: 10
+    input_channels: 1
+  learning_rate: 0.0001
+  momentum: 0.9
+  weight_decay: 0.0005

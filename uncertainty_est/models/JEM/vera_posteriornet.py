@@ -1,5 +1,6 @@
 import torch
 from tqdm import tqdm
+import torch.nn.functional as F
 from torch.distributions import Dirichlet
 
 from uncertainty_est.models.JEM.vera import VERA
@@ -91,16 +92,17 @@ class VERAPosteriorNet(VERA):
     def classifier_loss(self, ld_logits, y_l):
         alpha = torch.exp(ld_logits)  # / self.p_y.unsqueeze(0).to(self.device)
         # Multiply by class counts for Bayesian update
-        # alpha = self.class_counts.unsqueeze(0).to(self.device) * alpha
 
-        alpha_0 = alpha.sum(1)
-        UCE_loss = torch.mean(
-            torch.digamma(alpha_0) - torch.digamma(alpha[torch.arange(len(y_l)), y_l])
-        )
+        soft_output = F.one_hot(y_l, self.n_classes)
+        alpha_0 = alpha.sum(1).unsqueeze(-1).repeat(1, self.n_classes)
+        entropy_reg = Dirichlet(alpha).entropy()
+        UCE_loss = torch.sum(
+            soft_output * (torch.digamma(alpha_0) - torch.digamma(alpha))
+        ) - self.clf_ent_weight * torch.sum(
+            entropy_reg
+        )  # alpha = self.class_counts.unsqueeze(0).to(self.device) * alpha
 
-        entropy_reg = self.entropy_reg * -Dirichlet(alpha).entropy().mean()
-
-        return UCE_loss + entropy_reg
+        return UCE_loss
 
     def validation_epoch_end(self, outputs):
         super().validation_epoch_end(outputs)

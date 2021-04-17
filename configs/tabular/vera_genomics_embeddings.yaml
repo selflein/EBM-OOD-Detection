@@ -1,7 +1,8 @@
 trainer_config:
-  max_steps: 10_000
-  max_epochs: 10_000
+  max_epochs: 50
   gpus: 1
+  limit_val_batches: 0
+  benchmark: True
 
 checkpoint_config:
   monitor:
@@ -9,20 +10,24 @@ checkpoint_config:
 
 earlystop_config:
 
-dataset: Gaussian2D
-# Use second dataset
-ood_dataset: Gaussian2D
-seed: 1
-batch_size: 128
-data_shape: [2]
+test_ood_datasets:
+  - genomics-ood_embedded
 
-model_name: VERAPriorNet
+dataset: &dataset genomics_embedded
+# Use second dataset
+ood_dataset: *dataset
+seed: 1
+batch_size: 512
+data_shape:
+  - &data_dim 128
+
+model_name: VERA
 model_config:
   arch_name: fc
   arch_config:
-    inp_dim: 2
-    num_classes: 3
-    hidden_dims: [100, 100, 100, 100, 100]
+    inp_dim: *data_dim
+    num_classes: 1
+    hidden_dims: &dims [100, 100, 100, 100, 100]
     batch_norm: False
     bias: True
     slope: 0.2
@@ -31,26 +36,26 @@ model_config:
   beta1: 0.0
   beta2: 0.9
   weight_decay: 0.0
-  n_classes: 3
+  n_classes: 1
   uncond: False
-  gen_learning_rate: 0.001
+  gen_learning_rate: 0.0001
   ebm_iters: 1
   generator_iters: 1
-  entropy_weight: 1.0
+  entropy_weight: 0.0001
 
   generator_type: vera
   generator_arch_name: fc
+  generator_config:
+    noise_dim: &noise_dim 32
+    post_lr: 0.00003
+    init_post_logsigma: 0.1
   generator_arch_config:
-    inp_dim: 2
-    num_classes: 2
-    hidden_dims: [100, 100]
+    inp_dim: *noise_dim
+    num_classes: *data_dim
+    hidden_dims: *dims
     activation: relu
     batch_norm: True
     bias: False
-  generator_config:
-    noise_dim: 2
-    post_lr: 0.00003
-    init_post_logsigma: 0.1
 
   min_sigma: 0.01
   max_sigma: 0.3
@@ -58,17 +63,10 @@ model_config:
   n_control: 0.0
   pg_control: 0.1
   clf_ent_weight: 0.0
-  ebm_type: jem
-  clf_weight: 1.0
+  ebm_type: p_x
+  clf_weight: 0.0
   warmup_steps: 2500
   no_g_batch_norm: False
   batch_size: 128
   lr_decay: 0.3
-  lr_decay_epochs: [200, 300]
-  alpha_fix: True
-  concentration: 1.0
-  target_concentration:
-  vis_every: 10
-  entropy_reg: 0.0
-  is_toy_dataset: True
-  reverse_kl: True
+  lr_decay_epochs: [30, 40]

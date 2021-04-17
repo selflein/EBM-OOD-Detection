@@ -172,7 +172,7 @@ class VERA(OODDetectionModel):
         return -logq_obj
 
     def validation_step(self, batch, batch_idx):
-        (x_l, y_l), (x_d, _) = batch
+        (x_l, y_l), _ = batch
         ld, ld_logits = self.model(x_l, return_logits=True)
 
         self.log("val/loss", -ld)
@@ -181,7 +181,7 @@ class VERA(OODDetectionModel):
         if ld_logits.shape[1] < 2:
             return
 
-        acc = (y_l == ld_logits.argmax(1)).float().mean(0).item()
+        acc = (y_l == ld_logits.argmax(1)).float().mean(0)
         self.log("val/acc", acc)
         return ld_logits
 
