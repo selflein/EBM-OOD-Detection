@@ -125,6 +125,7 @@ class MCMC(OODDetectionModel):
         if self.n_classes < 2:
             return
 
+        _, logits = self.model(x_lab, return_logits=True)
         acc = (y_lab == logits.argmax(1)).float().mean(0).item()
         self.log("val_acc", acc)
 
@@ -244,7 +245,9 @@ class MCMC(OODDetectionModel):
         # sgld
         for _ in range(n_steps):
             if not contrast:
-                energy = self.model(x_k, y=y).sum()
+                energy = self.model(x_k, return_logits=True)[1][
+                    torch.arange(x_k.size(0)), y
+                ].sum()
             else:
                 if y is not None:
                     dist = smooth_one_hot(y, self.n_classes, self.smoothing)
@@ -253,7 +256,7 @@ class MCMC(OODDetectionModel):
                 output, target, _, _ = self.model.joint(
                     img=x_k, dist=dist, evaluation=True
                 )
-                energy = -1.0 * EBM.cross_entropy(output, target)
+                energy = -1.0 * F.cross_entropy(output, target)
             f_prime = torch.autograd.grad(energy, [x_k], retain_graph=True)[0]
             x_k.data += self.sgld_lr * f_prime + self.sgld_std * torch.randn_like(x_k)
         self.model.train()

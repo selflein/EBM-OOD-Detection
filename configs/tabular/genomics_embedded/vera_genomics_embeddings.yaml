@@ -1,5 +1,5 @@
 trainer_config:
-  max_epochs: 50
+  max_epochs: 500
   gpus: 1
   limit_val_batches: 0
   benchmark: True

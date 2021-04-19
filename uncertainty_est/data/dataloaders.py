@@ -3,6 +3,7 @@ from pathlib import Path
 import torch
 import numpy as np
 from PIL import Image
+from torch.functional import split
 from torch.utils.data import DataLoader
 from torchvision import transforms as tvt
 from uncertainty_eval.datasets import get_dataset as ue_get_dataset
@@ -12,9 +13,9 @@ from uncertainty_est.data.datasets import ConcatDataset, ConcatIterableDataset
 DATA_ROOT = Path("../data")
 
 
-def get_dataset(dataset, data_shape=None, length=10_000):
+def get_dataset(dataset, data_shape=None, length=10_000, split_seed=1):
     try:
-        ds_class = ue_get_dataset(dataset)
+        ds_class = ue_get_dataset(dataset, split_seed=split_seed)
 
         if data_shape is None:
             data_shape = ds_class.data_shape
@@ -49,18 +50,19 @@ def get_dataloader(
     drop_last=None,
     shuffle=None,
     mutation_rate=0.0,
+    split_seed=1,
 ):
     train_transform = []
     test_transform = []
 
     unscaled = False
     try:
-        ds, data_shape = get_dataset(dataset, data_shape)
+        ds, data_shape = get_dataset(dataset, data_shape, split_seed=split_seed)
     except ValueError as e:
         if "_unscaled" in dataset:
             dataset = dataset.replace("_unscaled", "")
             unscaled = True
-            ds, data_shape = get_dataset(dataset, data_shape)
+            ds, data_shape = get_dataset(dataset, data_shape, split_seed=split_seed)
         else:
             raise e
 

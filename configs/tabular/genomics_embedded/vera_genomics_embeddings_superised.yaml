@@ -15,9 +15,7 @@ earlystop_config:
   patience: 10
 
 test_ood_datasets:
-  - genomics-odd_embedded
-
-output_folder: genomics_embedded_supervised
+  - genomics-ood_embedded
 
 dataset: &dataset genomics_embedded
 # Use second dataset

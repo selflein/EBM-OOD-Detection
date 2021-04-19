@@ -1,0 +1,49 @@
+trainer_config:
+  max_epochs: 500
+  gpus: 1
+  limit_val_batches: 0
+  benchmark: True
+
+checkpoint_config:
+  monitor:
+  save_last: True
+
+earlystop_config:
+
+dataset: &dataset sensorless
+ood_dataset: *dataset
+seed: 1
+batch_size: 512
+data_shape: &data_shape
+  - &data_dim 48
+
+model_name: JEM
+model_config:
+  arch_name: fc
+  arch_config:
+    inp_dim: *data_dim
+    num_classes: 1
+    hidden_dims: [100, 100, 100, 100, 100]
+
+  learning_rate: 0.0001
+  momentum: 0.9
+  weight_decay: 0.0
+  smoothing: 0.0
+  sgld_lr: 0.01
+  sgld_std: 0.1
+  sgld_steps: 100
+  pyxce: 0.0
+  pxsgld: 1.0
+  pxysgld: 0.0
+  buffer_size: 9999
+  reinit_freq: 0.05
+  data_shape: *data_shape
+  uncond: True
+  sgld_batch_size: 512
+  class_cond_p_x_sample: False
+  n_classes: 1
+  warmup_steps: 2500
+  energy_reg_weight: 0.0
+  energy_reg_type: 2
+  entropy_reg_weight: 0.0
+  lr_step_size: 1000
