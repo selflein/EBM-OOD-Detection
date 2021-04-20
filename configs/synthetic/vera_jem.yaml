@@ -1,6 +1,6 @@
 trainer_config:
   max_steps: 10_000
-  gpus: "0"
+  gpus: 1
 
 checkpoint_config:
   monitor:

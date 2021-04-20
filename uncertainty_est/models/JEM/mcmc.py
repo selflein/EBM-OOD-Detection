@@ -53,9 +53,7 @@ class MCMC(OODDetectionModel):
         self.model = JEM(arch)
 
         if not self.uncond:
-            assert (
-                self.buffer_size % self.n_classes == 0
-            ), "Buffer size must be divisible by args.n_classes"
+            self.buffer_size = self.buffer_size - (self.buffer_size % self.n_classes)
 
         self.replay_buffer = init_random(self.buffer_size, data_shape).cpu()
 

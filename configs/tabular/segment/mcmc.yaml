@@ -15,7 +15,7 @@ ood_dataset: *dataset
 seed: 1
 batch_size: 512
 data_shape: &data_shape
-  - &data_dim 640
+  - &data_dim 18
 
 model_name: JEM
 model_config:
@@ -25,7 +25,7 @@ model_config:
     num_classes: 1
     hidden_dims: [100, 100, 100, 100, 100]
 
-  learning_rate: 0.0001
+  learning_rate: 0.001
   momentum: 0.9
   weight_decay: 0.0
   smoothing: 0.0

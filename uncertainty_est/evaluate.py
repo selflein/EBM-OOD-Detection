@@ -160,7 +160,7 @@ if __name__ == "__main__":
         output_folder = checkpoint_path.parent
         model_name = output_folder.stem
 
-        model, config = load_checkpoint(checkpoint_path)
+        model, config = load_checkpoint(checkpoint_path, strict=False)
         model.eval()
         model.cuda()
 

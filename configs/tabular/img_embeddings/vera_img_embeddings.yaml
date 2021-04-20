@@ -10,15 +10,6 @@ checkpoint_config:
 
 earlystop_config:
 
-test_ood_datasets:
-  - lsun_embedded
-  - celeb-a_embedded
-  - textures_embedded
-  - svhn_embedded
-  - svhn_unscaled_embedded
-  - gaussian_noise_embedded
-  - uniform_noise_embedded
-
 dataset: &dataset cifar10_embedded
 # Use second dataset
 ood_dataset: *dataset

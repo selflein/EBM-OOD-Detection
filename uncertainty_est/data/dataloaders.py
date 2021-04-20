@@ -15,7 +15,7 @@ DATA_ROOT = Path("../data")
 
 def get_dataset(dataset, data_shape=None, length=10_000, split_seed=1):
     try:
-        ds_class = ue_get_dataset(dataset, split_seed=split_seed)
+        ds_class = ue_get_dataset(dataset)
 
         if data_shape is None:
             data_shape = ds_class.data_shape
