@@ -61,22 +61,7 @@ def run(
 ):
     pl.seed_everything(seed)
 
-    test_ood_dataloaders = []
-    for test_ood_dataset in test_ood_datasets:
-        loader = get_dataloader(
-            test_ood_dataset,
-            "test",
-            batch_size,
-            data_shape=data_shape,
-            sigma=sigma,
-            ood_dataset=None,
-            num_workers=num_workers,
-        )
-        test_ood_dataloaders.append((test_ood_dataset, loader))
-
-    model = MODELS[model_name](
-        **model_config, test_ood_dataloaders=test_ood_dataloaders
-    )
+    model = MODELS[model_name](**model_config)
 
     train_loader = get_dataloader(
         dataset,
@@ -137,13 +122,29 @@ def run(
     trainer.fit(model, train_loader, val_loader)
 
     try:
-        result = trainer.test(test_dataloaders=test_loader)
+        _ = trainer.test(test_dataloaders=test_loader)
     except:
-        result = trainer.test(test_dataloaders=test_loader, ckpt_path=None)
+        _ = trainer.test(test_dataloaders=test_loader, ckpt_path=None)
 
-    logger.log_hyperparams(model.hparams, result[0])
+    test_ood_dataloaders = []
+    for test_ood_dataset in test_ood_datasets:
+        loader = get_dataloader(
+            test_ood_dataset,
+            "test",
+            batch_size,
+            data_shape=data_shape,
+            sigma=sigma,
+            ood_dataset=None,
+            num_workers=num_workers,
+        )
+        test_ood_dataloaders.append((test_ood_dataset, loader))
+    ood_results = model.eval_ood(test_loader, test_ood_dataloaders)
+    clf_results = model.eval_classifier(test_loader)
+    results = {**ood_results, **clf_results}
 
-    return result[0]
+    logger.log_hyperparams(model.hparams, results)
+
+    return results
 
 
 if __name__ == "__main__":

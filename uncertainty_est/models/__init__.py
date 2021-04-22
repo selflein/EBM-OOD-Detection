@@ -1,24 +1,22 @@
 import yaml
 from pathlib import Path
 
-from uncertainty_est.models.JEM.hdge import HDGEModel
-from uncertainty_est.models.JEM.mcmc import MCMC
+from uncertainty_est.models.ebm.hdge import HDGEModel
+from uncertainty_est.models.ebm.mcmc import MCMC
 from uncertainty_est.models.ce_baseline import CEBaseline
 from uncertainty_est.models.energy_finetuning import EnergyFinetune
 from uncertainty_est.models.priornet.priornet import PriorNet
-from uncertainty_est.models.JEM.vera import VERA
-from uncertainty_est.models.JEM.vera_priornet import VERAPriorNet
-from uncertainty_est.models.JEM.vera_posteriornet import VERAPosteriorNet
+from uncertainty_est.models.ebm.vera import VERA
+from uncertainty_est.models.ebm.vera_priornet import VERAPriorNet
+from uncertainty_est.models.ebm.vera_posteriornet import VERAPosteriorNet
 from uncertainty_est.models.normalizing_flow.norm_flow import NormalizingFlow
 from uncertainty_est.models.normalizing_flow.approx_flow import ApproxNormalizingFlow
-from uncertainty_est.models.EBM.regularized_ebm import RegularizedEBM
-from uncertainty_est.models.EBM.per_sample_nce import PerSampleNCE
+from uncertainty_est.models.ebm.conditional_nce import PerSampleNCE
 from uncertainty_est.models.normalizing_flow.iresnet import IResNetFlow
 from .normalizing_flow.real_nvp import RealNVPModel
 from .vae import VAE
-from .EBM.nce import NoiseContrastiveEstimation
-from .EBM.flow_contrastive_estimation import FlowContrastiveEstimation
-from .JEM.nce_priornet import NCEPriorNet
+from .ebm.nce import NoiseContrastiveEstimation
+from .ebm.flow_contrastive_estimation import FlowContrastiveEstimation
 
 
 MODELS = {
@@ -32,13 +30,11 @@ MODELS = {
     "VERAPosteriorNet": VERAPosteriorNet,
     "NormalizingFlow": NormalizingFlow,
     "ApproxNormalizingFlow": ApproxNormalizingFlow,
-    "RegularizedEBM": RegularizedEBM,
     "PerSampleNCE": PerSampleNCE,
     "IResNet": IResNetFlow,
     "RealNVP": RealNVPModel,
     "VAE": VAE,
     "NCE": NoiseContrastiveEstimation,
-    "NCEPriorNet": NCEPriorNet,
     "FlowCE": FlowContrastiveEstimation,
 }
 

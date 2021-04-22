@@ -18,13 +18,10 @@ class EnergyFinetune(CEBaseline):
         m_out,
         checkpoint,
         max_steps,
+        **kwargs
     ):
         super().__init__(
-            arch_name,
-            arch_config,
-            learning_rate,
-            momentum,
-            weight_decay,
+            arch_name, arch_config, learning_rate, momentum, weight_decay, **kwargs
         )
         self.__dict__.update(locals())
         self.save_hyperparameters()

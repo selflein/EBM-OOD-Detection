@@ -24,8 +24,9 @@ class PriorNet(pl.LightningModule):
         reverse_kl,
         alpha_fix,
         gamma,
+        **kwargs
     ):
-        super().__init__()
+        super().__init__(**kwargs)
         self.__dict__.update(locals())
         self.save_hyperparameters()
 
