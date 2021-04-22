@@ -1,12 +1,5 @@
-from collections import defaultdict
-
 import torch
-from tqdm import tqdm
-import pytorch_lightning as pl
-import matplotlib.pyplot as plt
-import torch.nn.functional as F
 
-from uncertainty_est.utils.utils import to_np
 from uncertainty_est.archs.arch_factory import get_arch
 from uncertainty_est.models.ood_detection_model import OODDetectionModel
 
@@ -20,10 +13,8 @@ class IResNetFlow(OODDetectionModel):
         momentum,
         weight_decay,
         warmup_steps=0,
-        vis_every=-1,
-        test_ood_dataloaders=[],
     ):
-        super().__init__(test_ood_dataloaders)
+        super().__init__()
         self.__dict__.update(locals())
         self.save_hyperparameters()
         assert arch_name in ("iresnet_fc", "iresnet_conv")
@@ -58,22 +49,6 @@ class IResNetFlow(OODDetectionModel):
         loss = -log_p.mean()
         self.log("val/loss", loss)
 
-    def validation_epoch_end(self, training_step_outputs):
-        if self.vis_every > 0 and self.current_epoch % self.vis_every == 0:
-            interp = torch.linspace(-4, 4, 500)
-            x, y = torch.meshgrid(interp, interp)
-            data = torch.stack((x.reshape(-1), y.reshape(-1)), 1)
-
-            with torch.enable_grad():
-                x.requires_grad_()
-                px = torch.exp(self.model.log_prob(data.to(self.device))).detach()
-
-            fig, ax = plt.subplots()
-            mesh = ax.pcolormesh(to_np(x), to_np(y), to_np(px).reshape(*x.shape))
-            fig.colorbar(mesh)
-            self.logger.experiment.add_figure("p(x)", fig, self.current_epoch)
-            plt.close()
-
     def test_step(self, batch, batch_idx):
         x, _ = batch
         with torch.enable_grad():
@@ -90,18 +65,8 @@ class IResNetFlow(OODDetectionModel):
         )
         return optim
 
-    def ood_detect(self, loader):
-        with torch.no_grad():
-            log_p = []
-            for x, _ in loader:
-                x = x.to(self.device)
-                with torch.enable_grad():
-                    x.requires_grad_()
-                    out = self.model.log_prob(x).detach().cpu()
-                    log_p.append(out)
-                    del out
-        log_p = torch.cat(log_p)
-
-        dir_uncert = {}
-        dir_uncert["p(x)"] = log_p.cpu().numpy()
-        return dir_uncert
+    def get_ood_scores(self, x):
+        with torch.enable_grad():
+            x.requires_grad_()
+            log_p = self.model.log_prob(x).detach()
+        return {"p(x)": log_p}

@@ -1,5 +1,6 @@
 """ from https://github.com/KaosEngineer/PriorNetworks """
 
+import torch
 import numpy as np
 from scipy.special import gammaln, digamma
 
@@ -50,4 +51,4 @@ def dirichlet_prior_network_uncertainty(logits, epsilon=1e-10, alpha_correction=
         "differential_entropy": -np.squeeze(dentropy),
     }
 
-    return uncertainty
+    return {k: torch.from_numpy(v).float() for k, v in uncertainty.items()}

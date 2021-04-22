@@ -1,11 +1,8 @@
 import math
-from collections import defaultdict
 
 import torch
 from tqdm import tqdm
-import pytorch_lightning as pl
 import torch.nn.functional as F
-from torch import distributions
 import matplotlib.pyplot as plt
 
 from uncertainty_est.archs.arch_factory import get_arch
@@ -13,7 +10,6 @@ from uncertainty_est.models.ood_detection_model import OODDetectionModel
 from uncertainty_est.utils.utils import (
     to_np,
     estimate_normalizing_constant,
-    sum_except_batch,
 )
 
 
@@ -33,9 +29,7 @@ class FlowContrastiveEstimation(OODDetectionModel):
         rho=0.5,
         is_toy_dataset=False,
         toy_dataset_dim=2,
-        test_ood_dataloaders=[],
     ):
-        super().__init__(test_ood_dataloaders)
         self.automatic_optimization = False
         self.__dict__.update(locals())
         self.save_hyperparameters()
@@ -169,15 +163,5 @@ class FlowContrastiveEstimation(OODDetectionModel):
 
         return [optim, optim_flow], [scheduler, scheduler_flow]
 
-    def ood_detect(self, loader):
-        self.eval()
-        torch.set_grad_enabled(False)
-        scores = []
-        for x, y in tqdm(loader):
-            x = x.to(self.device)
-            score = self.model(x).cpu()
-            scores.append(score)
-
-        uncert = {}
-        uncert["p(x)"] = torch.cat(scores).cpu().numpy()
-        return uncert
+    def get_ood_scores(self, x):
+        return {"p(x)": self.model(x)}

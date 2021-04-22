@@ -1,12 +1,7 @@
-from collections import defaultdict
-
 import torch
 import numpy as np
-from tqdm import tqdm
-import pytorch_lightning as pl
 import torch.nn.functional as F
 
-from uncertainty_est.archs.arch_factory import get_arch
 from uncertainty_est.models.ce_baseline import CEBaseline
 
 
@@ -23,7 +18,6 @@ class EnergyFinetune(CEBaseline):
         m_out,
         checkpoint,
         max_steps,
-        test_ood_dataloaders=[],
     ):
         super().__init__(
             arch_name,
@@ -31,7 +25,6 @@ class EnergyFinetune(CEBaseline):
             learning_rate,
             momentum,
             weight_decay,
-            test_ood_dataloaders,
         )
         self.__dict__.update(locals())
         self.save_hyperparameters()
@@ -112,5 +105,5 @@ class EnergyFinetune(CEBaseline):
         _, logits = self.get_gt_preds(loader)
 
         uncert = {}
-        uncert["Energy"] = -torch.logsumexp(logits, 1)
+        uncert["Energy"] = torch.logsumexp(logits, 1)
         return uncert

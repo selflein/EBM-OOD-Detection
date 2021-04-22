@@ -101,7 +101,22 @@ class OODDetectionModel(pl.LightningModule):
         scores = {k: np.concatenate(v) for k, v in scores.items()}
         return scores
 
-    def get_ood_scores(self, x) -> Dict[str, np.array]:
+    def get_gt_preds(self, loader):
+        self.eval()
+        torch.set_grad_enabled(False)
+
+        gt, preds = [], []
+        for x, y in tqdm(loader):
+            x = x.to(self.device)
+            y_hat = self.classify(x).cpu()
+            gt.append(y)
+            preds.append(y_hat)
+        return torch.cat(gt), torch.cat(preds)
+
+    def get_ood_scores(self, x) -> Dict[str, torch.tensor]:
+        raise NotImplementedError
+
+    def classify(self, x) -> torch.tensor:
         raise NotImplementedError
 
     # TODO: Remove when https://github.com/PyTorchLightning/pytorch-lightning/pull/6056 is merged

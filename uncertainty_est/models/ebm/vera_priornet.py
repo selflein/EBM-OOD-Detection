@@ -1,7 +1,6 @@
 import torch
-from tqdm import tqdm
 
-from uncertainty_est.models.JEM.vera import VERA
+from uncertainty_est.models.ebm.vera import VERA
 from uncertainty_est.models.priornet.dpn_losses import UnfixedDirichletKLLoss
 from uncertainty_est.models.priornet.uncertainties import (
     dirichlet_prior_network_uncertainty,
@@ -39,14 +38,11 @@ class VERAPriorNet(VERA):
         batch_size,
         lr_decay,
         lr_decay_epochs,
-        vis_every=-1,
         alpha_fix=True,
         concentration=1.0,
         target_concentration=None,
         entropy_reg=0.0,
         reverse_kl=True,
-        is_toy_dataset=False,
-        toy_dataset_dim=2,
         **kwargs,
     ):
         super().__init__(
@@ -78,9 +74,6 @@ class VERAPriorNet(VERA):
             batch_size,
             lr_decay,
             lr_decay_epochs,
-            is_toy_dataset,
-            toy_dataset_dim,
-            vis_every,
             **kwargs,
         )
         self.__dict__.update(locals())
@@ -100,19 +93,10 @@ class VERAPriorNet(VERA):
         alphas = torch.exp(outputs[0]).reshape(-1) + self.concentration
         self.logger.experiment.add_histogram("alphas", alphas, self.current_epoch)
 
-    def ood_detect(self, loader):
-        self.eval()
-        torch.set_grad_enabled(False)
-        logits = []
-        for x, _ in tqdm(loader):
-            x = x.to(self.device)
-            logits.append(self(x).cpu())
-        logits = torch.cat(logits)
-        scores = logits.logsumexp(1)
-
+    def ood_detect(self, x):
+        px, logits = self.model(x, return_logits=True)
         uncert = {}
-        # exp(-E(x)) ~ p(x)
-        uncert["p(x)"] = scores.numpy()
+        uncert["p(x)"] = px.numpy()
         dirichlet_uncerts = dirichlet_prior_network_uncertainty(
             logits.numpy(), alpha_correction=self.alpha_fix
         )

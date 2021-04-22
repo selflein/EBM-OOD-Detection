@@ -1,14 +1,10 @@
 import torch
-from tqdm import tqdm
-import torch.nn.functional as F
 from torch import distributions
-import matplotlib.pyplot as plt
 
-from uncertainty_est.models.JEM.model import JEM
+from uncertainty_est.models.ebm.utils.model import JEM
 from uncertainty_est.archs.arch_factory import get_arch
 from uncertainty_est.models.ood_detection_model import OODDetectionModel
-from uncertainty_est.utils.utils import to_np, estimate_normalizing_constant
-from uncertainty_est.models.JEM.vera_utils import (
+from uncertainty_est.models.ebm.utils.vera_utils import (
     VERADiscreteGenerator,
     VERAGenerator,
     VERAHMCGenerator,
@@ -48,13 +44,9 @@ class VERA(OODDetectionModel):
         batch_size,
         lr_decay,
         lr_decay_epochs,
-        is_toy_dataset=False,
-        toy_dataset_dim=2,
-        vis_every=-1,
-        test_ood_dataloaders=[],
         **kwargs,
     ):
-        super().__init__(test_ood_dataloaders)
+        super().__init__()
         self.__dict__.update(locals())
         self.save_hyperparameters()
         self.automatic_optimization = False
@@ -73,7 +65,7 @@ class VERA(OODDetectionModel):
             raise NotImplementedError(f"Generator '{generator_type}' not implemented!")
 
     def forward(self, x):
-        return self.model.classify(x)
+        return self.model(x)
 
     def training_step(self, batch, batch_idx, optimizer_idx):
         opt_e, opt_g = self.optimizers()
@@ -185,30 +177,6 @@ class VERA(OODDetectionModel):
         self.log("val/acc", acc)
         return ld_logits
 
-    def validation_epoch_end(self, outputs):
-        if self.vis_every > 0 and self.current_epoch % self.vis_every == 0:
-            interp = torch.linspace(-4, 4, 500)
-            x, y = torch.meshgrid(interp, interp)
-            data = torch.stack((x.reshape(-1), y.reshape(-1)), 1)
-            p_xy = torch.exp(self(data.to(self.device)))
-            px = to_np(p_xy.sum(1))
-
-            x, y = to_np(x), to_np(y)
-            for i in range(p_xy.shape[1]):
-                fig, ax = plt.subplots()
-                mesh = ax.pcolormesh(x, y, to_np(p_xy[:, i]).reshape(*x.shape))
-                fig.colorbar(mesh)
-                self.logger.experiment.add_figure(
-                    f"dist/p(x,y={i})", fig, self.current_epoch
-                )
-                plt.close()
-
-            fig, ax = plt.subplots()
-            mesh = ax.pcolormesh(x, y, px.reshape(*x.shape))
-            fig.colorbar(mesh)
-            self.logger.experiment.add_figure("dist/p(x)", fig, self.current_epoch)
-            plt.close()
-
     def test_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self(x)
@@ -217,26 +185,6 @@ class VERA(OODDetectionModel):
         self.log("acc", acc)
 
         return y_hat
-
-    def test_epoch_end(self, logits):
-        if self.is_toy_dataset:
-            self.to(torch.double)
-            # Estimate normalizing constant Z by numerical integration
-            log_Z = torch.log(
-                estimate_normalizing_constant(
-                    lambda x: self(x).exp().sum(1),
-                    device=self.device,
-                    dimensions=self.toy_dataset_dim,
-                    dtype=torch.double,
-                )
-            ).float()
-            self.to(torch.float32)
-
-            logits = torch.cat(logits, 0)
-            log_px = logits.logsumexp(1) - log_Z
-            self.log("log_likelihood", log_px.mean())
-
-        super().test_epoch_end()
 
     def configure_optimizers(self):
         optim = torch.optim.AdamW(
@@ -259,26 +207,8 @@ class VERA(OODDetectionModel):
         )
         return [optim, gen_optim], [scheduler, gen_scheduler]
 
-    def get_gt_preds(self, loader):
-        self.eval()
-        torch.set_grad_enabled(False)
-        gt, preds = [], []
-        for x, y in tqdm(loader):
-            x = x.to(self.device)
-            y_hat = self(x).cpu()
-            gt.append(y)
-            preds.append(y_hat)
-        return torch.cat(gt), torch.cat(preds)
+    def classify(self, x):
+        return self.model.classify(x).softmax(-1)
 
-    def ood_detect(self, loader):
-        self.eval()
-        torch.set_grad_enabled(False)
-        scores = []
-        for x, y in tqdm(loader):
-            x = x.to(self.device)
-            score = self.model(x).cpu()
-            scores.append(score)
-
-        uncert = {}
-        uncert["p(x)"] = torch.cat(scores).cpu().numpy()
-        return uncert
+    def get_ood_scores(self, x):
+        return {"p(x)": self.model(x)}

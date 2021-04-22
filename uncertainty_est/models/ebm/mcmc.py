@@ -1,12 +1,11 @@
 import torch
-from tqdm import tqdm
 import matplotlib.pyplot as plt
 
-from uncertainty_est.models.JEM.model import JEM
+from uncertainty_est.models.ebm.utils.model import JEM
 from uncertainty_est.archs.arch_factory import get_arch
 from uncertainty_est.models.ood_detection_model import OODDetectionModel
 from uncertainty_est.utils.utils import to_np, estimate_normalizing_constant
-from uncertainty_est.models.JEM.utils import (
+from uncertainty_est.models.ebm.utils.utils import (
     KHotCrossEntropyLoss,
     smooth_one_hot,
     init_random,
@@ -35,8 +34,6 @@ class MCMC(OODDetectionModel):
         reinit_freq,
         uncond,
         sgld_steps=20,
-        energy_reg_weight=0.0,
-        energy_reg_type="2",
         entropy_reg_weight=0.0,
         warmup_steps=0,
         vis_every=-1,
@@ -44,6 +41,7 @@ class MCMC(OODDetectionModel):
         toy_dataset_dim=2,
         lr_step_size=50,
         test_ood_dataloaders=[],
+        **kwargs
     ):
         super().__init__(test_ood_dataloaders)
         self.__dict__.update(locals())
@@ -57,24 +55,23 @@ class MCMC(OODDetectionModel):
 
         self.replay_buffer = init_random(self.buffer_size, data_shape).cpu()
 
-    def forward(self, x):
-        return self.model.classify(x)
-
-    def compute_losses(self, x_lab, y_lab, x_p_d, dist, logits=None):
-        l_pyxce, l_pxsgld, l_pxysgld = 0.0, 0.0, 0.0
-
-        if logits is None:
-            logits = self.model.classify(x_lab)
+    def training_step(self, batch, batch_idx):
+        (x_lab, y_lab), (x_p_d, _) = batch
+        if self.n_classes > 1:
+            dist = smooth_one_hot(y_lab, self.n_classes, self.smoothing)
+        else:
+            dist = y_lab[None, :]
 
         # log p(y|x) cross entropy loss
         if self.pyxce > 0:
+            logits = self.model.classify(x_lab)
             l_pyxce = KHotCrossEntropyLoss()(logits, dist)
             l_pyxce *= self.pyxce
 
-        l_pyxce += (
-            self.entropy_reg_weight
-            * -torch.distributions.Categorical(logits=logits).entropy().mean()
-        )
+            l_pyxce += (
+                self.entropy_reg_weight
+                * -torch.distributions.Categorical(logits=logits).entropy().mean()
+            )
 
         # log p(x) using sgld
         if self.pxsgld > 0:
@@ -103,16 +100,6 @@ class MCMC(OODDetectionModel):
             l_pxysgld = -(fp - fq)
             l_pxysgld *= self.pxysgld
 
-        l_pyxce += self.energy_reg_weight * self.compute_energy_reg(fp)
-
-        return l_pyxce, l_pxsgld, l_pxysgld
-
-    def training_step(self, batch, batch_idx):
-        (x_lab, y_lab), (x_p_d, _) = batch
-        if self.n_classes > 1:
-            dist = smooth_one_hot(y_lab, self.n_classes, self.smoothing)
-        else:
-            dist = y_lab[None, :]
         loss = sum(self.compute_losses(x_lab, y_lab, x_p_d, dist))
         self.log("train_loss", loss)
         return loss
@@ -143,7 +130,7 @@ class MCMC(OODDetectionModel):
 
     def test_step(self, batch, batch_idx):
         x, y = batch
-        y_hat = self(x)
+        y_hat = self.model.classify(x)
 
         acc = (y == y_hat.argmax(1)).float().mean(0).item()
         self.log("test_acc", acc)
@@ -152,17 +139,14 @@ class MCMC(OODDetectionModel):
 
     def test_epoch_end(self, logits):
         if self.is_toy_dataset:
-            self.model.to(torch.double)
             # Estimate normalizing constant Z by numerical integration
             log_Z = torch.log(
                 estimate_normalizing_constant(
-                    lambda x: self(x).exp().sum(1),
+                    lambda x: self.model(x).exp(),
                     device=self.device,
                     dimensions=self.toy_dataset_dim,
-                    dtype=torch.double,
                 )
             ).float()
-            self.model.to(torch.float32)
 
             log_px = torch.cat(logits).logsumexp(1) - log_Z
             self.log("log_likelihood", log_px.mean())
@@ -181,32 +165,11 @@ class MCMC(OODDetectionModel):
         )
         return [optim], [scheduler]
 
-    def compute_energy_reg(self, energy):
-        return torch.linalg.norm(energy, dim=-1, ord=self.energy_reg_type).mean()
+    def classify(self, x):
+        return torch.softmax(self.model.classify(x), -1)
 
-    def get_gt_preds(self, loader):
-        self.eval()
-        torch.set_grad_enabled(False)
-        gt, preds = [], []
-        for x, y in tqdm(loader):
-            x = x.to(self.device)
-            y_hat = self(x).cpu()
-            gt.append(y)
-            preds.append(y_hat)
-        return torch.cat(gt), torch.cat(preds)
-
-    def ood_detect(self, loader):
-        self.eval()
-        torch.set_grad_enabled(False)
-        scores = []
-        for x, _ in tqdm(loader):
-            x = x.to(self.device)
-            score = self.model(x).cpu()
-            scores.append(score)
-
-        uncert = {}
-        uncert["p(x)"] = torch.cat(scores).cpu().numpy()
-        return uncert
+    def get_ood_scores(self, x):
+        return {"p(x)": self.model(x)}
 
     def sample_p_0(self, replay_buffer, bs, y=None):
         if len(replay_buffer) == 0:

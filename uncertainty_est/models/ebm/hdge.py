@@ -1,14 +1,12 @@
 import torch
-from tqdm import tqdm
 import matplotlib.pyplot as plt
-import pytorch_lightning as pl
 import torch.nn.functional as F
 
-from uncertainty_est.models.JEM.model import HDGE
 from uncertainty_est.utils.utils import to_np
-from uncertainty_est.models.ood_detection_model import OODDetectionModel
 from uncertainty_est.archs.arch_factory import get_arch
-from uncertainty_est.models.JEM.utils import (
+from uncertainty_est.models.ebm.utils.model import HDGE
+from uncertainty_est.models.ood_detection_model import OODDetectionModel
+from uncertainty_est.models.ebm.utils.utils import (
     KHotCrossEntropyLoss,
     smooth_one_hot,
 )
@@ -30,10 +28,8 @@ class HDGEModel(OODDetectionModel):
         contrast_k,
         contrast_t,
         warmup_steps=-1,
-        vis_every=-1,
-        test_ood_dataloaders=[],
     ):
-        super().__init__(test_ood_dataloaders)
+        super().__init__()
         self.__dict__.update(locals())
         self.save_hyperparameters()
 
@@ -41,7 +37,7 @@ class HDGEModel(OODDetectionModel):
         self.model = HDGE(arch, n_classes, contrast_k, contrast_t)
 
     def forward(self, x):
-        return self.model.classify(x)
+        return self.model(x)
 
     def compute_losses(self, x_lab, dist, logits=None, evaluation=False):
         l_pyxce, l_pxcontrast, l_pxycontrast = 0.0, 0.0, 0.0
@@ -124,25 +120,8 @@ class HDGEModel(OODDetectionModel):
         scheduler = torch.optim.lr_scheduler.StepLR(optim, step_size=30, gamma=0.5)
         return [optim], [scheduler]
 
-    def get_gt_preds(self, loader):
-        self.eval()
-        torch.set_grad_enabled(False)
-        gt, preds = [], []
-        for x, y in tqdm(loader):
-            x = x.to(self.device)
-            y_hat = self(x).cpu()
-            gt.append(y)
-            preds.append(y_hat)
-        return torch.cat(gt), torch.cat(preds)
+    def classify(self, x):
+        return torch.softmax(self.model.classify(x), -1)
 
-    def ood_detect(self, loader):
-        self.eval()
-        torch.set_grad_enabled(False)
-        uncert = {}
-
-        px = []
-        for x, _ in tqdm(loader):
-            x = x.to(self.device)
-            px.append(self.model(x).cpu())
-        uncert["p(x)"] = torch.cat(px)
-        return uncert
+    def get_ood_scores(self, x):
+        return {"p(x)": self.model(x)}

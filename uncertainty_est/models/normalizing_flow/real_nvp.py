@@ -1,13 +1,7 @@
-from collections import defaultdict
-
 import torch
 from torch import nn
-from tqdm import tqdm
-import pytorch_lightning as pl
-import matplotlib.pyplot as plt
 import torch.nn.functional as F
 
-from uncertainty_est.utils.utils import to_np
 from uncertainty_est.archs.real_nvp.real_nvp import RealNVP
 from uncertainty_est.models.ood_detection_model import OODDetectionModel
 
@@ -23,10 +17,8 @@ class RealNVPModel(OODDetectionModel):
         momentum,
         weight_decay,
         num_classes=1,
-        vis_every=-1,
-        test_ood_dataloaders=[],
     ):
-        super().__init__(test_ood_dataloaders)
+        super().__init__()
         self.__dict__.update(locals())
         self.save_hyperparameters()
 
@@ -87,16 +79,11 @@ class RealNVPModel(OODDetectionModel):
         )
         return optim
 
-    def ood_detect(self, loader):
-        with torch.no_grad():
-            log_p = []
-            for x, _ in tqdm(loader):
-                x = x.to(self.device)
-                log_p_xy = self(x)
-                log_p_x = torch.logsumexp(log_p_xy, dim=1)
-                log_p.append(log_p_x)
-        log_p = torch.cat(log_p)
+    def classify(self, x):
+        log_p_xy = self(x)
+        return log_p_xy.softmax(-1)
 
-        dir_uncert = {}
-        dir_uncert["p(x)"] = log_p.cpu().numpy()
-        return dir_uncert
+    def get_ood_scores(self, x):
+        log_p_xy = self(x)
+        log_p_x = torch.logsumexp(log_p_xy, dim=1)
+        return {"p(x)": log_p_x}

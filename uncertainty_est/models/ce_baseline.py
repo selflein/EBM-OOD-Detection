@@ -1,5 +1,3 @@
-from typing import Dict
-
 import torch
 from tqdm import tqdm
 import torch.nn.functional as F
@@ -59,22 +57,12 @@ class CEBaseline(OODDetectionModel):
         scheduler = torch.optim.lr_scheduler.StepLR(optim, step_size=30, gamma=0.5)
         return [optim], [scheduler]
 
-    def get_gt_preds(self, loader):
-        self.eval()
-        torch.set_grad_enabled(False)
-        gt, preds = [], []
-        for x, y in tqdm(loader):
-            x = x.to(self.device)
-            y_hat = self(x).cpu()
-            gt.append(y)
-            preds.append(y_hat)
-        return torch.cat(gt), torch.cat(preds)
+    def classify(self, x):
+        return torch.softmax(self.backbone(x), -1)
 
     def get_ood_scores(self, x):
         logits = self(x).cpu()
-        dir_uncert = dirichlet_prior_network_uncertainty(
-            logits.numpy(),
-        )
-        dir_uncert["p(x)"] = logits.logsumexp(1).numpy()
-        dir_uncert["max p(y|x)"] = logits.softmax(1).max(1)[0].numpy()
+        dir_uncert = dirichlet_prior_network_uncertainty(logits)
+        dir_uncert["p(x)"] = logits.logsumexp(1)
+        dir_uncert["max p(y|x)"] = logits.softmax(1).max(1)[0]
         return dir_uncert

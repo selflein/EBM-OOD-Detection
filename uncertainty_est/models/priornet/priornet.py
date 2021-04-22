@@ -1,10 +1,5 @@
-from collections import defaultdict
-
 import torch
-import numpy as np
-from tqdm import tqdm
 import pytorch_lightning as pl
-import torch.nn.functional as F
 
 from uncertainty_est.archs.arch_factory import get_arch
 from uncertainty_est.models.priornet.uncertainties import (
@@ -99,27 +94,11 @@ class PriorNet(pl.LightningModule):
         scheduler = torch.optim.lr_scheduler.StepLR(optim, step_size=100, gamma=0.5)
         return [optim], [scheduler]
 
-    def get_gt_preds(self, loader):
-        self.eval()
-        torch.set_grad_enabled(False)
-        gt, preds = [], []
-        for x, y in tqdm(loader):
-            x = x.to(self.device)
-            y_hat = self(x).cpu()
-            gt.append(y)
-            preds.append(y_hat)
-        return torch.cat(gt), torch.cat(preds)
+    def classify(self, x):
+        return torch.softmax(self.backbone(x), -1)
 
-    def ood_detect(self, loader):
-        self.eval()
-        torch.set_grad_enabled(False)
-        logits = []
-        for x, _ in tqdm(loader):
-            x = x.to(self.device)
-            logit = self(x).cpu().numpy()
-            logits.append(logit)
-
-        logits = np.concatenate(logits)
+    def get_ood_scores(self, x):
+        logits = self.backbone(x)
         uncertanties = dirichlet_prior_network_uncertainty(
             logits, alpha_correction=self.alpha_fix
         )
