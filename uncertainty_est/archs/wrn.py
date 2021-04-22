@@ -101,7 +101,7 @@ def get_norm(n_filters, norm):
     if norm is None:
         return Identity()
     elif norm == "batch":
-        return nn.BatchNorm2d(n_filters, momentum=0.9)
+        return nn.BatchNorm2d(n_filters)
     elif norm == "instance":
         return nn.InstanceNorm2d(n_filters, affine=True)
     elif norm == "layer":
