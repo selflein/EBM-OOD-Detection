@@ -91,7 +91,12 @@ class OODDetectionModel(pl.LightningModule):
             assert num == -1
             max_batches = None
 
-        y, logits = self.get_gt_preds(islice(loader, max_batches))
+        try:
+            y, logits = self.get_gt_preds(islice(loader, max_batches))
+        except NotImplementedError:
+            print("Model does not support classification.")
+            return {}
+
         y, logits = y[:num], logits[:num]
 
         # Compute accuracy

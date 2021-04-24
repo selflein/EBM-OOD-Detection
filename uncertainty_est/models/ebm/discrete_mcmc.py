@@ -28,10 +28,7 @@ class DiscreteMCMC(MCMC):
         pxysgld,
         class_cond_p_x_sample,
         sgld_batch_size,
-        sgld_lr,
-        sgld_std,
         reinit_freq,
-        uncond,
         num_cat,
         sgld_steps=20,
         entropy_reg_weight=0.0,
@@ -41,29 +38,27 @@ class DiscreteMCMC(MCMC):
     ):
         self.num_cat = num_cat
         super().__init__(
-            arch_name,
-            arch_config,
-            learning_rate,
-            momentum,
-            weight_decay,
-            buffer_size,
-            n_classes,
-            data_shape,
-            smoothing,
-            pyxce,
-            pxsgld,
-            pxysgld,
-            class_cond_p_x_sample,
-            sgld_batch_size,
-            sgld_lr,
-            sgld_std,
-            reinit_freq,
-            uncond,
-            sgld_steps,
-            entropy_reg_weight,
-            warmup_steps,
-            lr_step_size,
-            **kwargs
+            arch_name=arch_name,
+            arch_config=arch_config,
+            learning_rate=learning_rate,
+            momentum=momentum,
+            weight_decay=weight_decay,
+            buffer_size=buffer_size,
+            n_classes=n_classes,
+            data_shape=data_shape,
+            smoothing=smoothing,
+            pyxce=pyxce,
+            pxsgld=pxsgld,
+            pxysgld=pxysgld,
+            class_cond_p_x_sample=class_cond_p_x_sample,
+            sgld_batch_size=sgld_batch_size,
+            sgld_lr=0.0,
+            sgld_std=0.0,
+            reinit_freq=reinit_freq,
+            sgld_steps=sgld_steps,
+            entropy_reg_weight=entropy_reg_weight,
+            warmup_steps=warmup_steps,
+            lr_step_size=lr_step_size,
         )
         self.save_hyperparameters()
 
@@ -83,9 +78,6 @@ class DiscreteMCMC(MCMC):
         # if cond, convert inds to class conditional inds
         if y is not None:
             inds = y.cpu() * buffer_size + inds
-            assert (
-                not self.uncond
-            ), "Can't drawn conditional samples without giving me y"
 
         buffer_samples = replay_buffer[inds].to(self.device)
         if self.reinit_freq > 0.0:

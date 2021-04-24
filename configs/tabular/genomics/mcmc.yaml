@@ -34,12 +34,10 @@ model_config:
     num_classes: 1
     kernel_size: 20
 
-  learning_rate: 0.001
+  learning_rate: 0.0001
   momentum: 0.9
   weight_decay: 0.0
   smoothing: 0.0
-  sgld_lr: 1.0
-  sgld_std: 0.01
   sgld_steps: 40
   pyxce: 0.0
   pxsgld: 1.0

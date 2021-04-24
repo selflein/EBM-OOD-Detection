@@ -1,6 +1,5 @@
 seml:
   executable: uncertainty_est/train.py
-  name: vera_dim_reduction
   output_dir: slurm
   project_root_dir: ../../..
 
@@ -10,13 +9,14 @@ slurm:
     gres: gpu:1       # num GPUs
     mem: 16G          # memory
     cpus-per-task: 5  # num cores
-    time: 0-2:00     # max time, D-HH:MM
+    time: 0-5:00     # max time, D-HH:MM
     mail-type: FAIL
+    exclude: gpu09
 
 fixed:
   trainer_config:
-    max_epochs: 50_000
-    max_steps: 50_000
+    max_epochs: 5_000
+    max_steps: 5_000
     gpus: 1
     limit_val_batches: 0
     benchmark: True
@@ -26,6 +26,9 @@ fixed:
     save_last: True
 
   earlystop_config:
+
+  log_dir: grid_search/segment
+  output_folder: segment_mcmc
 
   dataset: &dataset segment
   ood_dataset: *dataset

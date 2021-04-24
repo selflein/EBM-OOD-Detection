@@ -53,7 +53,7 @@ def run(
     _run,
     sigma=0.0,
     output_folder=None,
-    log_dir="logs",
+    log_dir=None,
     num_workers=4,
     test_ood_datasets=[],
     mutation_rate=0.0,
@@ -92,26 +92,41 @@ def run(
         num_workers=num_workers,
     )
 
+    if log_dir == None:
+        out_path = Path("logs") / model_name / dataset
+    else:
+        out_path = Path(log_dir)
+
     output_folder = (
         f'{datetime.now().strftime("%Y-%m-%d-%H-%M-%S")}_{uuid4()}'
         if output_folder is None
         else output_folder
     )
-    out_path = Path(log_dir) / model_name / dataset / output_folder
-    out_path.mkdir(exist_ok=False, parents=True)
 
-    with (out_path / "config.yaml").open("w") as f:
+    # Circumvent issue when starting multiple versions with the same name
+    trys = 10
+    for i in range(trys):
+        try:
+            logger = pl.loggers.TensorBoardLogger(
+                out_path, name=output_folder, default_hp_metric=False
+            )
+            out_dir = Path(logger.log_dir)
+            out_dir.mkdir(exist_ok=False, parents=True)
+            break
+        except FileExistsError as e:
+            if i == (trys - 1):
+                raise ValueError("Could not create log folder") from e
+            print("Failed to create unique log folder. Trying again.")
+
+    with (out_dir / "config.yaml").open("w") as f:
         f.write(yaml.dump(_run.config))
 
     callbacks = []
-    callbacks.append(
-        pl.callbacks.ModelCheckpoint(dirpath=out_path, **checkpoint_config)
-    )
+    callbacks.append(pl.callbacks.ModelCheckpoint(dirpath=out_dir, **checkpoint_config))
+
     if earlystop_config is not None:
         es_callback = pl.callbacks.EarlyStopping(**earlystop_config)
         callbacks.append(es_callback)
-
-    logger = pl.loggers.TensorBoardLogger(out_path, default_hp_metric=False)
 
     trainer = pl.Trainer(
         **trainer_config,
@@ -140,16 +155,11 @@ def run(
         test_ood_dataloaders.append((test_ood_dataset, loader))
     ood_results = model.eval_ood(test_loader, test_ood_dataloaders)
 
-    try:
-        clf_results = model.eval_classifier(test_loader)
-    except Exception as e:
-        print(str(e))
-        clf_results = {}
+    clf_results = model.eval_classifier(test_loader)
 
     results = {**ood_results, **clf_results}
 
     logger.log_hyperparams(model.hparams, results)
-    print(results)
     return results
 
 
