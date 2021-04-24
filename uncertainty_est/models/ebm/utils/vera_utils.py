@@ -616,6 +616,7 @@ class VERADiscreteGenerator(nn.Module):
 
         xr = x[None].repeat(num_samples_posterior, 1, 1, 1)
         xr = xr.view(x.size(0) * num_samples_posterior, x.size(1), x.size(2))
+        xr.requires_grad_()
 
         logq, logits = self.logq_joint(
             xr, h_given_x.view(-1, h.size(1)), return_mu=True
@@ -627,9 +628,12 @@ class VERADiscreteGenerator(nn.Module):
 
         # Grad_x q(x|z) = Grad_x Cat(x; f(z))
         # Use Gumbel Softmax Distribution as smooth approximation
-        x_eps = x[None] + self.eps
-        first_term = 1 / (logits.exp() / (x_eps ** self.temp)).sum(-1, keepdim=True)
-        fvals = first_term - logits.exp() / (x_eps ** 2) - (self.temp + 1) / x_eps
+        # x_eps = x[None] + self.eps
+        # first_term = 1 / (logits.exp() / (x_eps ** self.temp)).sum(-1, keepdim=True)
+        # fvals = first_term - logits.exp() / (x_eps ** 2) - (self.temp + 1) / x_eps
+
+        # Use parameterization of Categorical log p(x) = W^T x - log Z where x is not restricted to x in {0, ..., k}^D but continuous
+        fvals = logits.softmax(-1)
 
         weighted_fvals = (fvals * w[:, :, None, None]).sum(0).detach()
         c = weighted_fvals

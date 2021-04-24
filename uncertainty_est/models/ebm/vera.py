@@ -167,7 +167,7 @@ class VERA(OODDetectionModel):
         (x_l, y_l), _ = batch
         ld, ld_logits = self.model(x_l, return_logits=True)
 
-        self.log("val/loss", -ld)
+        self.log("val/loss", -ld.mean())
 
         # Performing density estimation only
         if ld_logits.shape[1] < 2:

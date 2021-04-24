@@ -139,11 +139,17 @@ def run(
         )
         test_ood_dataloaders.append((test_ood_dataset, loader))
     ood_results = model.eval_ood(test_loader, test_ood_dataloaders)
-    clf_results = model.eval_classifier(test_loader)
+
+    try:
+        clf_results = model.eval_classifier(test_loader)
+    except Exception as e:
+        print(str(e))
+        clf_results = {}
+
     results = {**ood_results, **clf_results}
 
     logger.log_hyperparams(model.hparams, results)
-
+    print(results)
     return results
 
 

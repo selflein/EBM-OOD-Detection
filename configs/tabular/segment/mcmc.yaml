@@ -1,49 +1,78 @@
-trainer_config:
-  max_epochs: 500
-  gpus: 1
-  limit_val_batches: 0
-  benchmark: True
+seml:
+  executable: uncertainty_est/train.py
+  name: vera_dim_reduction
+  output_dir: slurm
+  project_root_dir: ../../..
 
-checkpoint_config:
-  monitor:
-  save_last: True
+slurm:
+  experiments_per_job: 5
+  sbatch_options:
+    gres: gpu:1       # num GPUs
+    mem: 16G          # memory
+    cpus-per-task: 5  # num cores
+    time: 0-2:00     # max time, D-HH:MM
+    mail-type: FAIL
 
-earlystop_config:
+fixed:
+  trainer_config:
+    max_epochs: 50_000
+    max_steps: 50_000
+    gpus: 1
+    limit_val_batches: 0
+    benchmark: True
 
-dataset: &dataset segment
-ood_dataset: *dataset
-seed: 1
-batch_size: 512
-data_shape: &data_shape
-  - &data_dim 18
+  checkpoint_config:
+    monitor:
+    save_last: True
 
-model_name: JEM
-model_config:
-  arch_name: fc
-  arch_config:
-    inp_dim: *data_dim
-    num_classes: 1
-    hidden_dims: [100, 100, 100, 100, 100]
+  earlystop_config:
 
-  learning_rate: 0.001
-  momentum: 0.9
-  weight_decay: 0.0
-  smoothing: 0.0
-  sgld_lr: 1.0
-  sgld_std: 0.01
-  sgld_steps: 100
-  pyxce: 0.0
-  pxsgld: 1.0
-  pxysgld: 0.0
-  buffer_size: 9999
-  reinit_freq: 0.05
-  data_shape: *data_shape
-  uncond: True
-  sgld_batch_size: 512
-  class_cond_p_x_sample: False
-  n_classes: 1
-  warmup_steps: 2500
-  energy_reg_weight: 0.0
-  energy_reg_type: 2
-  entropy_reg_weight: 0.0
-  lr_step_size: 1000
+  dataset: &dataset segment
+  ood_dataset: *dataset
+  batch_size: 512
+  data_shape: &data_shape
+    - &data_dim 18
+
+  test_ood_datasets:
+    - segment-ood
+
+  model_name: JEM
+  model_config:
+    arch_name: fc
+    arch_config:
+      inp_dim: *data_dim
+      num_classes: 1
+      hidden_dims: [100, 100, 100, 100, 100]
+
+    learning_rate: 0.001
+    momentum: 0.9
+    weight_decay: 0.0
+    smoothing: 0.0
+    sgld_lr: 1.0
+    sgld_std: 0.01
+    sgld_steps: 100
+    pyxce: 0.0
+    pxsgld: 1.0
+    pxysgld: 0.0
+    buffer_size: 9999
+    reinit_freq: 0.05
+    data_shape: *data_shape
+    uncond: True
+    sgld_batch_size: 512
+    class_cond_p_x_sample: False
+    n_classes: 1
+    warmup_steps: 2500
+    energy_reg_weight: 0.0
+    energy_reg_type: 2
+    entropy_reg_weight: 0.0
+    lr_step_size: 1000
+
+grid:
+  seed:
+    type: choice
+    options:
+     - 2525
+     - 2123
+     - 293993
+     - 2324234
+     - 6566634

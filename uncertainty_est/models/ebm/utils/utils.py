@@ -24,7 +24,3 @@ def smooth_one_hot(labels, classes, smoothing=0.0):
         dist.fill_(smoothing / (classes - 1))
         dist.scatter_(1, labels.data.unsqueeze(-1), 1.0 - smoothing)
     return dist
-
-
-def init_random(buffer_size, data_shape):
-    return torch.FloatTensor(buffer_size, *data_shape).uniform_(-1, 1)

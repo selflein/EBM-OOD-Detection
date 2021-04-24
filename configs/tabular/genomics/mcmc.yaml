@@ -1,0 +1,55 @@
+trainer_config:
+  max_steps: 1_000_000
+  max_epochs: 1_000_000
+  gpus: 1
+  limit_val_batches: 1
+  val_check_interval: 10_000
+  limit_test_batches: 1000
+  benchmark: True
+
+checkpoint_config:
+  monitor:
+  save_last: True
+
+earlystop_config:
+
+dataset: &dataset genomics
+ood_dataset: *dataset
+batch_size: 512
+data_shape: &data_shape
+  - &data_dim 250
+
+test_ood_datasets:
+  - genomics-ood
+
+model_name: DiscreteMCMC
+model_config:
+  num_cat: 4
+
+  arch_name: seq_classifier
+  arch_config:
+    in_channels: 4
+    num_filters: 128
+    fc_hidden_size: 1000
+    num_classes: 1
+    kernel_size: 20
+
+  learning_rate: 0.001
+  momentum: 0.9
+  weight_decay: 0.0
+  smoothing: 0.0
+  sgld_lr: 1.0
+  sgld_std: 0.01
+  sgld_steps: 40
+  pyxce: 0.0
+  pxsgld: 1.0
+  pxysgld: 0.0
+  buffer_size: 9999
+  reinit_freq: 0.0
+  data_shape: *data_shape
+  sgld_batch_size: 512
+  class_cond_p_x_sample: False
+  n_classes: 10
+  warmup_steps: 2500
+  entropy_reg_weight: 0.0
+  lr_step_size: 1000

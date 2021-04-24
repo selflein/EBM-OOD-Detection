@@ -7,8 +7,12 @@ class JEM(nn.Module):
         super().__init__()
         self.f = model
 
-    def forward(self, x, return_logits=False):
+    def forward(self, x, return_logits=False, y=None):
         logits = self.classify(x)
+
+        if y is not None:
+            return logits[torch.arange(len(x)), y]
+
         if return_logits:
             return logits.logsumexp(1), logits
         else:

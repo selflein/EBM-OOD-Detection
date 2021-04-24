@@ -1,15 +1,16 @@
 import torch
-import matplotlib.pyplot as plt
 
 from uncertainty_est.models.ebm.utils.model import JEM
 from uncertainty_est.archs.arch_factory import get_arch
 from uncertainty_est.models.ood_detection_model import OODDetectionModel
-from uncertainty_est.utils.utils import to_np, estimate_normalizing_constant
 from uncertainty_est.models.ebm.utils.utils import (
     KHotCrossEntropyLoss,
     smooth_one_hot,
-    init_random,
 )
+
+
+def init_random(buffer_size, data_shape):
+    return torch.FloatTensor(buffer_size, *data_shape).uniform_(-1, 1)
 
 
 class MCMC(OODDetectionModel):
@@ -32,28 +33,27 @@ class MCMC(OODDetectionModel):
         sgld_lr,
         sgld_std,
         reinit_freq,
-        uncond,
         sgld_steps=20,
         entropy_reg_weight=0.0,
         warmup_steps=0,
-        vis_every=-1,
-        is_toy_dataset=False,
-        toy_dataset_dim=2,
         lr_step_size=50,
-        test_ood_dataloaders=[],
         **kwargs
     ):
-        super().__init__(test_ood_dataloaders)
+        super().__init__(**kwargs)
         self.__dict__.update(locals())
         self.save_hyperparameters()
+
+        if class_cond_p_x_sample:
+            assert n_classes > 1
 
         arch = get_arch(arch_name, arch_config)
         self.model = JEM(arch)
 
-        if not self.uncond:
-            self.buffer_size = self.buffer_size - (self.buffer_size % self.n_classes)
+        self.buffer_size = self.buffer_size - (self.buffer_size % self.n_classes)
+        self._init_buffer()
 
-        self.replay_buffer = init_random(self.buffer_size, data_shape).cpu()
+    def _init_buffer(self):
+        self.replay_buffer = init_random(self.buffer_size, self.data_shape).cpu()
 
     def training_step(self, batch, batch_idx):
         (x_lab, y_lab), (x_p_d, _) = batch
@@ -62,6 +62,7 @@ class MCMC(OODDetectionModel):
         else:
             dist = y_lab[None, :]
 
+        l_pyxce, l_pxsgld, l_pxysgld = 0.0, 0.0, 0.0
         # log p(y|x) cross entropy loss
         if self.pyxce > 0:
             logits = self.model.classify(x_lab)
@@ -76,9 +77,6 @@ class MCMC(OODDetectionModel):
         # log p(x) using sgld
         if self.pxsgld > 0:
             if self.class_cond_p_x_sample:
-                assert (
-                    not self.uncond
-                ), "can only draw class-conditional samples if EBM is class-cond"
                 y_q = torch.randint(0, self.n_classes, (self.sgld_batch_size,)).to(
                     self.device
                 )
@@ -100,8 +98,8 @@ class MCMC(OODDetectionModel):
             l_pxysgld = -(fp - fq)
             l_pxysgld *= self.pxysgld
 
-        loss = sum(self.compute_losses(x_lab, y_lab, x_p_d, dist))
-        self.log("train_loss", loss)
+        loss = l_pxysgld + l_pxsgld + l_pyxce
+        self.log("train/loss", loss)
         return loss
 
     def validation_step(self, batch, batch_idx):
@@ -112,46 +110,16 @@ class MCMC(OODDetectionModel):
 
         _, logits = self.model(x_lab, return_logits=True)
         acc = (y_lab == logits.argmax(1)).float().mean(0).item()
-        self.log("val_acc", acc)
-
-    def validation_epoch_end(self, training_step_outputs):
-        if self.vis_every > 0 and self.current_epoch % self.vis_every == 0:
-            interp = torch.linspace(-4, 4, 500)
-            x, y = torch.meshgrid(interp, interp)
-            data = torch.stack((x.reshape(-1), y.reshape(-1)), 1)
-
-            px = to_np(torch.exp(self.model(data.to(self.device))))
-
-            fig, ax = plt.subplots()
-            mesh = ax.pcolormesh(to_np(x), to_np(y), px.reshape(*x.shape))
-            fig.colorbar(mesh)
-            self.logger.experiment.add_figure("p(x)", fig, self.current_epoch)
-            plt.close()
+        self.log("val/acc", acc)
 
     def test_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self.model.classify(x)
 
         acc = (y == y_hat.argmax(1)).float().mean(0).item()
-        self.log("test_acc", acc)
+        self.log("test.acc", acc)
 
         return y_hat
-
-    def test_epoch_end(self, logits):
-        if self.is_toy_dataset:
-            # Estimate normalizing constant Z by numerical integration
-            log_Z = torch.log(
-                estimate_normalizing_constant(
-                    lambda x: self.model(x).exp(),
-                    device=self.device,
-                    dimensions=self.toy_dataset_dim,
-                )
-            ).float()
-
-            log_px = torch.cat(logits).logsumexp(1) - log_Z
-            self.log("log_likelihood", log_px.mean())
-
-        super().test_epoch_end()
 
     def configure_optimizers(self):
         optim = torch.optim.AdamW(
@@ -182,9 +150,6 @@ class MCMC(OODDetectionModel):
         # if cond, convert inds to class conditional inds
         if y is not None:
             inds = y.cpu() * buffer_size + inds
-            assert (
-                not self.uncond
-            ), "Can't drawn conditional samples without giving me y"
 
         buffer_samples = replay_buffer[inds].to(self.device)
         random_samples = init_random(bs, self.data_shape).to(self.device)
@@ -200,15 +165,12 @@ class MCMC(OODDetectionModel):
 
         # generate initial samples and buffer inds of those samples (if buffer is used)
         init_sample, buffer_inds = self.sample_p_0(replay_buffer, bs=bs, y=y)
-        x_k = init_sample.clone()
-        x_k.requires_grad = True
+        x_k = torch.autograd.Variable(init_sample, requires_grad=True)
 
         # sgld
         for _ in range(n_steps):
             if not contrast:
-                energy = self.model(x_k, return_logits=True)[1][
-                    torch.arange(x_k.size(0)), y
-                ].sum()
+                energy = self.model(x_k, y=y).sum(0)
             else:
                 if y is not None:
                     dist = smooth_one_hot(y, self.n_classes, self.smoothing)
