@@ -68,20 +68,20 @@ class OODDetectionModel(pl.LightningModule):
                 preds = np.concatenate([ood, id_])
 
                 labels = np.concatenate([np.zeros_like(ood), np.ones_like(id_)])
-                ood_metrics[f"{dataset_name}, {score_name}, AUROC"] = roc_auc_score(
-                    labels, preds
+                ood_metrics[f"{dataset_name}, {score_name}, AUROC"] = (
+                    roc_auc_score(labels, preds) * 100.0
                 )
-                ood_metrics[
-                    f"{dataset_name}, {score_name}, AUPR"
-                ] = average_precision_score(labels, preds)
+                ood_metrics[f"{dataset_name}, {score_name}, AUPR"] = (
+                    average_precision_score(labels, preds) * 100.0
+                )
 
                 labels = np.concatenate([np.ones_like(ood), np.zeros_like(id_)])
-                ood_metrics[f"{dataset_name}, {score_name}, AUROC'"] = roc_auc_score(
-                    labels, -preds
+                ood_metrics[f"{dataset_name}, {score_name}, AUROC'"] = (
+                    roc_auc_score(labels, -preds) * 100.0
                 )
-                ood_metrics[
-                    f"{dataset_name}, {score_name}, AUPR'"
-                ] = average_precision_score(labels, -preds)
+                ood_metrics[f"{dataset_name}, {score_name}, AUPR'"] = (
+                    average_precision_score(labels, -preds) * 100.0
+                )
         return ood_metrics
 
     def eval_classifier(self, loader, num=10_000):
@@ -182,40 +182,3 @@ class OODDetectionModel(pl.LightningModule):
 
     def classify(self, x) -> torch.tensor:
         raise NotImplementedError
-
-    # TODO: Remove when https://github.com/PyTorchLightning/pytorch-lightning/pull/6056 is merged
-    def save_hyperparameters(
-        self, *args, ignore=["test_ood_dataloaders"], frame=None
-    ) -> None:
-        if not frame:
-            frame = inspect.currentframe().f_back
-        init_args = get_init_args(frame)
-        assert init_args, "failed to inspect the self init"
-
-        if ignore is not None:
-            if isinstance(ignore, str):
-                ignore = [ignore]
-            if isinstance(ignore, (list, tuple)):
-                ignore = [arg for arg in ignore if isinstance(arg, str)]
-            init_args = {k: v for k, v in init_args.items() if k not in ignore}
-
-        if not args:
-            # take all arguments
-            hp = init_args
-            self._hparams_name = "kwargs" if hp else None
-        else:
-            # take only listed arguments in `save_hparams`
-            isx_non_str = [i for i, arg in enumerate(args) if not isinstance(arg, str)]
-            if len(isx_non_str) == 1:
-                hp = args[isx_non_str[0]]
-                cand_names = [k for k, v in init_args.items() if v == hp]
-                self._hparams_name = cand_names[0] if cand_names else None
-            else:
-                hp = {arg: init_args[arg] for arg in args if isinstance(arg, str)}
-                self._hparams_name = "kwargs"
-
-        # `hparams` are expected here
-        if hp:
-            self._set_hparams(hp)
-        # make deep copy so  there is not other runtime changes reflected
-        self._hparams_initial = copy.deepcopy(self._hparams)

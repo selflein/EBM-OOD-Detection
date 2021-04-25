@@ -4,13 +4,14 @@ import math
 import torch
 from torch import nn
 import torch.distributions as tdist
+from pyro.distributions.transforms import ELUTransform, LeakyReLUTransform
 from pyro.distributions.transforms import (
     Planar,
     Radial,
     affine_autoregressive,
     affine_coupling,
+    permute,
 )
-from pyro.distributions.transforms import ELUTransform, LeakyReLUTransform
 
 
 class OrthogonalTransform(nn.Module):

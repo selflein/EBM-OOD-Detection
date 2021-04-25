@@ -1,7 +1,6 @@
 import math
 
 import torch
-from tqdm import tqdm
 import torch.nn.functional as F
 import matplotlib.pyplot as plt
 
@@ -14,7 +13,9 @@ from uncertainty_est.utils.utils import (
 
 
 class FlowContrastiveEstimation(OODDetectionModel):
-    """Implementation of Noise Contrastive Estimation http://proceedings.mlr.press/v9/gutmann10a.html"""
+    """Implementation of Noise Contrastive Estimation
+    http://proceedings.mlr.press/v9/gutmann10a.html
+    """
 
     def __init__(
         self,
@@ -30,6 +31,7 @@ class FlowContrastiveEstimation(OODDetectionModel):
         is_toy_dataset=False,
         toy_dataset_dim=2,
     ):
+        super().__init__()
         self.automatic_optimization = False
         self.__dict__.update(locals())
         self.save_hyperparameters()
@@ -64,21 +66,20 @@ class FlowContrastiveEstimation(OODDetectionModel):
 
         loss = self.rho * pos_loss + (1 - self.rho) * neg_loss
 
-        acc = (
-            torch.cat((pos_e_log_p > pos_f_log_p, neg_f_log_p > neg_e_log_p))
-            .float()
-            .mean()
-        )
-        self.log("train/acc", acc, prog_bar=True)
+        pos_acc = (pos_e_log_p > pos_f_log_p).float().mean()
+        neg_acc = (neg_f_log_p > neg_e_log_p).float().mean()
 
-        if acc <= 0.55:
+        self.log("train/pos_acc", pos_acc, prog_bar=True)
+        self.log("train/neg_acc", neg_acc, prog_bar=True)
+
+        if pos_acc < 0.55 or neg_acc < 0.55:
             optim_ebm.zero_grad()
             self.manual_backward(loss)
             optim_ebm.step()
             self.log("train/loss", loss, prog_bar=True)
         else:
             optim_flow.zero_grad()
-            self.manual_backward(-loss)
+            self.manual_backward(-pos_loss)
             optim_flow.step()
             self.log("train/flow_loss", -loss, prog_bar=True)
 
@@ -108,6 +109,14 @@ class FlowContrastiveEstimation(OODDetectionModel):
             mesh = ax.pcolormesh(x, y, px.reshape(*x.shape))
             fig.colorbar(mesh)
             self.logger.experiment.add_figure("dist/p(x)", fig, self.current_epoch)
+            plt.close()
+
+            fig, ax = plt.subplots()
+            samples = to_np(self.noise_dist.sample(1000)[0])
+            mesh = ax.scatter(samples[:, 0], samples[:, 1])
+            self.logger.experiment.add_figure(
+                "dist/flow_samples", fig, self.current_epoch
+            )
             plt.close()
 
             fig, ax = plt.subplots()
@@ -151,17 +160,13 @@ class FlowContrastiveEstimation(OODDetectionModel):
             lr=self.learning_rate,
             weight_decay=self.weight_decay,
         )
-        scheduler = torch.optim.lr_scheduler.StepLR(optim, step_size=30, gamma=0.5)
-
         optim_flow = torch.optim.AdamW(
             self.noise_dist.parameters(),
             betas=(self.momentum, 0.999),
             lr=self.flow_learning_rate,
             weight_decay=self.weight_decay,
         )
-        scheduler_flow = torch.optim.lr_scheduler.StepLR(optim, step_size=30, gamma=0.5)
-
-        return [optim, optim_flow], [scheduler, scheduler_flow]
+        return [optim, optim_flow]
 
     def get_ood_scores(self, x):
         return {"p(x)": self.model(x)}
