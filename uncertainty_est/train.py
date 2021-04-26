@@ -51,6 +51,7 @@ def run(
     checkpoint_config,
     data_shape,
     _run,
+    num_classes,
     sigma=0.0,
     output_folder=None,
     log_dir=None,
@@ -60,6 +61,7 @@ def run(
     **kwargs,
 ):
     pl.seed_everything(seed)
+    assert num_classes > 0
 
     model = MODELS[model_name](**model_config)
 

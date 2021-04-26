@@ -1,0 +1,19 @@
+# @package _global_
+
+slurm:
+  experiments_per_job: 5
+  sbatch_options:
+    time: 0-05:00
+
+fixed:
+  dataset: segment
+  num_classes: 6
+  batch_size: 512
+  data_shape:
+    - 18
+
+  test_ood_datasets:
+    - segment-ood
+    - uniform_noise
+    - gaussian_noise
+    - constant

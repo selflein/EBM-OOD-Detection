@@ -1,10 +1,9 @@
-# @package __group__
+# @package fixed
 
 trainer_config:
-  max_epochs: 500
-  gpus: 1
+  max_epochs: 5_000
+  max_steps: 5_000
   limit_val_batches: 0
-  benchmark: True
 
 checkpoint_config:
   monitor:
@@ -12,19 +11,14 @@ checkpoint_config:
 
 earlystop_config:
 
-dataset: &dataset segment
-ood_dataset: *dataset
-seed: 1
-batch_size: 512
-data_shape: &data_shape
-  - &data_dim 18
+ood_dataset: ${fixed.dataset}
 
 model_name: JEM
 model_config:
   arch_name: fc
   arch_config:
-    inp_dim: *data_dim
-    num_classes: 9
+    inp_dim: ${fixed.data_shape.0}
+    num_classes: ${fixed.num_classes}
     hidden_dims: [100, 100, 100, 100, 100]
 
   learning_rate: 0.001
@@ -39,13 +33,10 @@ model_config:
   pxysgld: 0.0
   buffer_size: 9000
   reinit_freq: 0.05
-  data_shape: *data_shape
-  uncond: False
-  sgld_batch_size: 512
+  data_shape: ${fixed.data_shape}
+  sgld_batch_size: ${fixed.batch_size}
   class_cond_p_x_sample: True
-  n_classes: 9
+  n_classes: ${fixed.num_classes}
   warmup_steps: 2500
-  energy_reg_weight: 0.0
-  energy_reg_type: 2
   entropy_reg_weight: 0.0
   lr_step_size: 1000

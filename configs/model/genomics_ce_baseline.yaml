@@ -1,0 +1,32 @@
+# @package fixed
+
+trainer_config:
+  max_steps: 100_000
+  max_epochs: 100_000
+  val_check_interval: 10_000
+  limit_val_batches: 2000
+  limit_test_batches: 10_000
+
+checkpoint_config:
+  monitor: val_loss
+  mode: min
+
+earlystop_config:
+  monitor: val_loss
+  mode: min
+  patience: 10
+
+batch_size: 2048
+
+model_name: CEBaseline
+model_config:
+  arch_name: seq_classifier
+  arch_config:
+    in_channels: ${fixed.num_cat}
+    num_filters: 128
+    fc_hidden_size: 1000
+    num_classes: 10
+    kernel_size: 20
+  learning_rate: 0.0001
+  momentum: 0.9
+  weight_decay: 0.0005

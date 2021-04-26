@@ -1,0 +1,14 @@
+# @package _global_
+
+slurm:
+  experiments_per_job: 5
+
+fixed:
+  dataset: genomics_embedded
+  batch_size: 512
+  data_shape:
+    - 128
+
+  test_ood_datasets:
+    - genomics-ood_embedded
+    - genomics-noise_embedded

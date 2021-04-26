@@ -27,7 +27,7 @@ class CEBaseline(OODDetectionModel):
         y_hat = self(x)
 
         loss = F.cross_entropy(y_hat, y)
-        self.log("train_loss", loss)
+        self.log("train/loss", loss)
         return loss
 
     def validation_step(self, batch, batch_idx):
@@ -35,17 +35,17 @@ class CEBaseline(OODDetectionModel):
         y_hat = self(x)
 
         loss = F.cross_entropy(y_hat, y)
-        self.log("val_loss", loss)
+        self.log("val/loss", loss)
 
         acc = (y == y_hat.argmax(1)).float().mean(0).item()
-        self.log("val_acc", acc)
+        self.log("val/acc", acc)
 
     def test_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self(x)
 
         acc = (y == y_hat.argmax(1)).float().mean(0).item()
-        self.log("test_acc", acc)
+        self.log("test/acc", acc)
 
     def configure_optimizers(self):
         optim = torch.optim.AdamW(

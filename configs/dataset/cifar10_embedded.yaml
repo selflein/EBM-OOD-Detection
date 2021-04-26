@@ -1,0 +1,22 @@
+# @package _global_
+
+slurm:
+  experiments_per_job: 5
+  sbatch_options:
+    time: 0-05:00
+
+fixed:
+  dataset: cifar10_embedded
+  num_classes: 10
+  batch_size: 512
+  data_shape: [640]
+
+  test_ood_datasets:
+    - lsun_embedded
+    - textures_embedded
+    - cifar100_embedded
+    - svhn_embedded
+    - celeb-a_embedded
+    - cifar10_uniform_noise_embedded
+    - cifar10_gaussian_noise_embedded
+    - cifar10_constant_embedded

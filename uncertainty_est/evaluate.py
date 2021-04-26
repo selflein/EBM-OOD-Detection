@@ -49,15 +49,16 @@ def eval_model(
 
     if eval_classification:
         clf_results = model.eval_classifier(id_test_loader, max_items)
-        for k, v in clf_results:
-            logger.log(f"{k}: {v:.02f}")
+        for k, v in clf_results.items():
+            logger.info(f"{k}: {v:.02f}")
 
     test_ood_dataloaders = []
     for test_ood_dataset in ood_datasets:
         loader = get_dataloader(
             test_ood_dataset,
             "test",
-            batch_size,
+            data_shape=id_test_loader.dataset.data_shape,
+            batch_size=batch_size,
         )
         test_ood_dataloaders.append((test_ood_dataset, loader))
 

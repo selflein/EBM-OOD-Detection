@@ -1,0 +1,26 @@
+trainer_config:
+  max_steps: 100_000
+  max_epochs: 100_000
+  val_check_interval: 10_000
+  limit_val_batches: 2000
+  limit_test_batches: 10_000
+
+checkpoint_config:
+  monitor: val/loss
+  mode: min
+
+earlystop_config:
+  monitor: val/loss
+  mode: min
+  patience: 10
+
+model_name: NormalizingFlow
+model_config:
+  arch_name: seq_generative_model
+  arch_config:
+    input_size: ${fixed.num_cat}
+    hidden_size: 128
+    num_classes: ${fixed.num_classes}
+  learning_rate: 0.001
+  momentum: 0.9
+  weight_decay: 0.0005

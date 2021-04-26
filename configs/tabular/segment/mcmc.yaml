@@ -10,7 +10,6 @@ slurm:
     mem: 16G          # memory
     cpus-per-task: 5  # num cores
     time: 0-5:00     # max time, D-HH:MM
-    mail-type: FAIL
     exclude: gpu09
 
 fixed:

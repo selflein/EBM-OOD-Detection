@@ -1,0 +1,16 @@
+# @package _global_
+
+slurm:
+  experiments_per_job: 5
+
+fixed:
+  dataset: sensorless
+  num_classes: 9
+  batch_size: 512
+  data_shape: [48]
+
+  test_ood_datasets:
+    - sensorless-ood
+    - uniform_noise
+    - gaussian_noise
+    - constant

@@ -1,0 +1,14 @@
+# @package fixed
+
+dataset: fashionmnist
+num_classes: 10
+batch_size: 128
+data_shape: [32, 32, 1]
+
+test_ood_datasets:
+  - mnist
+  - notmnist
+  - kmnist
+  - gaussian_noise
+  - uniform_noise
+  - constant

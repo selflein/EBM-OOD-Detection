@@ -93,12 +93,12 @@ class VERAPriorNet(VERA):
         alphas = torch.exp(outputs[0]).reshape(-1) + self.concentration
         self.logger.experiment.add_histogram("alphas", alphas, self.current_epoch)
 
-    def ood_detect(self, x):
+    def get_ood_scores(self, x):
         px, logits = self.model(x, return_logits=True)
         uncert = {}
-        uncert["p(x)"] = px.numpy()
+        uncert["p(x)"] = px
         dirichlet_uncerts = dirichlet_prior_network_uncertainty(
-            logits.numpy(), alpha_correction=self.alpha_fix
+            logits.cpu().numpy(), alpha_correction=self.alpha_fix
         )
         uncert = {**uncert, **dirichlet_uncerts}
         return uncert

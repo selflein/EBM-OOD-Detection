@@ -52,7 +52,7 @@ class OODDetectionModel(pl.LightningModule):
                 ood = ood_scores[:length]
                 id_ = id_scores[:length]
 
-                if self.logger is not None and self.logger.save_dir is not None:
+                if self.logger is not None and self.logger.log_dir is not None:
                     ax = plot_score_hist(
                         id_,
                         ood,
@@ -60,7 +60,7 @@ class OODDetectionModel(pl.LightningModule):
                     )
                     ax.figure.savefig(
                         path.join(
-                            self.logger.save_dir, f"{dataset_name}_{score_name}.png"
+                            self.logger.log_dir, f"{dataset_name}_{score_name}.png"
                         )
                     )
                     plt.close()
@@ -92,27 +92,28 @@ class OODDetectionModel(pl.LightningModule):
             max_batches = None
 
         try:
-            y, logits = self.get_gt_preds(islice(loader, max_batches))
+            y, probs = self.get_gt_preds(islice(loader, max_batches))
+            y, probs = y[:num], probs[:num]
         except NotImplementedError:
             print("Model does not support classification.")
             return {}
 
-        y, logits = y[:num], logits[:num]
+        try:
+            # Compute accuracy
+            acc = accuracy(y, probs)
 
-        # Compute accuracy
-        probs = torch.softmax(logits, dim=1)
-        acc = accuracy(y, probs)
+            # Compute calibration
+            y_np, probs_np = to_np(y), to_np(probs)
+            ece, mce = classification_calibration(y_np, probs_np)
+            brier = brier_score(y_np, probs_np)
+            uncertainty, resolution, reliability = brier_decomposition(y_np, probs_np)
 
-        # Compute calibration
-        y_np, probs_np = to_np(y), to_np(probs)
-        ece, mce = classification_calibration(y_np, probs_np)
-        brier = brier_score(y_np, probs_np)
-        uncertainty, resolution, reliability = brier_decomposition(y_np, probs_np)
-
-        if self.logger is not None and self.logger.save_dir is not None:
-            fig, ax = plt.subplots(figsize=(10, 10))
-            draw_reliability_graph(y_np, probs_np, 10, ax=ax)
-            fig.savefig(self.logger.save_dir / "calibration.png", dpi=200)
+            if self.logger is not None and self.logger.log_dir is not None:
+                fig, ax = plt.subplots(figsize=(10, 10))
+                draw_reliability_graph(y_np, probs_np, 10, ax=ax)
+                fig.savefig(self.logger.log_dir / "calibration.png", dpi=200)
+        except:
+            return {}
 
         return {
             "Accuracy": acc * 100,

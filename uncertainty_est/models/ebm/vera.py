@@ -181,6 +181,9 @@ class VERA(OODDetectionModel):
         x, y = batch
         y_hat = self(x)
 
+        if self.n_classes < 2:
+            return
+
         acc = (y == y_hat.argmax(1)).float().mean(0).item()
         self.log("acc", acc)
 

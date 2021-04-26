@@ -134,25 +134,6 @@ class FlowContrastiveEstimation(OODDetectionModel):
         self.log("test_acc", acc)
         return y_hat
 
-    def test_epoch_end(self, logits):
-        if self.is_toy_dataset:
-            # Estimate normalizing constant Z by numerical integration
-            log_Z = torch.log(
-                estimate_normalizing_constant(
-                    lambda x: self(x).exp().sum(1),
-                    device=self.device,
-                    dimensions=self.toy_dataset_dim,
-                    dtype=torch.float32,
-                )
-            )
-            self.log("log_Z", log_Z)
-
-            logits = torch.cat(logits, 0)
-            log_px = logits.logsumexp(1) - log_Z
-            self.log("log_likelihood", log_px.mean())
-
-        super().test_epoch_end()
-
     def configure_optimizers(self):
         optim = torch.optim.AdamW(
             self.model.parameters(),

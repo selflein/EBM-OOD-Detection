@@ -1,0 +1,18 @@
+# @package _global_
+
+slurm:
+  experiments_per_job: 5
+
+fixed:
+  dataset: fashionmnist_embedded
+  num_classes: 10
+  batch_size: 128
+  data_shape: [640]
+
+  test_ood_datasets:
+    - mnist_embedded
+    - notmnist_embedded
+    - kmnist_embedded
+    - fashionmnist_gaussian_noise_embedded
+    - fashionmnist_uniform_noise_embedded
+    - fashionmnist_constant_embedded

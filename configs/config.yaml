@@ -1,0 +1,32 @@
+hydra:
+  run:
+    dir: .
+  output_subdir:
+
+seml:
+  executable: uncertainty_est/train.py
+  output_dir: slurm
+  project_root_dir: ..
+
+slurm:
+  experiments_per_job: 1
+  sbatch_options:
+    gres: gpu:1       # num GPUs
+    mem: 16G          # memory
+    cpus-per-task: 4  # num cores
+    time: 0-20:00     # max time, D-HH:MM
+
+fixed:
+  trainer_config:
+    gpus: 1
+    benchmark: True
+  log_dir: ./thesis_logs
+  output_folder:
+
+defaults:
+  - hydra/job_logging: stdout
+  - dataset: segment
+  - model: fc_mcmc_supervised
+  - model/updates: ${defaults.1.model}_${defaults.0.dataset}
+    optional: True
+  - grid: seed

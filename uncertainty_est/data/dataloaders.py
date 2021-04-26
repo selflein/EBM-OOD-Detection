@@ -2,10 +2,9 @@ from pathlib import Path
 
 import torch
 import numpy as np
-from PIL import Image
-from torch.functional import split
 from torch.utils.data import DataLoader
 from torchvision import transforms as tvt
+from torchvision.transforms import InterpolationMode
 from uncertainty_eval.datasets import get_dataset as ue_get_dataset
 
 from uncertainty_est.data.datasets import ConcatDataset, ConcatIterableDataset
@@ -32,6 +31,12 @@ def get_dataset(dataset, data_shape=None, length=10_000, split_seed=1):
             low = torch.empty(*data_shape).fill_(l)
             high = torch.empty(*data_shape).fill_(h)
             ds = ds_class(DATA_ROOT, length=length, low=low, high=high)
+        elif dataset == "constant":
+            low = 0.0 if len(data_shape) == 3 else -5.0
+            high = 255.0 if len(data_shape) == 3 else 5.0
+            ds = ds_class(
+                DATA_ROOT, length=length, low=low, high=high, shape=data_shape
+            )
         else:
             ds = ds_class(DATA_ROOT)
     except KeyError as e:
@@ -70,10 +75,10 @@ def get_dataloader(
         img_size = data_shape[1]
         train_transform.extend(
             [
-                tvt.Resize(img_size, Image.BICUBIC),
+                tvt.Resize(img_size, InterpolationMode.LANCZOS),
                 tvt.CenterCrop(img_size),
                 tvt.Pad(4, padding_mode="reflect"),
-                tvt.RandomRotation(15, resample=Image.BICUBIC),
+                tvt.RandomRotation(15, interpolation=InterpolationMode.LANCZOS),
                 tvt.RandomHorizontalFlip(),
                 tvt.RandomCrop(img_size),
             ]
@@ -81,7 +86,7 @@ def get_dataloader(
 
         test_transform.extend(
             [
-                tvt.Resize(img_size, Image.BICUBIC),
+                tvt.Resize(img_size, InterpolationMode.LANCZOS),
                 tvt.CenterCrop(img_size),
             ]
         )
