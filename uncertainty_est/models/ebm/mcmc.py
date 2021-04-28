@@ -1,4 +1,7 @@
+import random
+
 import torch
+import torch.nn.functional as F
 
 from uncertainty_est.models.ebm.utils.model import JEM
 from uncertainty_est.archs.arch_factory import get_arch
@@ -33,6 +36,10 @@ class MCMC(OODDetectionModel):
         sgld_lr,
         sgld_std,
         reinit_freq,
+        annealed_sgld=True,
+        entropy_term=0.3,
+        approx_ent_samples=100,
+        kl_term=1.0,
         sgld_steps=20,
         entropy_reg_weight=0.0,
         warmup_steps=2500,
@@ -89,9 +96,34 @@ class MCMC(OODDetectionModel):
                     self.replay_buffer, n_steps=self.sgld_steps
                 )  # sample from log-sumexp
 
-            fp = self.model(x_p_d).mean()
-            fq = self.model(x_q).mean()
-            l_pxsgld = -(fp - fq)
+            fp = self.model(x_p_d)
+            fq = self.model(x_q.detach())
+            l_pxsgld = -(fp.mean() - fq.mean()) + (fp ** 2).mean() + (fq ** 2).mean()
+
+            if self.kl_term > 0.0:
+                self.model.requires_grad_(False)
+                kl_loss = self.model(x_q)
+                self.model.requires_grad_(True)
+                l_pxsgld += self.kl_term * kl_loss
+
+                # Approx. entropy term by comparing with samples from buffer
+                if self.entropy_term > 0.0:
+                    buffer_idxs = random.sample(
+                        range(len(self.replay_buffer)), self.approx_ent_samples
+                    )
+                    buffer_samples = (
+                        self.replay_buffer(buffer_idxs)
+                        .flatten(start_dim=1)
+                        .to(self.device)
+                    )
+
+                    data_flat = x_q.flatten(start_dim=1)
+                    dist_matrix = torch.norm(
+                        data_flat[:, None, :] - buffer_samples[None, :, :], p=2, dim=-1
+                    )
+                    loss_repel = torch.log(dist_matrix.min(dim=1)[0]).mean()
+                    l_pxsgld += self.entropy_term * loss_repel
+
             l_pxsgld *= self.pxsgld
 
         # log p(x|y) using sgld
@@ -120,7 +152,7 @@ class MCMC(OODDetectionModel):
         y_hat = self.model.classify(x)
 
         acc = (y == y_hat.argmax(1)).float().mean(0).item()
-        self.log("test.acc", acc)
+        self.log("test/acc", acc)
 
         return y_hat
 
@@ -171,7 +203,12 @@ class MCMC(OODDetectionModel):
         x_k = torch.autograd.Variable(init_sample, requires_grad=True)
 
         # sgld
-        for _ in range(n_steps):
+        for step in range(n_steps):
+            noise = self.sgld_std * torch.randn_like(x_k)
+            if self.annealed_sgld:
+                noise *= (n_steps - step - 1) / n_steps
+            x_k = x_k + noise
+
             if not contrast:
                 energy = self.model(x_k, y=y).sum(0)
             else:
@@ -184,11 +221,17 @@ class MCMC(OODDetectionModel):
                 )
                 energy = -1.0 * F.cross_entropy(output, target)
             f_prime = torch.autograd.grad(energy, [x_k], retain_graph=True)[0]
-            x_k.data += self.sgld_lr * f_prime + self.sgld_std * torch.randn_like(x_k)
+
+            # Propagte gradients through final step of MCMC
+            # Following "https://arxiv.org/abs/2012.01316"
+            if step == n_steps - 1:
+                x_k = self.sgld_lr * f_prime
+            else:
+                x_k.data += self.sgld_lr * f_prime
+
         self.model.train()
-        final_samples = x_k.detach()
 
         # update replay buffer
         if len(replay_buffer) > 0:
-            replay_buffer[buffer_inds] = final_samples.cpu()
-        return final_samples
+            replay_buffer[buffer_inds] = x_k.detach().cpu()
+        return x_k
