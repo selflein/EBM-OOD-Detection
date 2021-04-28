@@ -46,42 +46,45 @@ class OODDetectionModel(pl.LightningModule):
             ood_scores_dict = self.ood_detect(islice(loader, max_batches))
 
             for score_name, id_scores in id_scores_dict.items():
-                ood_scores = ood_scores_dict[score_name]
+                try:
+                    ood_scores = ood_scores_dict[score_name]
 
-                length = min(len(ood_scores), len(id_scores))
-                ood = ood_scores[:length]
-                id_ = id_scores[:length]
+                    length = min(len(ood_scores), len(id_scores))
+                    ood = ood_scores[:length]
+                    id_ = id_scores[:length]
 
-                if self.logger is not None and self.logger.log_dir is not None:
-                    ax = plot_score_hist(
-                        id_,
-                        ood,
-                        title="",
-                    )
-                    ax.figure.savefig(
-                        path.join(
-                            self.logger.log_dir, f"{dataset_name}_{score_name}.png"
+                    if self.logger is not None and self.logger.log_dir is not None:
+                        ax = plot_score_hist(
+                            id_,
+                            ood,
+                            title="",
                         )
+                        ax.figure.savefig(
+                            path.join(
+                                self.logger.log_dir, f"{dataset_name}_{score_name}.png"
+                            )
+                        )
+                        plt.close()
+
+                    preds = np.concatenate([ood, id_])
+
+                    labels = np.concatenate([np.zeros_like(ood), np.ones_like(id_)])
+                    ood_metrics[f"{dataset_name}, {score_name}, AUROC"] = (
+                        roc_auc_score(labels, preds) * 100.0
                     )
-                    plt.close()
+                    ood_metrics[f"{dataset_name}, {score_name}, AUPR"] = (
+                        average_precision_score(labels, preds) * 100.0
+                    )
 
-                preds = np.concatenate([ood, id_])
-
-                labels = np.concatenate([np.zeros_like(ood), np.ones_like(id_)])
-                ood_metrics[f"{dataset_name}, {score_name}, AUROC"] = (
-                    roc_auc_score(labels, preds) * 100.0
-                )
-                ood_metrics[f"{dataset_name}, {score_name}, AUPR"] = (
-                    average_precision_score(labels, preds) * 100.0
-                )
-
-                labels = np.concatenate([np.ones_like(ood), np.zeros_like(id_)])
-                ood_metrics[f"{dataset_name}, {score_name}, AUROC'"] = (
-                    roc_auc_score(labels, -preds) * 100.0
-                )
-                ood_metrics[f"{dataset_name}, {score_name}, AUPR'"] = (
-                    average_precision_score(labels, -preds) * 100.0
-                )
+                    labels = np.concatenate([np.ones_like(ood), np.zeros_like(id_)])
+                    ood_metrics[f"{dataset_name}, {score_name}, AUROC'"] = (
+                        roc_auc_score(labels, -preds) * 100.0
+                    )
+                    ood_metrics[f"{dataset_name}, {score_name}, AUPR'"] = (
+                        average_precision_score(labels, -preds) * 100.0
+                    )
+                except Exception as e:
+                    print(e)
         return ood_metrics
 
     def eval_classifier(self, loader, num=10_000):

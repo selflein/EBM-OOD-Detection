@@ -51,7 +51,7 @@ def run(
     checkpoint_config,
     data_shape,
     _run,
-    num_classes,
+    num_classes=1,
     sigma=0.0,
     output_folder=None,
     log_dir=None,

@@ -6,14 +6,9 @@ trainer_config:
   check_val_every_n_epoch: 100
 
 checkpoint_config:
-  monitor: val/acc
-  mode: max
   save_last: True
 
 earlystop_config:
-  monitor: val/acc
-  mode: max
-  patience: 100
 
 ood_dataset: ${fixed.dataset}
 

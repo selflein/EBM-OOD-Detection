@@ -78,7 +78,7 @@ def get_dataloader(
                 tvt.Resize(img_size, InterpolationMode.LANCZOS),
                 tvt.CenterCrop(img_size),
                 tvt.Pad(4, padding_mode="reflect"),
-                tvt.RandomRotation(15, interpolation=InterpolationMode.LANCZOS),
+                tvt.RandomRotation(15, interpolation=InterpolationMode.BILINEAR),
                 tvt.RandomHorizontalFlip(),
                 tvt.RandomCrop(img_size),
             ]

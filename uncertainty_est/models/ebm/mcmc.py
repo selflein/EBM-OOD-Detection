@@ -35,11 +35,14 @@ class MCMC(OODDetectionModel):
         reinit_freq,
         sgld_steps=20,
         entropy_reg_weight=0.0,
-        warmup_steps=0,
+        warmup_steps=2500,
         lr_step_size=50,
         **kwargs
     ):
         super().__init__(**kwargs)
+        if len(data_shape) == 3:
+            data_shape = [data_shape[-1], data_shape[0], data_shape[1]]
+
         self.__dict__.update(locals())
         self.save_hyperparameters()
 

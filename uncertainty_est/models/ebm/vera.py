@@ -179,7 +179,7 @@ class VERA(OODDetectionModel):
 
     def test_step(self, batch, batch_idx):
         x, y = batch
-        y_hat = self(x)
+        _, y_hat = self.model(x, return_logits=True)
 
         if self.n_classes < 2:
             return

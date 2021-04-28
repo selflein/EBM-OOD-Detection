@@ -1,0 +1,25 @@
+# @package fixed
+
+trainer_config:
+  max_epochs: 50
+
+checkpoint_config:
+  monitor: val/acc
+  mode: max
+
+earlystop_config:
+  monitor: val/acc
+  mode: max
+  patience: 10
+
+model_name: CEBaseline
+model_config:
+  arch_name: wrn
+  arch_config:
+    depth: 10
+    num_classes: ${fixed.num_classes}
+    widen_factor: 2
+    input_channels: ${fixed.data_shape.2}
+  learning_rate: 0.0001
+  momentum: 0.9
+  weight_decay: 0.0005
