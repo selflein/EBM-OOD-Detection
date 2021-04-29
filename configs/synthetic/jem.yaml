@@ -1,15 +1,12 @@
 trainer_config:
   max_epochs: 500
-  gpus: "0"
+  gpus: 1
 
 checkpoint_config:
-  monitor: val_loss
-  mode: min
+  monitor: val/acc
+  mode: max
 
 earlystop_config:
-  monitor: val_loss
-  mode: min
-  patience: 10
 
 dataset: Gaussian2D
 # Use second dataset
@@ -38,10 +35,9 @@ model_config:
   buffer_size: 9999
   reinit_freq: 0.05
   data_shape: [2]
-  uncond: False
   sgld_batch_size: 128
+  kl_term: 1.0
+  entropy_term: 0.3
+  annealed_sgld: True
   class_cond_p_x_sample: False
   n_classes: 3
-  energy_reg_weight: 0.0
-  energy_reg_type: 2
-  entropy_reg_weight: 0.0

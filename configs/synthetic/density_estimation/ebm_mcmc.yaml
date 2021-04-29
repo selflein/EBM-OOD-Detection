@@ -2,7 +2,7 @@ trainer_config:
   max_steps: 100_000
   max_epochs: 100_000
   gpus: 1
-  limit_val_batches: 0
+  limit_val_batches: 1
   benchmark: True
 
 checkpoint_config:
@@ -15,7 +15,7 @@ dataset: Gaussian2D
 # Use second dataset
 ood_dataset: Gaussian2D
 seed: 1
-batch_size: 512
+batch_size: 128
 data_shape: &data_shape [2]
 
 model_name: JEM
@@ -24,16 +24,16 @@ model_config:
   arch_config:
     inp_dim: 2
     num_classes: 1
-    hidden_dims: [100, 100]
+    hidden_dims: [100, 100, 100, 100, 100]
     batch_norm: False
     bias: True
     slope: 0.2
 
-  learning_rate: 0.0001
+  learning_rate: 0.001
   momentum: 0.9
   weight_decay: 0.0
   smoothing: 0.0
-  sgld_lr: 0.01
+  sgld_lr: 1.
   sgld_std: 0.1
   sgld_steps: 100
   pyxce: 0.0
@@ -42,14 +42,13 @@ model_config:
   buffer_size: 9999
   reinit_freq: 0.05
   data_shape: *data_shape
-  uncond: True
-  sgld_batch_size: 512
+  sgld_batch_size: 128
   class_cond_p_x_sample: False
   n_classes: 1
-  warmup_steps: 2500
-  energy_reg_weight: 0.0
-  energy_reg_type: 2
-  entropy_reg_weight: 0.0
+  warmup_steps: 100
+  kl_term: 1.0
+  entropy_term: 0.3
+  annealed_sgld: True
   vis_every: 1000
   is_toy_dataset: True
   lr_step_size: 1000

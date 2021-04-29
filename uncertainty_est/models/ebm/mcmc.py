@@ -1,8 +1,10 @@
 import random
 
 import torch
+import matplotlib.pyplot as plt
 import torch.nn.functional as F
 
+from uncertainty_est.utils.utils import to_np
 from uncertainty_est.models.ebm.utils.model import JEM
 from uncertainty_est.archs.arch_factory import get_arch
 from uncertainty_est.models.ood_detection_model import OODDetectionModel
@@ -44,6 +46,7 @@ class MCMC(OODDetectionModel):
         entropy_reg_weight=0.0,
         warmup_steps=2500,
         lr_step_size=50,
+        is_toy_dataset=False,
         **kwargs
     ):
         super().__init__(**kwargs)
@@ -61,6 +64,9 @@ class MCMC(OODDetectionModel):
 
         self.buffer_size = self.buffer_size - (self.buffer_size % self.n_classes)
         self._init_buffer()
+
+    def forward(self, x):
+        return self.model(x)[:, None]
 
     def _init_buffer(self):
         self.replay_buffer = init_random(self.buffer_size, self.data_shape).cpu()
@@ -90,10 +96,10 @@ class MCMC(OODDetectionModel):
                 y_q = torch.randint(0, self.n_classes, (self.sgld_batch_size,)).to(
                     self.device
                 )
-                x_q = self.sample_q(self.replay_buffer, y=y_q)
+                x_q, idxs = self.sample_q(self.replay_buffer, y=y_q, return_idxs=True)
             else:
-                x_q = self.sample_q(
-                    self.replay_buffer, n_steps=self.sgld_steps
+                x_q, idxs = self.sample_q(
+                    self.replay_buffer, n_steps=self.sgld_steps, return_idxs=True
                 )  # sample from log-sumexp
 
             fp = self.model(x_p_d)
@@ -104,15 +110,16 @@ class MCMC(OODDetectionModel):
                 self.model.requires_grad_(False)
                 kl_loss = self.model(x_q)
                 self.model.requires_grad_(True)
-                l_pxsgld += self.kl_term * kl_loss
+                l_pxsgld -= self.kl_term * kl_loss.mean()
 
                 # Approx. entropy term by comparing with samples from buffer
                 if self.entropy_term > 0.0:
                     buffer_idxs = random.sample(
-                        range(len(self.replay_buffer)), self.approx_ent_samples
+                        [i for i in range(len(self.replay_buffer)) if i not in idxs],
+                        self.approx_ent_samples,
                     )
                     buffer_samples = (
-                        self.replay_buffer(buffer_idxs)
+                        self.replay_buffer[buffer_idxs]
                         .flatten(start_dim=1)
                         .to(self.device)
                     )
@@ -146,6 +153,22 @@ class MCMC(OODDetectionModel):
         _, logits = self.model(x_lab, return_logits=True)
         acc = (y_lab == logits.argmax(1)).float().mean(0).item()
         self.log("val/acc", acc)
+
+    def validation_epoch_end(self, outputs):
+        if self.is_toy_dataset:
+            interp = torch.linspace(-4, 4, 500)
+            x, y = torch.meshgrid(interp, interp)
+            data = torch.stack((x.reshape(-1), y.reshape(-1)), 1).to(self.device)
+            p_xy = torch.exp(self(data))
+            px = to_np(p_xy.sum(1))
+
+            fig, ax = plt.subplots()
+            mesh = ax.pcolormesh(x, y, px.reshape(*x.shape))
+            fig.colorbar(mesh)
+            self.logger.experiment.add_figure("dist/p(x)", fig, self.current_epoch)
+            plt.close()
+
+        super().validation_epoch_end(outputs)
 
     def test_step(self, batch, batch_idx):
         x, y = batch
@@ -194,7 +217,9 @@ class MCMC(OODDetectionModel):
         samples = choose_random * random_samples + (1 - choose_random) * buffer_samples
         return samples.to(self.device), inds
 
-    def sample_q(self, replay_buffer, y=None, n_steps=20, contrast=False):
+    def sample_q(
+        self, replay_buffer, y=None, n_steps=20, contrast=False, return_idxs=False
+    ):
         self.model.eval()
         bs = self.sgld_batch_size if y is None else y.size(0)
 
@@ -220,7 +245,9 @@ class MCMC(OODDetectionModel):
                     img=x_k, dist=dist, evaluation=True
                 )
                 energy = -1.0 * F.cross_entropy(output, target)
-            f_prime = torch.autograd.grad(energy, [x_k], retain_graph=True)[0]
+            f_prime = torch.autograd.grad(
+                energy, [x_k], retain_graph=True, create_graph=True
+            )[0]
 
             # Propagte gradients through final step of MCMC
             # Following "https://arxiv.org/abs/2012.01316"
@@ -234,4 +261,8 @@ class MCMC(OODDetectionModel):
         # update replay buffer
         if len(replay_buffer) > 0:
             replay_buffer[buffer_inds] = x_k.detach().cpu()
+
+        if return_idxs:
+            return x_k, buffer_inds
+
         return x_k
