@@ -18,6 +18,7 @@ from .normalizing_flow.real_nvp import RealNVPModel
 from .vae import VAE
 from .ebm.nce import NoiseContrastiveEstimation
 from .ebm.flow_contrastive_estimation import FlowContrastiveEstimation
+from .ebm.ssm import SSM
 
 
 MODELS = {
@@ -38,6 +39,7 @@ MODELS = {
     "VAE": VAE,
     "NCE": NoiseContrastiveEstimation,
     "FlowCE": FlowContrastiveEstimation,
+    "SSM": SSM,
 }
 
 

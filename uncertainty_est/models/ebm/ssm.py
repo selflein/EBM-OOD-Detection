@@ -1,7 +1,9 @@
 import torch
 from torch import autograd
 import torch.nn.functional as F
+import matplotlib.pyplot as plt
 
+from uncertainty_est.utils.utils import to_np
 from uncertainty_est.models.ebm.utils.model import JEM
 from uncertainty_est.archs.arch_factory import get_arch
 from uncertainty_est.models.ood_detection_model import OODDetectionModel
@@ -15,12 +17,13 @@ class SSM(OODDetectionModel):
         learning_rate,
         momentum,
         weight_decay,
-        buffer_size,
         n_classes,
-        data_shape,
         clf_weight,
+        noise_type="radermacher",
+        n_particles=1,
         warmup_steps=2500,
         lr_step_size=50,
+        is_toy_dataset=False,
         **kwargs
     ):
         super().__init__(**kwargs)
@@ -29,6 +32,9 @@ class SSM(OODDetectionModel):
 
         arch = get_arch(arch_name, arch_config)
         self.model = JEM(arch)
+
+    def forward(self, x):
+        return self.model(x)
 
     def training_step(self, batch, batch_idx):
         (x_lab, y_lab), (x_p_d, _) = batch
@@ -41,6 +47,12 @@ class SSM(OODDetectionModel):
         dup_samples.requires_grad_(True)
 
         vectors = torch.randn_like(dup_samples)
+        if self.noise_type == "radermacher":
+            vectors = vectors.sign()
+        elif self.noise_type == "gaussian":
+            pass
+        else:
+            raise ValueError("Noise type not implemented")
 
         logp = self.model(dup_samples).sum()
 
@@ -73,6 +85,20 @@ class SSM(OODDetectionModel):
         _, logits = self.model(x_lab, return_logits=True)
         acc = (y_lab == logits.argmax(1)).float().mean(0).item()
         self.log("val/acc", acc)
+
+    def validation_epoch_end(self, outputs):
+        if self.is_toy_dataset:
+            interp = torch.linspace(-4, 4, 500)
+            x, y = torch.meshgrid(interp, interp)
+            data = torch.stack((x.reshape(-1), y.reshape(-1)), 1).to(self.device)
+            p_xy = torch.exp(self(data)[:, None])
+            px = to_np(p_xy.sum(1))
+
+            fig, ax = plt.subplots()
+            mesh = ax.pcolormesh(x, y, px.reshape(*x.shape))
+            fig.colorbar(mesh)
+            self.logger.experiment.add_figure("dist/p(x)", fig, self.current_epoch)
+            plt.close()
 
     def test_step(self, batch, batch_idx):
         x, y = batch
