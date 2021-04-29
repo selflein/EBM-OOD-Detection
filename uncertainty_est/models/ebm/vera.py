@@ -124,7 +124,7 @@ class VERA(OODDetectionModel):
         else:
             raise NotImplementedError(f"EBM type '{self.ebm_type}' not implemented!")
 
-        logp_obj = (ld - lg_detach).mean()
+        logp_obj = ld.mean() - lg_detach.mean()
         e_loss = (
             -logp_obj
             + self.p_control * (ld ** 2).mean()

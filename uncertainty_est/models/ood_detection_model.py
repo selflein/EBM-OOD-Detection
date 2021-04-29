@@ -1,6 +1,3 @@
-import abc
-import copy
-import inspect
 from itertools import islice
 from os import path
 from typing import Any, Dict
@@ -12,7 +9,6 @@ from tqdm import tqdm
 import pytorch_lightning as pl
 import matplotlib.pyplot as plt
 from sklearn.metrics import roc_auc_score, average_precision_score
-from pytorch_lightning.utilities.parsing import get_init_args
 from uncertainty_eval.vis import plot_score_hist
 from uncertainty_eval.metrics.brier import brier_score, brier_decomposition
 from uncertainty_eval.metrics.calibration_error import classification_calibration
@@ -20,11 +16,13 @@ from uncertainty_eval.vis import draw_reliability_graph, plot_score_hist
 
 from uncertainty_est.utils.utils import to_np
 from uncertainty_est.utils.metrics import accuracy
+from uncertainty_est.data.dataloaders import get_dataloader
 
 
 class OODDetectionModel(pl.LightningModule):
-    def __init__(self, **kwargs):
+    def __init__(self, ood_val_dataset=None, **kwargs):
         super().__init__()
+        self.ood_val_dataset = ood_val_dataset
         self.test_ood_dataloaders = []
 
     def eval_ood(
@@ -129,6 +127,29 @@ class OODDetectionModel(pl.LightningModule):
             "Brier (via decomposition)": (reliability - resolution + uncertainty) * 100,
         }
 
+    def setup(self, mode):
+        if mode == "fit" and hasattr(self, "ood_val_dataset"):
+            batch_size = self.val_dataloader.dataloader.batch_size
+            self.ood_val_loader = [
+                (
+                    self.ood_val_dataset,
+                    get_dataloader(
+                        self.ood_val_dataset,
+                        "val",
+                        batch_size=batch_size,
+                        data_shape=self.data_shape,
+                    ),
+                )
+            ]
+
+    def validation_epoch_end(self, outputs):
+        if hasattr(self, "ood_val_loader"):
+            ood_metrics = self.eval_ood(
+                self.val_dataloader.dataloader, self.ood_val_loader
+            )
+            _, v = next(iter(ood_metrics.items()))
+            self.log(f"val/ood", v)
+
     def optimizer_step(
         self,
         epoch: int = None,
@@ -161,6 +182,8 @@ class OODDetectionModel(pl.LightningModule):
 
         scores = defaultdict(list)
         for x, _ in tqdm(loader, miniters=100):
+            if not isinstance(x, torch.Tensor):
+                x, _ = x
             x = x.to(self.device)
             out = self.get_ood_scores(x)
             for k, v in out.items():

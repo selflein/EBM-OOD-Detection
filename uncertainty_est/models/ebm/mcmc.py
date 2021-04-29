@@ -1,5 +1,7 @@
 import torch
+from matplotlib import pyplot as plt
 
+from uncertainty_est.utils.utils import to_np
 from uncertainty_est.models.ebm.utils.model import JEM
 from uncertainty_est.archs.arch_factory import get_arch
 from uncertainty_est.models.ood_detection_model import OODDetectionModel
@@ -37,6 +39,7 @@ class MCMC(OODDetectionModel):
         entropy_reg_weight=0.0,
         warmup_steps=2500,
         lr_step_size=50,
+        is_toy_dataset=False,
         **kwargs
     ):
         super().__init__(**kwargs)
@@ -54,6 +57,9 @@ class MCMC(OODDetectionModel):
 
         self.buffer_size = self.buffer_size - (self.buffer_size % self.n_classes)
         self._init_buffer()
+
+    def forward(self, x):
+        return self.model(x)
 
     def _init_buffer(self):
         self.replay_buffer = init_random(self.buffer_size, self.data_shape).cpu()
@@ -76,6 +82,7 @@ class MCMC(OODDetectionModel):
                 self.entropy_reg_weight
                 * -torch.distributions.Categorical(logits=logits).entropy().mean()
             )
+            self.log("train/clf_loss", l_pyxce)
 
         # log p(x) using sgld
         if self.pxsgld > 0:
@@ -89,9 +96,9 @@ class MCMC(OODDetectionModel):
                     self.replay_buffer, n_steps=self.sgld_steps
                 )  # sample from log-sumexp
 
-            fp = self.model(x_p_d).mean()
-            fq = self.model(x_q).mean()
-            l_pxsgld = -(fp - fq)
+            fp = self.model(x_p_d)
+            fq = self.model(x_q)
+            l_pxsgld = -(fp.mean() - fq.mean()) + (fp ** 2).mean() + (fq ** 2).mean()
             l_pxsgld *= self.pxsgld
 
         # log p(x|y) using sgld
@@ -115,12 +122,26 @@ class MCMC(OODDetectionModel):
         acc = (y_lab == logits.argmax(1)).float().mean(0).item()
         self.log("val/acc", acc)
 
+    def validation_epoch_end(self, outputs):
+        if self.is_toy_dataset:
+            interp = torch.linspace(-4, 4, 500)
+            x, y = torch.meshgrid(interp, interp)
+            data = torch.stack((x.reshape(-1), y.reshape(-1)), 1).to(self.device)
+            px = to_np(torch.exp(self(data)))
+
+            fig, ax = plt.subplots()
+            mesh = ax.pcolormesh(x, y, px.reshape(*x.shape))
+            fig.colorbar(mesh)
+            self.logger.experiment.add_figure("dist/p(x)", fig, self.current_epoch)
+            plt.close()
+        super().validation_epoch_end(outputs)
+
     def test_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self.model.classify(x)
 
         acc = (y == y_hat.argmax(1)).float().mean(0).item()
-        self.log("test.acc", acc)
+        self.log("test/acc", acc)
 
         return y_hat
 

@@ -2,7 +2,8 @@ trainer_config:
   max_steps: 100_000
   max_epochs: 100_000
   gpus: 1
-  limit_val_batches: 0
+  limit_val_batches: 1
+  check_val_every_n_epoch: 10
   benchmark: True
 
 checkpoint_config:
