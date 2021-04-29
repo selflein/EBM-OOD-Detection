@@ -128,7 +128,7 @@ class OODDetectionModel(pl.LightningModule):
         }
 
     def setup(self, mode):
-        if mode == "fit" and hasattr(self, "ood_val_dataset"):
+        if mode == "fit" and self.ood_val_dataset:
             batch_size = self.val_dataloader.dataloader.batch_size
             self.ood_val_loader = [
                 (
