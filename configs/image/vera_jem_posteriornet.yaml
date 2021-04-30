@@ -1,5 +1,5 @@
 trainer_config:
-  max_epochs: 40
+  max_epochs: 50
   gpus: 1
   terminate_on_nan: True
 
@@ -9,9 +9,6 @@ checkpoint_config:
   save_last: True
 
 earlystop_config:
-  monitor: val/acc
-  mode: max
-  patience: 10
 
 test_ood_datasets:
   - fashionmnist
@@ -66,17 +63,17 @@ model_config:
 
   min_sigma: 0.01
   max_sigma: 0.3
-  p_control: 0.0
-  n_control: 0.0
+  p_control: 1.0
+  n_control: 1.0
   pg_control: 0.1
-  clf_ent_weight: 0.1
+  clf_ent_weight: 0.0
   ebm_type: jem
   clf_weight: 1.0
   warmup_steps: 2500
   no_g_batch_norm: False
   batch_size: 32
   lr_decay: 0.3
-  lr_decay_epochs: [30, 35]
+  lr_decay_epochs: [30, 40]
   vis_every: -1
   alpha_fix: True
   entropy_reg: 0.0001

@@ -20,3 +20,4 @@ fixed:
     - cifar10_uniform_noise_embedded
     - cifar10_gaussian_noise_embedded
     - cifar10_constant_embedded
+    - svhn_unscaled_embedded

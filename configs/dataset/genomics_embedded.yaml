@@ -2,13 +2,20 @@
 
 slurm:
   experiments_per_job: 5
+  sbatch_options:
+    time: 0-10:00
 
 fixed:
   dataset: genomics_embedded
   batch_size: 512
   data_shape:
     - 128
+  num_classes: 10
 
   test_ood_datasets:
     - genomics-ood_embedded
     - genomics-noise_embedded
+
+  trainer_config:
+    max_epochs: 50_000
+    max_steps: 50_000

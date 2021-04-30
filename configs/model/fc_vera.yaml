@@ -1,8 +1,8 @@
 # @package fixed
 
 trainer_config:
-  max_steps: 5_000
-  max_epochs: 5_000
+  max_steps: 10_000
+  max_epochs: 10_000
   check_val_every_n_epoch: 100
 
 checkpoint_config:
@@ -50,8 +50,8 @@ model_config:
 
   min_sigma: 0.01
   max_sigma: 0.3
-  p_control: 0.0
-  n_control: 0.0
+  p_control: 1.0
+  n_control: 1.0
   pg_control: 0.1
   clf_ent_weight: 0.0
   ebm_type: p_x

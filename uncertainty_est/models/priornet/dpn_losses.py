@@ -138,11 +138,10 @@ class UnfixedDirichletKLLoss:
     def __call__(self, logits, label=None, reduction="mean"):
         alphas = torch.exp(logits)
 
+        target_alphas = torch.empty_like(alphas, requires_grad=False).fill_(
+            self.concentration
+        )
         if label is not None:
-            target_alphas = torch.empty_like(alphas, requires_grad=False).fill_(
-                self.concentration
-            )
-
             if self.target_concentration is None:
                 target_concentration = torch.sum(alphas, 1)
             else:

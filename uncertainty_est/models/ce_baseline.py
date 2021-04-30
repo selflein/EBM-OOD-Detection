@@ -1,5 +1,4 @@
 import torch
-from tqdm import tqdm
 import torch.nn.functional as F
 
 from uncertainty_est.archs.arch_factory import get_arch

@@ -46,7 +46,7 @@ class VERA(OODDetectionModel):
         lr_decay_epochs,
         **kwargs,
     ):
-        super().__init__()
+        super().__init__(**kwargs)
         self.__dict__.update(locals())
         self.save_hyperparameters()
         self.automatic_optimization = False
@@ -106,10 +106,10 @@ class VERA(OODDetectionModel):
 
         if self.no_g_batch_norm:
             self.model.apply(set_bn_to_eval)
-            lg_detach = self.model(x_g_detach).squeeze()
+            lg_detach, lg_logits = self.model(x_g_detach, return_logits=True)
             self.model.apply(set_bn_to_train)
         else:
-            lg_detach = self.model(x_g_detach).squeeze()
+            lg_detach, lg_logits = self.model(x_g_detach, return_logits=True)
 
         unsup_ent = torch.tensor(0.0)
         if self.ebm_type == "ssl":
@@ -143,13 +143,13 @@ class VERA(OODDetectionModel):
         self.log("train/e_loss", e_loss.item())
 
         if self.clf_weight > 0:
-            clf_loss = self.clf_weight * self.classifier_loss(ld_logits, y_l)
+            clf_loss = self.clf_weight * self.classifier_loss(ld_logits, y_l, lg_logits)
             self.log("train/clf_loss", clf_loss)
             e_loss += clf_loss
 
         return e_loss
 
-    def classifier_loss(self, ld_logits, y_l):
+    def classifier_loss(self, ld_logits, y_l, lg_logits):
         return torch.nn.CrossEntropyLoss()(ld_logits, y_l)
 
     def generator_step(self, x_g, h_g):

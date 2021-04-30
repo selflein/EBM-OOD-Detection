@@ -58,6 +58,7 @@ def run(
     num_workers=4,
     test_ood_datasets=[],
     mutation_rate=0.0,
+    num_cat=1,
     **kwargs,
 ):
     pl.seed_everything(seed)
@@ -156,6 +157,7 @@ def run(
         )
         test_ood_dataloaders.append((test_ood_dataset, loader))
     ood_results = model.eval_ood(test_loader, test_ood_dataloaders)
+    ood_results = {", ".join(k): v for k, v in ood_results.items()}
 
     clf_results = model.eval_classifier(test_loader)
 

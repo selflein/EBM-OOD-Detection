@@ -1,8 +1,8 @@
 # @package fixed
 
 trainer_config:
-  max_epochs: 5_000
-  max_steps: 5_000
+  max_epochs: 10_000
+  max_steps: 10_000
   limit_val_batches: 0
 
 checkpoint_config:

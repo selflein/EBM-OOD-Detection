@@ -20,9 +20,13 @@ from uncertainty_est.data.dataloaders import get_dataloader
 
 
 class OODDetectionModel(pl.LightningModule):
-    def __init__(self, ood_val_dataset=None, **kwargs):
+    def __init__(
+        self, ood_val_dataset=None, is_toy_dataset=False, data_shape=None, **kwargs
+    ):
         super().__init__()
         self.ood_val_dataset = ood_val_dataset
+        self.is_toy_dataset = is_toy_dataset
+        self.data_shape = data_shape
         self.test_ood_dataloaders = []
 
     def eval_ood(
@@ -67,18 +71,18 @@ class OODDetectionModel(pl.LightningModule):
                     preds = np.concatenate([ood, id_])
 
                     labels = np.concatenate([np.zeros_like(ood), np.ones_like(id_)])
-                    ood_metrics[f"{dataset_name}, {score_name}, AUROC"] = (
+                    ood_metrics[(dataset_name, score_name, "AUROC")] = (
                         roc_auc_score(labels, preds) * 100.0
                     )
-                    ood_metrics[f"{dataset_name}, {score_name}, AUPR"] = (
+                    ood_metrics[(dataset_name, score_name, "AUPR")] = (
                         average_precision_score(labels, preds) * 100.0
                     )
 
                     labels = np.concatenate([np.ones_like(ood), np.zeros_like(id_)])
-                    ood_metrics[f"{dataset_name}, {score_name}, AUROC'"] = (
+                    ood_metrics[(dataset_name, score_name, "AUROC")] = (
                         roc_auc_score(labels, -preds) * 100.0
                     )
-                    ood_metrics[f"{dataset_name}, {score_name}, AUPR'"] = (
+                    ood_metrics[(dataset_name, score_name, "AUPR")] = (
                         average_precision_score(labels, -preds) * 100.0
                     )
                 except Exception as e:
@@ -143,6 +147,18 @@ class OODDetectionModel(pl.LightningModule):
             ]
 
     def validation_epoch_end(self, outputs):
+        if self.is_toy_dataset:
+            interp = torch.linspace(-4, 4, 500)
+            x, y = torch.meshgrid(interp, interp)
+            data = torch.stack((x.reshape(-1), y.reshape(-1)), 1).to(self.device)
+            px = to_np(torch.exp(self(data)))
+
+            fig, ax = plt.subplots()
+            mesh = ax.pcolormesh(x, y, px.reshape(*x.shape))
+            fig.colorbar(mesh)
+            self.logger.experiment.add_figure("dist/p(x)", fig, self.current_epoch)
+            plt.close()
+
         if hasattr(self, "ood_val_loader"):
             ood_metrics = self.eval_ood(
                 self.val_dataloader.dataloader, self.ood_val_loader

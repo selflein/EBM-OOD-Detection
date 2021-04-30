@@ -31,9 +31,9 @@ model_config:
   pyxce: 1.0
   pxsgld: 1.0
   pxysgld: 0.0
-  buffer_size: 1000
+  buffer_size: 10000
   reinit_freq: 0.05
   data_shape: ${fixed.data_shape}
-  sgld_batch_size: 128
+  sgld_batch_size: ${fixed.batch_size}
   class_cond_p_x_sample: True
   entropy_reg_weight: 0.0001

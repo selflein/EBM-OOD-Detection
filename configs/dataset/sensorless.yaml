@@ -2,6 +2,8 @@
 
 slurm:
   experiments_per_job: 5
+  sbatch_options:
+    time: 0-05:00
 
 fixed:
   dataset: sensorless
@@ -14,3 +16,7 @@ fixed:
     - uniform_noise
     - gaussian_noise
     - constant
+
+  trainer_config:
+    max_epochs: 10_000
+    max_steps: 10_000

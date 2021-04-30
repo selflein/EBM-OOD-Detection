@@ -59,6 +59,7 @@ class DiscreteMCMC(MCMC):
             entropy_reg_weight=entropy_reg_weight,
             warmup_steps=warmup_steps,
             lr_step_size=lr_step_size,
+            **kwargs
         )
         self.save_hyperparameters()
 

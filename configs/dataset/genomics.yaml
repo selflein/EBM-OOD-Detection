@@ -1,13 +1,16 @@
 # @package _global_
 
 slurm:
-  experiments_per_job: 5
+  experiments_per_job: 1
+  sbatch_options:
+    time: 0-20:00
 
 fixed:
   dataset: genomics
   batch_size: 512
   data_shape: [250]
   num_cat: 4
+  num_classes: 10
 
   test_ood_datasets:
     - genomics-ood

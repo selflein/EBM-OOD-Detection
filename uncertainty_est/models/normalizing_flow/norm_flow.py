@@ -12,8 +12,9 @@ class NormalizingFlow(OODDetectionModel):
         learning_rate,
         momentum,
         weight_decay,
+        **kwargs,
     ):
-        super().__init__()
+        super().__init__(**kwargs)
         self.__dict__.update(locals())
         self.save_hyperparameters()
 

@@ -42,15 +42,15 @@ model_config:
     post_lr: 0.00003
     init_post_logsigma: 0.1
   generator_arch_config:
-    inp_dim: ${..generator_config.noise_dim}
+    inp_dim: ${fixed.model_config.generator_config.noise_dim}
     num_classes: ${fixed.num_cat}
     seq_length: ${fixed.data_shape.0}
 
   min_sigma: 0.01
   max_sigma: 0.3
-  p_control: 0.0
-  n_control: 0.0
-  pg_control: 0.0
+  p_control: 1.0
+  n_control: 1.0
+  pg_control: 0.1
   clf_ent_weight: 0.0
   ebm_type: jem
   clf_weight: 1.0

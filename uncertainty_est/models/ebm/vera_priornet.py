@@ -83,9 +83,10 @@ class VERAPriorNet(VERA):
             concentration, target_concentration, entropy_reg, reverse_kl, alpha_fix
         )
 
-    def classifier_loss(self, ld_logits, y_l):
+    def classifier_loss(self, ld_logits, y_l, lg_logits):
         loss = self.clf_loss(ld_logits, y_l)
-        self.log("train/clf_loss", loss)
+        loss_ood = self.clf_loss(lg_logits)
+        self.log("train/clf_loss", loss + loss_ood)
         return loss
 
     def validation_epoch_end(self, outputs):

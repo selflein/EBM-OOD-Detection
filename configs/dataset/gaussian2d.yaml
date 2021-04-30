@@ -1,0 +1,16 @@
+# @package _global_
+
+slurm:
+  experiments_per_job: 5
+  sbatch_options:
+    time: 0-05:00
+
+fixed:
+  dataset: Gaussian2D
+  num_classes: 3
+  batch_size: 512
+  data_shape:
+    - 2
+
+  test_ood_datasets:
+    - AnomalousGaussian2D
