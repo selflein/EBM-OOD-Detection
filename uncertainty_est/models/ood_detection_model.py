@@ -134,6 +134,15 @@ class OODDetectionModel(pl.LightningModule):
     def setup(self, mode):
         if mode == "fit" and self.ood_val_dataset:
             batch_size = self.val_dataloader.dataloader.batch_size
+            if len(self.data_shape) == 3:
+                data_shape = [
+                    self.data_shape[1],
+                    self.data_shape[2],
+                    self.data_shape[0],
+                ]
+            else:
+                data_shape = self.data_shape
+
             self.ood_val_loader = [
                 (
                     self.ood_val_dataset,
@@ -141,7 +150,7 @@ class OODDetectionModel(pl.LightningModule):
                         self.ood_val_dataset,
                         "val",
                         batch_size=batch_size,
-                        data_shape=self.data_shape,
+                        data_shape=data_shape,
                     ),
                 )
             ]

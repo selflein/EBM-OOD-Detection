@@ -14,7 +14,7 @@ from uncertainty_est.models.normalizing_flow.norm_flow import NormalizingFlow
 from uncertainty_est.models.normalizing_flow.approx_flow import ApproxNormalizingFlow
 from uncertainty_est.models.ebm.conditional_nce import PerSampleNCE
 from uncertainty_est.models.normalizing_flow.iresnet import IResNetFlow
-from .normalizing_flow.real_nvp import RealNVPModel
+from .normalizing_flow.image_flows import RealNVPModel, GlowModel
 from .vae import VAE
 from .ebm.nce import NoiseContrastiveEstimation
 from .ebm.flow_contrastive_estimation import FlowContrastiveEstimation
@@ -36,6 +36,7 @@ MODELS = {
     "PerSampleNCE": PerSampleNCE,
     "IResNet": IResNetFlow,
     "RealNVP": RealNVPModel,
+    "Glow": GlowModel,
     "VAE": VAE,
     "NCE": NoiseContrastiveEstimation,
     "FlowCE": FlowContrastiveEstimation,

@@ -20,6 +20,7 @@ parser.add_argument("--dataset", type=str)
 parser.add_argument("--ood_dataset", type=str, action="append")
 parser.add_argument("--eval-classification", action="store_true")
 parser.add_argument("--output-folder", type=str)
+parser.add_argument("--name", type=str, required=True)
 parser.add_argument("--max-eval", type=int, default=-1)
 parser.add_argument("--checkpoint-dir", type=str)
 
@@ -115,25 +116,25 @@ if __name__ == "__main__":
         ood_df = pd.DataFrame(
             ood_tbl_rows,
             columns=(
-                "model",
-                "model_type",
-                "id_dataset",
-                "ood_dataset",
-                "score",
-                "metric",
-                "value",
+                "Model",
+                "Model Type",
+                "ID dataset",
+                "OOD dataset",
+                "Score",
+                "Metric",
+                "Value",
             ),
         )
-        ood_df.to_csv(output_folder / f"ood-{time.time()}.csv", index=False)
+        ood_df.to_csv(output_folder / f"ood-{args.name}.csv", index=False)
 
         clf_df = pd.DataFrame(
             clf_tbl_rows,
             columns=(
-                "model",
-                "model_type",
-                "id_dataset",
-                "metric",
-                "value",
+                "Model",
+                "Model Type",
+                "ID dataset",
+                "Metric",
+                "Value",
             ),
         )
-        clf_df.to_csv(output_folder / f"clf-{time.time()}.csv", index=False)
+        clf_df.to_csv(output_folder / f"clf-{args.name}.csv", index=False)

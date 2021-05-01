@@ -1,14 +1,23 @@
-# @package fixed
+# @package _global_
 
-dataset: fashionmnist
-num_classes: 10
-batch_size: 128
-data_shape: [32, 32, 1]
+slurm:
+  experiments_per_job: 1
+  sbatch_options:
+    time: 0-10:00
 
-test_ood_datasets:
-  - mnist
-  - notmnist
-  - kmnist
-  - gaussian_noise
-  - uniform_noise
-  - constant
+fixed:
+  dataset: fashionmnist
+  num_classes: 10
+  batch_size: 128
+  data_shape: [32, 32, 1]
+
+  trainer_config:
+    max_epochs: 50
+
+  test_ood_datasets:
+    - mnist
+    - notmnist
+    - kmnist
+    - gaussian_noise
+    - uniform_noise
+    - constant

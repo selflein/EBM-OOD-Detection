@@ -4,6 +4,7 @@ slurm:
   experiments_per_job: 5
   sbatch_options:
     time: 0-10:00
+    mem: 32G
 
 fixed:
   dataset: genomics_embedded

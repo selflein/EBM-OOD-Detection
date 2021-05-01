@@ -2,17 +2,14 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 
+from uncertainty_est.archs.glow.glow import Glow
 from uncertainty_est.archs.real_nvp.real_nvp import RealNVP
 from uncertainty_est.models.ood_detection_model import OODDetectionModel
 
 
-class RealNVPModel(OODDetectionModel):
+class AffineCouplingModel(OODDetectionModel):
     def __init__(
         self,
-        num_scales,
-        in_channels,
-        mid_channels,
-        num_blocks,
         learning_rate,
         momentum,
         weight_decay,
@@ -20,13 +17,7 @@ class RealNVPModel(OODDetectionModel):
     ):
         super().__init__()
         self.__dict__.update(locals())
-        self.save_hyperparameters()
-
-        self.conditional_densities = nn.ModuleList()
-        for _ in range(num_classes):
-            self.conditional_densities.append(
-                RealNVP(num_scales, in_channels, mid_channels, num_blocks)
-            )
+        self.conditional_densities = []
 
     def forward(self, x):
         log_p_xy = []
@@ -87,3 +78,59 @@ class RealNVPModel(OODDetectionModel):
         log_p_xy = self(x)
         log_p_x = torch.logsumexp(log_p_xy, dim=1)
         return {"p(x)": log_p_x}
+
+
+class RealNVPModel(AffineCouplingModel):
+    def __init__(
+        self,
+        num_scales,
+        in_channels,
+        mid_channels,
+        num_blocks,
+        learning_rate,
+        momentum,
+        weight_decay,
+        num_classes=1,
+    ):
+        super().__init__(
+            learning_rate,
+            momentum,
+            weight_decay,
+            num_classes=1,
+        )
+        self.__dict__.update(locals())
+        self.save_hyperparameters()
+
+        self.conditional_densities = nn.ModuleList()
+        for _ in range(num_classes):
+            self.conditional_densities.append(
+                RealNVP(num_scales, in_channels, mid_channels, num_blocks)
+            )
+
+
+class GlowModel(AffineCouplingModel):
+    def __init__(
+        self,
+        in_channels,
+        num_channels,
+        num_levels,
+        num_steps,
+        learning_rate,
+        momentum,
+        weight_decay,
+        num_classes=1,
+    ):
+        super().__init__(
+            learning_rate,
+            momentum,
+            weight_decay,
+            num_classes=1,
+        )
+        self.__dict__.update(locals())
+        self.save_hyperparameters()
+
+        self.conditional_densities = nn.ModuleList()
+        for _ in range(num_classes):
+            self.conditional_densities.append(
+                Glow(in_channels, num_channels, num_levels, num_steps)
+            )

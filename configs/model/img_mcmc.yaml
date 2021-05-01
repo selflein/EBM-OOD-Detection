@@ -1,3 +1,5 @@
+# @package fixed
+
 trainer_config:
   max_epochs: 20
 
