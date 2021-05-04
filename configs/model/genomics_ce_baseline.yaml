@@ -8,12 +8,12 @@ trainer_config:
   limit_test_batches: 10_000
 
 checkpoint_config:
-  monitor: val/loss
-  mode: min
+  monitor: val/acc
+  mode: max
 
 earlystop_config:
-  monitor: val/loss
-  mode: min
+  monitor: val/acc
+  mode: max
   patience: 10
 
 batch_size: 2048

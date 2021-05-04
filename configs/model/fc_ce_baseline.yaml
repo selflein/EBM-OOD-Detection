@@ -6,12 +6,12 @@ trainer_config:
   check_val_every_n_epoch: 100
 
 checkpoint_config:
-  monitor: val/loss
-  mode: min
+  monitor: val/acc
+  mode: max
 
 earlystop_config:
-  monitor: val/loss
-  mode: min
+  monitor: val/acc
+  mode: max
   patience: 10
 
 ood_dataset:
