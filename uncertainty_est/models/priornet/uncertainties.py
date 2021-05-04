@@ -16,6 +16,8 @@ def dirichlet_prior_network_uncertainty(logits, epsilon=1e-10, alpha_correction=
     logits = np.asarray(logits, dtype=np.float64)
     alphas = np.exp(logits)
 
+    alphas = np.clip(alphas, 0, np.finfo(np.dtype("float32")).max)
+
     if alpha_correction:
         alphas = alphas + 1
 
