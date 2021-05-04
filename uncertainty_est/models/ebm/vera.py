@@ -64,8 +64,17 @@ class VERA(OODDetectionModel):
         else:
             raise NotImplementedError(f"Generator '{generator_type}' not implemented!")
 
+        self.predict_mode = "density"
+
     def forward(self, x):
-        return self.model(x)
+        if self.predict_mode == "density":
+            return self.model(x)
+        elif self.predict_mode in ("logits", "probs"):
+            _, logits = self.model(x, return_logits=True)
+            if self.predict_mode == "logits":
+                return logits
+            else:
+                return torch.softmax(logits, -1)
 
     def training_step(self, batch, batch_idx, optimizer_idx):
         opt_e, opt_g = self.optimizers()

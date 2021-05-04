@@ -3,7 +3,6 @@ import sys
 
 sys.path.insert(0, os.getcwd())
 
-import time
 import logging
 from pathlib import Path
 from argparse import ArgumentParser
@@ -15,7 +14,7 @@ from uncertainty_est.models import load_checkpoint, load_model
 
 
 parser = ArgumentParser()
-parser.add_argument("--checkpoint", type=str, action="append")
+parser.add_argument("--checkpoint", type=str, action="append", default=[])
 parser.add_argument("--dataset", type=str)
 parser.add_argument("--ood_dataset", type=str, action="append")
 parser.add_argument("--eval-classification", action="store_true")
@@ -80,6 +79,12 @@ if __name__ == "__main__":
         model.eval()
         model.cuda()
 
+        if not args.ood_dataset:
+            args.ood_dataset = config["test_ood_datasets"]
+
+        if not args.dataset:
+            args.dataset = config["dataset"]
+
         ood_rows, clf_rows = eval_model(
             model,
             args.dataset,
@@ -95,23 +100,32 @@ if __name__ == "__main__":
     if args.checkpoint_dir:
         checkpoint_dir = Path(args.checkpoint_dir)
         for model_dir in checkpoint_dir.glob("**/version_*"):
-            model, config = load_model(model_dir, last=True, strict=False)
+            try:
+                model, config = load_model(model_dir, last=True, strict=False)
+            except:
+                continue
             model.eval()
             model.cuda()
+
+            if not args.ood_dataset:
+                args.ood_dataset = config["test_ood_datasets"]
+
+            if not args.dataset:
+                args.dataset = config["dataset"]
 
             ood_rows, clf_rows = eval_model(
                 model,
                 args.dataset,
                 args.ood_dataset,
                 args.eval_classification,
-                model_name=model_dir.parent.parent.stem,
+                model_name=model_dir.parent.stem,
                 batch_size=128,
                 max_items=args.max_eval,
             )
             ood_tbl_rows.extend(ood_rows)
-            clf_tbl_rows.append(clf_rows)
+            clf_tbl_rows.extend(clf_rows)
 
-    if args.output_csv:
+    if args.output_folder:
         output_folder = Path(args.output_folder)
         ood_df = pd.DataFrame(
             ood_tbl_rows,
@@ -127,14 +141,15 @@ if __name__ == "__main__":
         )
         ood_df.to_csv(output_folder / f"ood-{args.name}.csv", index=False)
 
-        clf_df = pd.DataFrame(
-            clf_tbl_rows,
-            columns=(
-                "Model",
-                "Model Type",
-                "ID dataset",
-                "Metric",
-                "Value",
-            ),
-        )
-        clf_df.to_csv(output_folder / f"clf-{args.name}.csv", index=False)
+        if args.eval_classification:
+            clf_df = pd.DataFrame(
+                clf_tbl_rows,
+                columns=(
+                    "Model",
+                    "Model Type",
+                    "ID dataset",
+                    "Metric",
+                    "Value",
+                ),
+            )
+            clf_df.to_csv(output_folder / f"clf-{args.name}.csv", index=False)

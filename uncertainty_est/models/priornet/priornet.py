@@ -76,7 +76,7 @@ class PriorNet(pl.LightningModule):
         self.log("val_acc", acc)
 
         loss = self.criterion((y_hat, y_hat_ood), (y, None))
-        self.log("val_loss", loss)
+        self.log("val/loss", loss)
 
     def test_step(self, batch, batch_idx):
         x, y = batch

@@ -6,7 +6,7 @@ trainer_config:
   check_val_every_n_epoch: 100
 
 checkpoint_config:
-  monitor: "val/acc"
+  monitor: val/acc
   save_last: True
 
 earlystop_config:

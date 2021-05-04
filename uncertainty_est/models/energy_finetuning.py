@@ -62,7 +62,7 @@ class EnergyFinetune(CEBaseline):
         y_hat = self.backbone(x)
 
         loss = F.cross_entropy(y_hat, y)
-        self.log("val_loss", loss)
+        self.log("val/loss", loss)
 
         acc = (y == y_hat.argmax(1)).float().mean(0).item()
         self.log("val_acc", acc)

@@ -14,6 +14,8 @@ checkpoint_config:
 
 earlystop_config:
 
+ood_dataset: ${fixed.dataset}
+
 model_name: VERA
 model_config:
   arch_name: seq_classifier

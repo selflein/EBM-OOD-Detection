@@ -5,11 +5,11 @@ trainer_config:
   benchmark: True
 
 checkpoint_config:
-  monitor: val_loss
+  monitor: val/loss
   mode: min
 
 earlystop_config:
-  monitor: val_loss
+  monitor: val/loss
   mode: min
   patience: 10
 

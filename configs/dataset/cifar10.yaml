@@ -1,16 +1,25 @@
-# @package fixed
+# @package _global_
 
-dataset: cifar10
-num_classes: 10
-batch_size: 32
-data_shape: [32, 32, 3]
+slurm:
+  experiments_per_job: 1
+  sbatch_options:
+    time: 0-30:00
 
-test_ood_datasets:
-  - lsun
-  - textures
-  - cifar100
-  - svhn
-  - celeb-a
-  - uniform_noise
-  - gaussian_noise
-  - constant
+fixed:
+  trainer_config:
+    max_epochs: 50
+
+  dataset: cifar10
+  num_classes: 10
+  batch_size: 32
+  data_shape: [32, 32, 3]
+
+  test_ood_datasets:
+    - lsun
+    - textures
+    - cifar100
+    - svhn
+    - celeb-a
+    - uniform_noise
+    - gaussian_noise
+    - constant

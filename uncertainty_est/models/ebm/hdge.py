@@ -81,7 +81,7 @@ class HDGEModel(OODDetectionModel):
         dist = smooth_one_hot(y, self.n_classes, self.smoothing)
 
         self.log(
-            "val_loss",
+            "val/loss",
             sum(self.compute_losses(x, dist, logits=logits, evaluation=True)),
         )
 

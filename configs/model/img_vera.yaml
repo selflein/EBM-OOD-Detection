@@ -4,8 +4,6 @@ trainer_config:
   max_epochs: 20
 
 checkpoint_config:
-  monitor: val/acc
-  mode: max
   save_last: True
 
 earlystop_config:
@@ -14,11 +12,11 @@ ood_dataset: ${fixed.dataset}
 
 model_name: VERA
 model_config:
-  n_classes: ${fixed.num_classes}
+  n_classes: 1
   arch_name: wrn
   arch_config:
     depth: 10
-    num_classes: ${fixed.num_classes}
+    num_classes: 1
     widen_factor: 2
     input_channels: ${fixed.data_shape.2}
     strides: [1, 2, 2]
@@ -42,8 +40,8 @@ model_config:
     init_post_logsigma: 0.1
   min_sigma: 0.01
   max_sigma: 0.3
-  p_control: 0.0
-  n_control: 0.0
+  p_control: 1.0
+  n_control: 1.0
   pg_control: 0.1
   clf_ent_weight: 0.0001
   ebm_type: p_x

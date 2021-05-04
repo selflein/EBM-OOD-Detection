@@ -8,11 +8,11 @@ trainer_config:
   limit_test_batches: 10_000
 
 checkpoint_config:
-  monitor: val_loss
+  monitor: val/loss
   mode: min
 
 earlystop_config:
-  monitor: val_loss
+  monitor: val/loss
   mode: min
   patience: 10
 

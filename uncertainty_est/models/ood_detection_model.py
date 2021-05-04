@@ -21,10 +21,10 @@ from uncertainty_est.data.dataloaders import get_dataloader
 
 class OODDetectionModel(pl.LightningModule):
     def __init__(
-        self, ood_val_dataset=None, is_toy_dataset=False, data_shape=None, **kwargs
+        self, ood_val_datasets=None, is_toy_dataset=False, data_shape=None, **kwargs
     ):
         super().__init__()
-        self.ood_val_dataset = ood_val_dataset
+        self.ood_val_datasets = ood_val_datasets
         self.is_toy_dataset = is_toy_dataset
         self.data_shape = data_shape
         self.test_ood_dataloaders = []
@@ -32,6 +32,8 @@ class OODDetectionModel(pl.LightningModule):
     def eval_ood(
         self, id_loader, ood_loaders: Dict[str, Any], num=10_000
     ) -> Dict[str, float]:
+        self.eval()
+
         if num > 0:
             max_batches = (num // id_loader.batch_size) + 1
         else:
@@ -90,6 +92,8 @@ class OODDetectionModel(pl.LightningModule):
         return ood_metrics
 
     def eval_classifier(self, loader, num=10_000):
+        self.eval()
+
         if num > 0:
             max_batches = (num // loader.batch_size) + 1
         else:
@@ -132,28 +136,18 @@ class OODDetectionModel(pl.LightningModule):
         }
 
     def setup(self, mode):
-        if mode == "fit" and self.ood_val_dataset:
+        if mode == "fit" and self.ood_val_datasets:
             batch_size = self.val_dataloader.dataloader.batch_size
-            if len(self.data_shape) == 3:
-                data_shape = [
-                    self.data_shape[1],
-                    self.data_shape[2],
-                    self.data_shape[0],
-                ]
-            else:
-                data_shape = self.data_shape
 
-            self.ood_val_loader = [
-                (
-                    self.ood_val_dataset,
-                    get_dataloader(
-                        self.ood_val_dataset,
-                        "val",
-                        batch_size=batch_size,
-                        data_shape=data_shape,
-                    ),
+            self.ood_val_loaders = []
+            for ood_ds_name in self.ood_val_datasets:
+                ood_loader = get_dataloader(
+                    ood_ds_name,
+                    "val",
+                    batch_size=batch_size,
+                    data_shape=self.data_shape,
                 )
-            ]
+                self.ood_val_loaders.append((ood_ds_name, ood_loader))
 
     def validation_epoch_end(self, outputs):
         if self.is_toy_dataset:
@@ -168,11 +162,25 @@ class OODDetectionModel(pl.LightningModule):
             self.logger.experiment.add_figure("dist/p(x)", fig, self.current_epoch)
             plt.close()
 
-        if hasattr(self, "ood_val_loader"):
+        if hasattr(self, "ood_val_loaders"):
             ood_metrics = self.eval_ood(
-                self.val_dataloader.dataloader, self.ood_val_loader
+                self.val_dataloader.dataloader, self.ood_val_loaders
             )
-            _, v = next(iter(ood_metrics.items()))
+            self.logger.experiment.add_scalars(
+                "val/all_ood",
+                {", ".join(k): v for k, v in ood_metrics.items()},
+                self.trainer.global_step,
+            )
+
+            avg_over_dataset_results = defaultdict(list)
+            for k, v in ood_metrics.items():
+                avg_over_dataset_results[", ".join(k[1:])].append(v)
+
+            k, v = next(
+                iter(
+                    {k: np.mean(v) for k, v in avg_over_dataset_results.items()}.items()
+                )
+            )
             self.log(f"val/ood", v)
 
     def optimizer_step(

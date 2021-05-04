@@ -226,12 +226,12 @@ class NormalizingFlowDensity(nn.Module):
         elif self.flow_type == "planar_flow":
             self.transforms = nn.ModuleList([Planar(dim) for _ in range(flow_length)])
         elif self.flow_type == "affine_coupling":
-            self.transforms = nn.ModuleList(
-                [
+            self.transforms = nn.ModuleList()
+            for _ in range(flow_length):
+                self.transforms.append(
                     affine_coupling(dim, hidden_dims=[128, 128], **kwargs)
-                    for _ in range(flow_length)
-                ]
-            )
+                )
+                self.transforms.append(permute(dim))
         elif self.flow_type == "orthogonal_flow":
             self.transforms = nn.ModuleList(
                 [OrthogonalTransform(dim) for _ in range(flow_length)]

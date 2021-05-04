@@ -8,7 +8,7 @@ slurm:
 fixed:
   dataset: fashionmnist
   num_classes: 10
-  batch_size: 128
+  batch_size: 64
   data_shape: [32, 32, 1]
 
   trainer_config:

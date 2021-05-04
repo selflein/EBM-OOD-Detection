@@ -43,11 +43,13 @@ class MCMC(OODDetectionModel):
         **kwargs
     ):
         super().__init__(**kwargs)
-        if len(data_shape) == 3:
-            data_shape = [data_shape[-1], data_shape[0], data_shape[1]]
-
         self.__dict__.update(locals())
         self.save_hyperparameters()
+
+        if len(data_shape) == 3:
+            self.sample_shape = [data_shape[-1], data_shape[0], data_shape[1]]
+        else:
+            self.sample_shape = data_shape
 
         if class_cond_p_x_sample:
             assert n_classes > 1
@@ -62,7 +64,7 @@ class MCMC(OODDetectionModel):
         return self.model(x)
 
     def _init_buffer(self):
-        self.replay_buffer = init_random(self.buffer_size, self.data_shape).cpu()
+        self.replay_buffer = init_random(self.buffer_size, self.sample_shape).cpu()
 
     def training_step(self, batch, batch_idx):
         (x_lab, y_lab), (x_p_d, _) = batch
@@ -165,7 +167,7 @@ class MCMC(OODDetectionModel):
 
     def sample_p_0(self, replay_buffer, bs, y=None):
         if len(replay_buffer) == 0:
-            return init_random(bs, self.data_shape), []
+            return init_random(bs, self.sample_shape), []
 
         buffer_size = (
             len(replay_buffer) if y is None else len(replay_buffer) // self.n_classes
@@ -176,9 +178,9 @@ class MCMC(OODDetectionModel):
             inds = y.cpu() * buffer_size + inds
 
         buffer_samples = replay_buffer[inds].to(self.device)
-        random_samples = init_random(bs, self.data_shape).to(self.device)
+        random_samples = init_random(bs, self.sample_shape).to(self.device)
         choose_random = (torch.rand(bs) < self.reinit_freq).to(buffer_samples)[
-            (...,) + (None,) * len(self.data_shape)
+            (...,) + (None,) * len(self.sample_shape)
         ]
         samples = choose_random * random_samples + (1 - choose_random) * buffer_samples
         return samples.to(self.device), inds

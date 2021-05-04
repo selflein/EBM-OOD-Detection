@@ -3,7 +3,8 @@
 trainer_config:
   max_steps: 100_000
   max_epochs: 100_000
-  limit_val_batches: 0
+  limit_val_batches: 1
+  val_check_interval: 10_000
   limit_test_batches: 10_000
 
 checkpoint_config:

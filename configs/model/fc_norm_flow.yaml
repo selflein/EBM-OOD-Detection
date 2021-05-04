@@ -1,0 +1,27 @@
+trainer_config:
+  max_steps: 10_000
+  max_epochs: 10_000
+  check_val_every_n_epoch: 100
+
+checkpoint_config:
+  monitor: val/loss
+  mode: min
+
+earlystop_config:
+  monitor: val/loss
+  mode: min
+  patience: 10
+
+ood_dataset:
+
+model_name: NormalizingFlow
+model_config:
+  arch_name: normalizing_flow
+  arch_config:
+    flow_type: affine_coupling
+    dim: 2
+    flow_length: 20
+  learning_rate: 0.001
+  momentum: 0.9
+  weight_decay: 0.0
+  vis_every: 10
