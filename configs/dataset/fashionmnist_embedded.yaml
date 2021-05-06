@@ -9,6 +9,10 @@ fixed:
   batch_size: 128
   data_shape: [640]
 
+  checkpoint_config:
+    monitor: val/ood
+    mode: max
+
   test_ood_datasets:
     - mnist_embedded
     - notmnist_embedded
@@ -16,3 +20,8 @@ fixed:
     - fashionmnist_gaussian_noise_embedded
     - fashionmnist_uniform_noise_embedded
     - fashionmnist_constant_embedded
+
+  model_config:
+    ood_val_datasets:
+      - mnist_embedded
+      - kmnist_embedded

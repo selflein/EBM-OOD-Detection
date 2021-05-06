@@ -1,0 +1,16 @@
+# @package _group_
+
+seed:
+  type: choice
+  options:
+    - 2525
+    - 2123
+    - 293993
+    - 2324234
+    - 6566634
+
+model_config.pyxce:
+  type: loguniform
+  min: 0.01
+  max: 100
+  num: 5

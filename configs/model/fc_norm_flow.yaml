@@ -1,7 +1,6 @@
 trainer_config:
   max_steps: 10_000
   max_epochs: 10_000
-  check_val_every_n_epoch: 100
 
 checkpoint_config:
   monitor: val/loss
