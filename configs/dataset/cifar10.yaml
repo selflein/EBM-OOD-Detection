@@ -9,6 +9,10 @@ fixed:
   trainer_config:
     max_epochs: 50
 
+  checkpoint_config:
+    monitor: val/ood
+    mode: max
+
   dataset: cifar10
   num_classes: 10
   batch_size: 32
@@ -23,3 +27,8 @@ fixed:
     - uniform_noise
     - gaussian_noise
     - constant
+
+  model_config:
+    ood_val_datasets:
+      - celeb-a
+      - cifar100

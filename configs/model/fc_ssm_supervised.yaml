@@ -13,7 +13,7 @@ earlystop_config:
 
 ood_dataset: ${fixed.dataset}
 
-model_name: JEM
+model_name: SSM
 model_config:
   arch_name: fc
   arch_config:
@@ -21,22 +21,11 @@ model_config:
     num_classes: ${fixed.num_classes}
     hidden_dims: [100, 100, 100, 100, 100]
 
-  learning_rate: 0.001
+  learning_rate: 0.0001
   momentum: 0.9
   weight_decay: 0.0
-  smoothing: 0.0
-  sgld_lr: 1.0
-  sgld_std: 0.01
-  sgld_steps: 100
-  pyxce: 1.0
-  pxsgld: 1.0
-  pxysgld: 0.0
-  buffer_size: 9000
-  reinit_freq: 0.05
-  data_shape: ${fixed.data_shape}
-  sgld_batch_size: ${fixed.batch_size}
-  class_cond_p_x_sample: True
+  clf_weight: 1.0
   n_classes: ${fixed.num_classes}
+  n_particles: 1
   warmup_steps: 2500
-  entropy_reg_weight: 0.0
   lr_step_size: 1000

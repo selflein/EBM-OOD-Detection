@@ -1,7 +1,6 @@
 import torch
 from torch import autograd
 import torch.nn.functional as F
-import matplotlib.pyplot as plt
 
 from uncertainty_est.utils.utils import to_np
 from uncertainty_est.models.ebm.utils.model import JEM
@@ -85,20 +84,6 @@ class SSM(OODDetectionModel):
         _, logits = self.model(x_lab, return_logits=True)
         acc = (y_lab == logits.argmax(1)).float().mean(0).item()
         self.log("val/acc", acc)
-
-    def validation_epoch_end(self, outputs):
-        if self.is_toy_dataset:
-            interp = torch.linspace(-4, 4, 500)
-            x, y = torch.meshgrid(interp, interp)
-            data = torch.stack((x.reshape(-1), y.reshape(-1)), 1).to(self.device)
-            p_xy = torch.exp(self(data)[:, None])
-            px = to_np(p_xy.sum(1))
-
-            fig, ax = plt.subplots()
-            mesh = ax.pcolormesh(x, y, px.reshape(*x.shape))
-            fig.colorbar(mesh)
-            self.logger.experiment.add_figure("dist/p(x)", fig, self.current_epoch)
-            plt.close()
 
     def test_step(self, batch, batch_idx):
         x, y = batch

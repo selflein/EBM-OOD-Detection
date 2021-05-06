@@ -5,7 +5,6 @@ trainer_config:
   max_steps: 10_000
 
 checkpoint_config:
-  monitor:
   save_last: True
 
 earlystop_config:
@@ -27,5 +26,4 @@ model_config:
   n_classes: 1
   n_particles: 1
   warmup_steps: 2500
-  is_toy_dataset: True
   lr_step_size: 1000
