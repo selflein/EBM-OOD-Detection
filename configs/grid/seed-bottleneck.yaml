@@ -1,0 +1,17 @@
+# @package _group_
+
+seed:
+  type: choice
+  options:
+    - 2525
+    - 2123
+    - 293993
+    - 2324234
+    - 6566634
+
+model_config.arch_config.bottleneck_channels_factor:
+  type: choice
+  options:
+    - 0.05
+    - 0.1
+    - 0.2

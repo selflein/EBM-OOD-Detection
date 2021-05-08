@@ -19,6 +19,7 @@ from .vae import VAE
 from .ebm.nce import NoiseContrastiveEstimation
 from .ebm.flow_contrastive_estimation import FlowContrastiveEstimation
 from .ebm.ssm import SSM
+from .autoencoder import Autoencoder
 
 
 MODELS = {
@@ -41,6 +42,7 @@ MODELS = {
     "NCE": NoiseContrastiveEstimation,
     "FlowCE": FlowContrastiveEstimation,
     "SSM": SSM,
+    "Autoencoder": Autoencoder,
 }
 
 

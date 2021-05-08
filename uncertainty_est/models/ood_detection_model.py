@@ -183,31 +183,6 @@ class OODDetectionModel(pl.LightningModule):
             )
             self.log(f"val/ood", v)
 
-    def training_epoch_end(self, outputs):
-        if hasattr(self, "ood_val_loaders"):
-            ood_metrics = self.eval_ood(
-                self.train_dataloader.dataloader, self.ood_val_loaders
-            )
-            self.logger.experiment.add_scalars(
-                "train/all_ood",
-                {", ".join(k): v for k, v in ood_metrics.items()},
-                self.trainer.global_step,
-            )
-
-            avg_over_dataset_results = defaultdict(list)
-            for k, v in ood_metrics.items():
-                avg_over_dataset_results[", ".join(k[1:])].append(v)
-
-            k, v = next(
-                iter(
-                    {k: np.mean(v) for k, v in avg_over_dataset_results.items()}.items()
-                )
-            )
-            self.log(f"train/ood", v)
-            torch.set_grad_enabled(True)
-            self.train()
-        super().training_epoch_end(outputs)
-
     def optimizer_step(
         self,
         epoch: int = None,

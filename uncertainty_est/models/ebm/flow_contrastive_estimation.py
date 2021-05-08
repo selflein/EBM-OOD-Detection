@@ -4,12 +4,9 @@ import torch
 import torch.nn.functional as F
 import matplotlib.pyplot as plt
 
+from uncertainty_est.utils.utils import to_np
 from uncertainty_est.archs.arch_factory import get_arch
 from uncertainty_est.models.ood_detection_model import OODDetectionModel
-from uncertainty_est.utils.utils import (
-    to_np,
-    estimate_normalizing_constant,
-)
 
 
 class FlowContrastiveEstimation(OODDetectionModel):

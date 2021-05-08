@@ -94,18 +94,14 @@ def get_dataloader(
         )
 
         if unscaled:
-            unscaled_transform = tvt.Lambda(
-                lambda x: torch.from_numpy(np.array(x)).permute(2, 0, 1).float()
-            )
-            test_transform.append(unscaled_transform)
-            train_transform.append(unscaled_transform)
+            scale_transform = [tvt.ToTensor(), tvt.Lambda(lambda x: x * 255.0)]
         else:
             scale_transform = [
                 tvt.ToTensor(),
                 tvt.Normalize((0.5,) * data_shape[2], (0.5,) * data_shape[2]),
             ]
-            test_transform.extend(scale_transform)
-            train_transform.extend(scale_transform)
+        test_transform.extend(scale_transform)
+        train_transform.extend(scale_transform)
 
     test_transform.extend(extra_test_transforms)
     train_transform.extend(extra_train_transforms)

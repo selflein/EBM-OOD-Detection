@@ -12,6 +12,8 @@ checkpoint_config:
   mode: max
   save_last: True
 
+batch_size: 512
+
 earlystop_config:
 
 ood_dataset: ${fixed.dataset}

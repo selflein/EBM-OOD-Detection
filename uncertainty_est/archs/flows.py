@@ -5,6 +5,7 @@ import torch
 from torch import nn
 import torch.distributions as tdist
 from pyro.distributions.transforms import ELUTransform, LeakyReLUTransform
+from pyro.distributions.torch_transform import TransformModule
 from pyro.distributions.transforms import (
     Planar,
     Radial,
@@ -226,12 +227,17 @@ class NormalizingFlowDensity(nn.Module):
         elif self.flow_type == "planar_flow":
             self.transforms = nn.ModuleList([Planar(dim) for _ in range(flow_length)])
         elif self.flow_type == "affine_coupling":
-            self.transforms = nn.ModuleList()
-            for _ in range(flow_length):
-                self.transforms.append(
-                    affine_coupling(dim, hidden_dims=[128, 128], **kwargs)
-                )
-                self.transforms.append(permute(dim))
+            self.transforms = []
+            for i in range(flow_length):
+                coupling = affine_coupling(dim, hidden_dims=[128, 128], **kwargs)
+                self.transforms.append(coupling)
+                self.add_module(f"coupling_{i}", coupling)
+
+                permutation = nn.Parameter(torch.randperm(dim), requires_grad=False)
+                self.register_parameter(f"permutation_{i}", permutation)
+                permute_layer = permute(dim, permutation=permutation)
+                self.transforms.append(permute_layer)
+
         elif self.flow_type == "orthogonal_flow":
             self.transforms = nn.ModuleList(
                 [OrthogonalTransform(dim) for _ in range(flow_length)]

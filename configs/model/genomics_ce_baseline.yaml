@@ -4,8 +4,10 @@ trainer_config:
   max_steps: 100_000
   max_epochs: 100_000
   val_check_interval: 10_000
-  limit_val_batches: 2000
+  limit_val_batches: 1000
   limit_test_batches: 10_000
+
+batch_size: 512
 
 checkpoint_config:
   monitor: val/acc
@@ -15,8 +17,6 @@ earlystop_config:
   monitor: val/acc
   mode: max
   patience: 10
-
-batch_size: 2048
 
 model_name: CEBaseline
 model_config:

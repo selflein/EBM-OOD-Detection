@@ -13,6 +13,10 @@ fixed:
     - 128
   num_classes: 10
 
+  checkpoint_config:
+    monitor: val/ood
+    mode: max
+
   test_ood_datasets:
     - genomics-ood_embedded
     - genomics-noise_embedded
@@ -20,3 +24,7 @@ fixed:
   trainer_config:
     max_epochs: 50_000
     max_steps: 50_000
+
+  model_config:
+    ood_val_datasets:
+      - genomics-ood_embedded

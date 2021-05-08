@@ -16,6 +16,8 @@ earlystop_config:
   mode: min
   patience: 10
 
+batch_size: 512
+
 model_name: NormalizingFlow
 model_config:
   arch_name: seq_generative_model

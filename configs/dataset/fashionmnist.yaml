@@ -14,6 +14,10 @@ fixed:
   trainer_config:
     max_epochs: 50
 
+  checkpoint_config:
+    monitor: val/ood
+    mode: max
+
   test_ood_datasets:
     - mnist
     - notmnist
@@ -21,3 +25,9 @@ fixed:
     - gaussian_noise
     - uniform_noise
     - constant
+    - kmnist_unscaled
+
+  model_config:
+    ood_val_datasets:
+      - mnist
+      - kmnist

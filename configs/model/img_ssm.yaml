@@ -1,0 +1,31 @@
+# @package fixed
+
+trainer_config:
+  max_epochs: 50
+
+checkpoint_config:
+  save_last: True
+
+earlystop_config:
+
+ood_dataset: ${fixed.dataset}
+sigma: 0.1
+
+model_name: SSM
+model_config:
+  arch_name: wrn
+  arch_config:
+    depth: 10
+    num_classes: 1
+    widen_factor: 2
+    input_channels: ${fixed.data_shape.2}
+    strides: [1, 2, 2]
+
+  learning_rate: 0.0001
+  momentum: 0.9
+  weight_decay: 0.0
+  clf_weight: 0.0
+  n_classes: 1
+  n_particles: 1
+  warmup_steps: 2500
+  lr_step_size: 1000

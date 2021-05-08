@@ -8,7 +8,6 @@ slurm:
 
 fixed:
   dataset: genomics
-  batch_size: 512
   data_shape: [250]
   num_cat: 4
   num_classes: 10
