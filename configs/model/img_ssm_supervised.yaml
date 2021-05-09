@@ -4,7 +4,7 @@ trainer_config:
   max_epochs: 50
 
 checkpoint_config:
-  metric: val/acc
+  monitor: val/acc
   mode: max
   save_last: True
 
