@@ -1,8 +1,5 @@
 # @package fixed
 
-trainer_config:
-  max_epochs: 20
-
 checkpoint_config:
   save_last: True
 

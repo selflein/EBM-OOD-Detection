@@ -4,11 +4,6 @@ trainer_config:
   max_epochs: 10_000
   max_steps: 10_000
 
-checkpoint_config:
-  monitor: val/acc
-  mode: max
-  save_last: True
-
 earlystop_config:
 
 ood_dataset: ${fixed.dataset}
@@ -21,7 +16,7 @@ model_config:
     num_classes: ${fixed.num_classes}
     hidden_dims: [100, 100, 100, 100, 100]
 
-  learning_rate: 0.0001
+  learning_rate: 0.01
   momentum: 0.9
   weight_decay: 0.0
   clf_weight: 1.0

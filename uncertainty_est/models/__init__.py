@@ -48,7 +48,7 @@ MODELS = {
 
 def load_model(model_folder: Path, last=False, *args, **kwargs):
     ckpts = [file for file in model_folder.iterdir() if file.suffix == ".ckpt"]
-    ckpts = [ckpt for ckpt in ckpts if not "last" in ckpt.stem == last]
+    ckpts = [ckpt for ckpt in ckpts if ("last" in ckpt.stem) == last]
     assert len(ckpts) > 0
 
     checkpoint_path = sorted(ckpts)[-1]

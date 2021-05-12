@@ -12,8 +12,17 @@ fixed:
   data_shape:
     - 18
 
+  checkpoint_config:
+    monitor: val/ood
+    mode: max
+    save_last: True
+
   test_ood_datasets:
     - segment-ood
     - uniform_noise
     - gaussian_noise
     - constant
+
+  model_config:
+    ood_val_datasets:
+      - segment-ood

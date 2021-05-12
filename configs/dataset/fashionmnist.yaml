@@ -17,6 +17,7 @@ fixed:
   checkpoint_config:
     monitor: val/ood
     mode: max
+    save_last: True
 
   test_ood_datasets:
     - mnist

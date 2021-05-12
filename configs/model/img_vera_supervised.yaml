@@ -1,12 +1,6 @@
 # @package fixed
 
-trainer_config:
-  max_epochs: 20
-
 checkpoint_config:
-  monitor: val/acc
-  mode: max
-  save_last: True
 
 earlystop_config:
 

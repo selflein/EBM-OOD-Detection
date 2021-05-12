@@ -1,12 +1,15 @@
 import os
 import sys
 
+from numpy.lib.arraysetops import isin
+
 sys.path.insert(0, os.getcwd())
 
 import logging
 from pathlib import Path
 from argparse import ArgumentParser
 
+import numpy as np
 import pandas as pd
 
 from uncertainty_est.data.dataloaders import get_dataloader
@@ -20,8 +23,9 @@ parser.add_argument("--ood_dataset", type=str, action="append")
 parser.add_argument("--eval-classification", action="store_true")
 parser.add_argument("--output-folder", type=str)
 parser.add_argument("--name", type=str, required=True)
-parser.add_argument("--max-eval", type=int, default=-1)
+parser.add_argument("--max-eval", type=int, default=10_000)
 parser.add_argument("--checkpoint-dir", type=str)
+parser.add_argument("--config-entries", type=str, action="append", default=[])
 
 
 logger = logging.getLogger()
@@ -101,7 +105,7 @@ if __name__ == "__main__":
         checkpoint_dir = Path(args.checkpoint_dir)
         for model_dir in checkpoint_dir.glob("**/version_*"):
             try:
-                model, config = load_model(model_dir, last=True, strict=False)
+                model, config = load_model(model_dir, last=False, strict=False)
             except:
                 continue
             model.eval()
@@ -122,8 +126,20 @@ if __name__ == "__main__":
                 batch_size=128,
                 max_items=args.max_eval,
             )
-            ood_tbl_rows.extend(ood_rows)
-            clf_tbl_rows.extend(clf_rows)
+
+            extra_cols = []
+            for e in args.config_entries:
+                out = config
+                for key in e.split("."):
+                    out = out.get(key, np.nan)
+                    if out == np.nan:
+                        break
+
+                if isinstance(out, dict):
+                    raise ValueError("Error getting config entry")
+                extra_cols.append(out)
+            ood_tbl_rows.extend([[*row, *extra_cols] for row in ood_rows])
+            clf_tbl_rows.extend([[*row, *extra_cols] for row in clf_rows])
 
     if args.output_folder:
         output_folder = Path(args.output_folder)
@@ -137,6 +153,7 @@ if __name__ == "__main__":
                 "Score",
                 "Metric",
                 "Value",
+                *args.config_entries,
             ),
         )
         ood_df.to_csv(output_folder / f"ood-{args.name}.csv", index=False)
@@ -150,6 +167,7 @@ if __name__ == "__main__":
                     "ID dataset",
                     "Metric",
                     "Value",
+                    *args.config_entries,
                 ),
             )
             clf_df.to_csv(output_folder / f"clf-{args.name}.csv", index=False)

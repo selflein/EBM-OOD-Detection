@@ -4,11 +4,6 @@ trainer_config:
   max_epochs: 10_000
   max_steps: 10_000
 
-checkpoint_config:
-  monitor: val/acc
-  mode: max
-  save_last: True
-
 earlystop_config:
 
 ood_dataset: ${fixed.dataset}

@@ -17,6 +17,16 @@ fixed:
     - gaussian_noise
     - constant
 
+  checkpoint_config:
+    monitor: val/ood
+    mode: max
+    save_last: True
+
   trainer_config:
     max_epochs: 10_000
     max_steps: 10_000
+    check_val_every_n_epoch: 10
+
+  model_config:
+    ood_val_datasets:
+      - sensorless-ood
