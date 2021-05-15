@@ -1,12 +1,5 @@
 # @package fixed
 
-trainer_config:
-  max_steps: 100_000
-  max_epochs: 100_000
-  val_check_interval: 10_000
-  limit_val_batches: 2000
-  limit_test_batches: 10_000
-
 checkpoint_config:
   monitor: val/loss
   mode: min

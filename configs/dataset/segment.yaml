@@ -15,13 +15,17 @@ fixed:
   checkpoint_config:
     monitor: val/ood
     mode: max
-    save_last: True
 
   test_ood_datasets:
     - segment-ood
     - uniform_noise
     - gaussian_noise
     - constant
+
+  trainer_config:
+    max_epochs: 10_000
+    max_steps: 10_000
+    check_val_every_n_epoch: 10
 
   model_config:
     ood_val_datasets:

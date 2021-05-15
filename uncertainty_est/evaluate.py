@@ -141,6 +141,7 @@ if __name__ == "__main__":
             ood_tbl_rows.extend([[*row, *extra_cols] for row in ood_rows])
             clf_tbl_rows.extend([[*row, *extra_cols] for row in clf_rows])
 
+    extra_row_names = [s.split(".")[-1] for s in args.config_entries]
     if args.output_folder:
         output_folder = Path(args.output_folder)
         ood_df = pd.DataFrame(
@@ -153,7 +154,7 @@ if __name__ == "__main__":
                 "Score",
                 "Metric",
                 "Value",
-                *args.config_entries,
+                *extra_row_names,
             ),
         )
         ood_df.to_csv(output_folder / f"ood-{args.name}.csv", index=False)
@@ -167,7 +168,7 @@ if __name__ == "__main__":
                     "ID dataset",
                     "Metric",
                     "Value",
-                    *args.config_entries,
+                    *extra_row_names,
                 ),
             )
             clf_df.to_csv(output_folder / f"clf-{args.name}.csv", index=False)

@@ -16,7 +16,7 @@ model_config:
     num_classes: ${fixed.num_classes}
     hidden_dims: [100, 100, 100, 100, 100]
 
-  learning_rate: 0.01
+  learning_rate: 0.001
   momentum: 0.9
   weight_decay: 0.0
   clf_weight: 1.0
