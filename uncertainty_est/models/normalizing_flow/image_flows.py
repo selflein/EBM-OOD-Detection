@@ -8,14 +8,8 @@ from uncertainty_est.models.ood_detection_model import OODDetectionModel
 
 
 class AffineCouplingModel(OODDetectionModel):
-    def __init__(
-        self,
-        learning_rate,
-        momentum,
-        weight_decay,
-        num_classes=1,
-    ):
-        super().__init__()
+    def __init__(self, learning_rate, momentum, weight_decay, num_classes=1, **kwargs):
+        super().__init__(**kwargs)
         self.__dict__.update(locals())
         self.conditional_densities = []
 
@@ -91,13 +85,9 @@ class RealNVPModel(AffineCouplingModel):
         momentum,
         weight_decay,
         num_classes=1,
+        **kwargs
     ):
-        super().__init__(
-            learning_rate,
-            momentum,
-            weight_decay,
-            num_classes=1,
-        )
+        super().__init__(learning_rate, momentum, weight_decay, num_classes=1, **kwargs)
         self.__dict__.update(locals())
         self.save_hyperparameters()
 
@@ -119,13 +109,9 @@ class GlowModel(AffineCouplingModel):
         momentum,
         weight_decay,
         num_classes=1,
+        **kwargs
     ):
-        super().__init__(
-            learning_rate,
-            momentum,
-            weight_decay,
-            num_classes=1,
-        )
+        super().__init__(learning_rate, momentum, weight_decay, num_classes=1, **kwargs)
         self.__dict__.update(locals())
         self.save_hyperparameters()
 

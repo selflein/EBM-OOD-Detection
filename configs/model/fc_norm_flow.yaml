@@ -1,6 +1,4 @@
-trainer_config:
-  max_steps: 10_000
-  max_epochs: 10_000
+# @package fixed
 
 checkpoint_config:
   monitor: val/loss
@@ -17,10 +15,9 @@ model_name: NormalizingFlow
 model_config:
   arch_name: normalizing_flow
   arch_config:
-    flow_type: affine_coupling
-    dim: 2
+    flow_type: radial_flow
+    dim: ${fixed.data_shape.0}
     flow_length: 20
   learning_rate: 0.001
   momentum: 0.9
   weight_decay: 0.0
-  vis_every: 10

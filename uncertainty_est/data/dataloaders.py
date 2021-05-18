@@ -56,6 +56,7 @@ def get_dataloader(
     shuffle=None,
     mutation_rate=0.0,
     split_seed=1,
+    normalize=True,
     extra_train_transforms=[],
     extra_test_transforms=[],
 ):
@@ -96,10 +97,12 @@ def get_dataloader(
         if unscaled:
             scale_transform = [tvt.ToTensor(), tvt.Lambda(lambda x: x * 255.0)]
         else:
-            scale_transform = [
-                tvt.ToTensor(),
-                tvt.Normalize((0.5,) * data_shape[2], (0.5,) * data_shape[2]),
-            ]
+            scale_transform = [tvt.ToTensor()]
+            if normalize:
+                scale_transform.append(
+                    tvt.Normalize((0.5,) * data_shape[2], (0.5,) * data_shape[2])
+                )
+
         test_transform.extend(scale_transform)
         train_transform.extend(scale_transform)
 

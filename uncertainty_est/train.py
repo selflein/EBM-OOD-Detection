@@ -5,6 +5,8 @@ import os
 import sys
 from uuid import uuid4
 
+from torch.functional import norm
+
 sys.path.insert(0, os.getcwd())
 
 from pathlib import Path
@@ -59,6 +61,7 @@ def run(
     test_ood_datasets=[],
     mutation_rate=0.0,
     num_cat=1,
+    normalize=True,
     **kwargs,
 ):
     pl.seed_everything(seed)
@@ -75,6 +78,7 @@ def run(
         sigma=sigma,
         num_workers=num_workers,
         mutation_rate=mutation_rate,
+        normalize=normalize,
     )
     val_loader = get_dataloader(
         dataset,
@@ -84,6 +88,7 @@ def run(
         sigma=sigma,
         ood_dataset=ood_dataset,
         num_workers=num_workers,
+        normalize=normalize,
     )
     test_loader = get_dataloader(
         dataset,
@@ -93,6 +98,7 @@ def run(
         sigma=sigma,
         ood_dataset=None,
         num_workers=num_workers,
+        normalize=normalize,
     )
 
     if log_dir == None:
@@ -154,6 +160,7 @@ def run(
             sigma=sigma,
             ood_dataset=None,
             num_workers=num_workers,
+            normalize=normalize,
         )
         test_ood_dataloaders.append((test_ood_dataset, loader))
     ood_results = model.eval_ood(test_loader, test_ood_dataloaders)

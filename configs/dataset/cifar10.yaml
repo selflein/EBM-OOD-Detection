@@ -27,6 +27,7 @@ fixed:
     - uniform_noise
     - gaussian_noise
     - constant
+    - svhn_unscaled
 
   model_config:
     ood_val_datasets:

@@ -1,0 +1,19 @@
+# @package fixed
+
+earlystop_config:
+  monitor: val/loss
+  mode: min
+  patience: 10
+
+normalize: False
+ood_dataset:
+
+model_name: Glow
+model_config:
+  in_channels: ${fixed.data_shape.2}
+  num_channels: 512
+  num_levels: 3
+  num_steps: 32
+  learning_rate: 0.001
+  momentum: 0.9
+  weight_decay: 0.00005
