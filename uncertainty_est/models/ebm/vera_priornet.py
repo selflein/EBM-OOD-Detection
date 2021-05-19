@@ -43,6 +43,7 @@ class VERAPriorNet(VERA):
         target_concentration=None,
         entropy_reg=0.0,
         reverse_kl=True,
+        w_neg_sample_loss=1.0,
         **kwargs,
     ):
         super().__init__(
@@ -85,7 +86,10 @@ class VERAPriorNet(VERA):
 
     def classifier_loss(self, ld_logits, y_l, lg_logits):
         loss = self.clf_loss(ld_logits, y_l)
-        loss_ood = self.clf_loss(lg_logits)
+
+        loss_ood = 0.0
+        if self.w_neg_sample_loss > 0:
+            loss_ood = self.w_neg_sample_loss * self.clf_loss(lg_logits)
         self.log("train/clf_loss", loss + loss_ood)
         return loss
 

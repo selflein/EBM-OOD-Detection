@@ -106,7 +106,8 @@ if __name__ == "__main__":
         for model_dir in checkpoint_dir.glob("**/version_*"):
             try:
                 model, config = load_model(model_dir, last=False, strict=False)
-            except:
+            except Exception as e:
+                logger.info(str(e))
                 continue
             model.eval()
             model.cuda()

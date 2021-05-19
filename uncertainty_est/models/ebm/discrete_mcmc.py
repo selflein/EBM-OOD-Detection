@@ -36,6 +36,8 @@ class DiscreteMCMC(MCMC):
         lr_step_size=50,
         **kwargs
     ):
+        kwargs.pop("sgld_lr")
+        kwargs.pop("sgld_std")
         self.num_cat = num_cat
         super().__init__(
             arch_name=arch_name,

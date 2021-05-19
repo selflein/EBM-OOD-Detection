@@ -12,5 +12,8 @@ fixed:
   data_shape:
     - 2
 
+  model_config:
+    is_toy_dataset: True
+
   test_ood_datasets:
     - AnomalousGaussian2D

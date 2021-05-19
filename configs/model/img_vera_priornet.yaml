@@ -14,7 +14,7 @@ earlystop_config:
   mode: max
   patience: 10
 
-ood_dataset: {fixed.dataset}
+ood_dataset: ${fixed.dataset}
 
 model_name: VERAPriorNet
 model_config:
@@ -69,3 +69,4 @@ model_config:
   target_concentration:
   entropy_reg: 0.0001
   reverse_kl: True
+  w_neg_sample_loss: 0.0

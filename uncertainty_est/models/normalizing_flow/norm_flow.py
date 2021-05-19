@@ -21,7 +21,7 @@ class NormalizingFlow(OODDetectionModel):
         self.density_estimation = get_arch(arch_name, arch_config)
 
     def forward(self, x):
-        return self.density_estimation(x)
+        return self.density_estimation.log_prob(x)
 
     def training_step(self, batch, batch_idx):
         x, _ = batch
