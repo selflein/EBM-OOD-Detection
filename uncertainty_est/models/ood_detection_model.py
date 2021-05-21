@@ -47,7 +47,11 @@ class OODDetectionModel(pl.LightningModule):
 
         # Compute OOD detection metrics
         for dataset_name, loader in ood_loaders:
-            ood_scores_dict = self.ood_detect(islice(loader, max_batches))
+            try:
+                ood_scores_dict = self.ood_detect(islice(loader, max_batches))
+            except Exception as e:
+                print(e)
+                continue
 
             for score_name, id_scores in id_scores_dict.items():
                 try:

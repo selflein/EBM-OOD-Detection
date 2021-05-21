@@ -1,10 +1,9 @@
 from pathlib import Path
 
 import torch
-import numpy as np
 from torch.utils.data import DataLoader
+import PIL.Image as InterpolationMode
 from torchvision import transforms as tvt
-from torchvision.transforms import InterpolationMode
 from uncertainty_eval.datasets import get_dataset as ue_get_dataset
 
 from uncertainty_est.data.datasets import ConcatDataset, ConcatIterableDataset
@@ -81,7 +80,7 @@ def get_dataloader(
                 tvt.Resize(img_size, InterpolationMode.LANCZOS),
                 tvt.CenterCrop(img_size),
                 tvt.Pad(4, padding_mode="reflect"),
-                tvt.RandomRotation(15, interpolation=InterpolationMode.BILINEAR),
+                tvt.RandomRotation(15, resample=InterpolationMode.BILINEAR),
                 tvt.RandomHorizontalFlip(),
                 tvt.RandomCrop(img_size),
             ]

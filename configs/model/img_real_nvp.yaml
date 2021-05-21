@@ -1,0 +1,25 @@
+# @package fixed
+
+checkpoint_config:
+  monitor: val/loss
+  mode: min
+  save_last: True
+
+earlystop_config:
+  monitor: val/loss
+  mode: min
+  patience: 10
+
+normalize: False
+ood_dataset:
+
+model_name: RealNVP
+model_config:
+  num_scales: 2
+  in_channels: ${fixed.data_shape.2}
+  mid_channels: 32
+  num_blocks: 4
+  num_classes: 10
+  learning_rate: 0.0001
+  momentum: 0.9
+  weight_decay: 0.0

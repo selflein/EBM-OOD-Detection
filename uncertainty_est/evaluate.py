@@ -40,8 +40,9 @@ def eval_model(
     model_name="",
     batch_size=128,
     max_items=-1,
+    **kwargs,
 ):
-    id_test_loader = get_dataloader(dataset, "test", batch_size=batch_size)
+    id_test_loader = get_dataloader(dataset, "test", batch_size=batch_size, **kwargs)
 
     clf_accum = []
     if eval_classification:
@@ -57,6 +58,7 @@ def eval_model(
             "test",
             data_shape=id_test_loader.dataset.data_shape,
             batch_size=batch_size,
+            **kwargs,
         )
         test_ood_dataloaders.append((test_ood_dataset, loader))
 
@@ -97,6 +99,7 @@ if __name__ == "__main__":
             model_name=model_name,
             batch_size=128,
             max_items=args.max_eval,
+            normalize=config["normalize"] if "normalize" in config else True,
         )
         ood_tbl_rows.extend(ood_rows)
         clf_tbl_rows.append(clf_rows)
@@ -126,6 +129,7 @@ if __name__ == "__main__":
                 model_name=model_dir.parent.stem,
                 batch_size=128,
                 max_items=args.max_eval,
+                normalize=config["normalize"] if "normalize" in config else True,
             )
 
             extra_cols = []

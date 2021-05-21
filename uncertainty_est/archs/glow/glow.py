@@ -44,10 +44,10 @@ class Glow(nn.Module):
             sldj = torch.zeros(x.size(0), device=x.device)
         else:
             # Expect inputs in [0, 1]
-            if x.min() < 0 or x.max() > 1:
-                raise ValueError(
-                    "Expected x in [0, 1], got min/max {}/{}".format(x.min(), x.max())
-                )
+            if x.min() < 0:
+                x = (x + 1) / 2.0
+            elif x.max() > 1:
+                print("Warning: Input not properly normalized!")
 
             # De-quantize and convert to logits
             x, sldj = self._pre_process(x)
