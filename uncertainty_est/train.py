@@ -13,45 +13,31 @@ from pathlib import Path
 from datetime import datetime
 
 import yaml
-import seml
-from sacred import Experiment
+import hydra
 import pytorch_lightning as pl
+from omegaconf import DictConfig, OmegaConf
 
 from uncertainty_est.models import MODELS
 from uncertainty_est.data.dataloaders import get_dataloader
 
 
-ex = Experiment()
-seml.setup_logger(ex)
+@hydra.main(config_path="../configs", config_name="config")
+def run(cfg: DictConfig) -> None:
+    cfg = OmegaConf.to_container(cfg.fixed, resolve=True)
+    run_ex(**cfg, _run=cfg)
 
 
-@ex.post_run_hook
-def collect_stats(_run):
-    seml.collect_exp_stats(_run)
-
-
-@ex.config
-def config():
-    overwrite = None
-    db_collection = None
-    if db_collection is not None:
-        ex.observers.append(
-            seml.create_mongodb_observer(db_collection, overwrite=overwrite)
-        )
-
-
-@ex.main
-def run(
+def run_ex(
     trainer_config,
     model_name,
     model_config,
     dataset,
-    seed,
     batch_size,
     ood_dataset,
     earlystop_config,
     checkpoint_config,
     data_shape,
+    seed,
     _run,
     num_classes=1,
     sigma=0.0,
@@ -128,7 +114,7 @@ def run(
             print("Failed to create unique log folder. Trying again.")
 
     with (out_dir / "config.yaml").open("w") as f:
-        f.write(yaml.dump(_run.config))
+        f.write(yaml.dump(_run))
 
     callbacks = []
     callbacks.append(pl.callbacks.ModelCheckpoint(dirpath=out_dir, **checkpoint_config))
@@ -175,4 +161,4 @@ def run(
 
 
 if __name__ == "__main__":
-    ex.run_commandline()
+    run()

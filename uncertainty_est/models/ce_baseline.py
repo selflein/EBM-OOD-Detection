@@ -3,9 +3,6 @@ import torch.nn.functional as F
 
 from uncertainty_est.archs.arch_factory import get_arch
 from uncertainty_est.models.ood_detection_model import OODDetectionModel
-from uncertainty_est.models.priornet.uncertainties import (
-    dirichlet_prior_network_uncertainty,
-)
 
 
 class CEBaseline(OODDetectionModel):

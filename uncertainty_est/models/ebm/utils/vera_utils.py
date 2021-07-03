@@ -405,7 +405,7 @@ class VERAHMCGenerator(nn.Module):
         self.ar = 0.0
 
     def sample(self, n, requires_grad=False, return_mu=False, return_both=False):
-        """ sample x, h ~ q(x, h) """
+        """sample x, h ~ q(x, h)"""
         h = torch.randn((n, self.noise_dim)).to(next(self.parameters()).device)
         if requires_grad:
             h.requires_grad_()
@@ -581,7 +581,7 @@ class VERADiscreteGenerator(nn.Module):
         self.post_optimizer = torch.optim.Adam([self.post_logsigma], lr=post_lr)
 
     def sample(self, n, requires_grad=False):
-        """ sample x, h ~ q(x, h) """
+        """sample x, h ~ q(x, h)"""
         h = torch.randn((n, self.noise_dim)).to(next(self.parameters()).device)
         if requires_grad:
             h.requires_grad_()
