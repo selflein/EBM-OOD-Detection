@@ -2,7 +2,7 @@
 
 This repository contains the code for the experiments conducted in the paper
 
-> [On Out-of-distribution Detection with Energy-based Models]() \
+> [On Out-of-distribution Detection with Energy-based Models](https://arxiv.org/abs/2107.08785) \
 Sven Elflein, Bertrand Charpentier, Daniel Zügner, Stephan Günnemann \
 ICML 2021, Workshop on Uncertainty & Robustness in Deep Learning.
 
@@ -38,6 +38,20 @@ python uncertainty_est/evaluate.py --checkpoint-dir ./path/to/directory/with/mod
 
 This script generates CSVs with the respective OOD metrics.
 
+## Cite
+
+If you find our work helpful, please consider citing our paper in your own work.
+
+```
+@misc{elflein2021outofdistribution,
+      title={On Out-of-distribution Detection with Energy-based Models},
+      author={Sven Elflein and Bertrand Charpentier and Daniel Zügner and Stephan Günnemann},
+      year={2021},
+      eprint={2107.08785},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG}
+}
+```
 
 ## Acknowledgements
 
