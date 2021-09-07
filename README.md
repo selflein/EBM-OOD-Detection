@@ -20,6 +20,9 @@ conda activate env
 pip install git+https://github.com/selflein/nn_uncertainty_eval
 ```
 
+### Datasets
+The image datasets should download automatically. For "Sensorless Drive" and "Segment" pre-processed .csv files can be downloaded from the [PostNet repo](https://github.com/sharpenb/Posterior-Network#training--evaluation) under "Training & Evaluation".
+
 ## Training & Evaluation
 
 In order to train a model use the respective combination of configurations for dataset and model, e.g.,
