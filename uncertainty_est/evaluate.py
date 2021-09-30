@@ -6,6 +6,7 @@ from numpy.lib.arraysetops import isin
 sys.path.insert(0, os.getcwd())
 
 import logging
+from copy import copy
 from pathlib import Path
 from argparse import ArgumentParser
 
@@ -77,10 +78,13 @@ def eval_model(
 
 if __name__ == "__main__":
     args = parser.parse_args()
+    base_args = copy(args)
 
     ood_tbl_rows = []
     clf_tbl_rows = []
     for checkpoint in args.checkpoint:
+        # Reset args to original
+        args = copy(base_args)
         checkpoint_path = Path(checkpoint)
         model_name = checkpoint_path.parent.stem
 
@@ -111,6 +115,8 @@ if __name__ == "__main__":
     if args.checkpoint_dir:
         checkpoint_dir = Path(args.checkpoint_dir)
         for model_dir in checkpoint_dir.glob("**/version_*"):
+            # Reset args to original
+            args = copy(base_args)
             try:
                 model, config = load_model(model_dir, last=False, strict=False)
             except Exception as e:
